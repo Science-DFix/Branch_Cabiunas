@@ -20,7 +20,14 @@ referência na mesma composição. Pré-registrado, antes de ver qualquer result
                 (teste do sinal, p = 0,035 sob o nulo -- otimista, porque as
                 composições se sobrepõem e não são independentes), E
               - nenhuma composição perde detecção, e a régua de início e a banda
-                acionável não caem na mediana.
+                acionável não caem na mediana, E
+              - o FP/mês não sobe na mediana.
+
+  A terceira condição entrou DEPOIS do primeiro experimento (`cusum_memoria.py`,
+  28/09/2026): o teto do CUSUM derrubou as horas e SUBIU a contagem, porque
+  episódio mais curto se parte em mais episódios. Horas e contagem podem andar em
+  sentidos opostos. Endurecer a regra depois de ver um resultado não fabrica
+  acerto -- afrouxar fabricaria --, mas fica registrado que foi a posteriori.
 
 Não é um teste forte. É o mais forte que estes dados permitem, e é muito melhor
 que um ponto só.
@@ -42,6 +49,7 @@ with contextlib.redirect_stdout(io.StringIO()):
     import avalia as AV
     import drift_baseline as DB
     import drift_composicao as DC
+    from publica_clearml import CARGA
 
 DIAS = (1, 4, 8, 11, 15, 18, 22, 25)
 CACHE = Path(__file__).resolve().parent / "_cache_regua"
@@ -65,13 +73,61 @@ def sinais(dia: int) -> tuple[np.ndarray, ...]:
     return t, p, ms, ds
 
 
+# ══════════════════════════════════════════════════ CUSUM com memória limitada
+def cusum_var(x: np.ndarray, rst: np.ndarray, H: float,
+              modo: str = "nunca", par: float = 0.0) -> np.ndarray:
+    """O CUSUM do detector, com a memória opcionalmente limitada.
+
+      nunca : o atual -- S = max(0, S + x), sem teto; zera só na máscara
+      teto  : S <= par*H. Depois que a evidência some, o canal fica aceso no
+              máximo (par-1)*H/|x| amostras, em vez de proporcional ao pico
+      zero  : S volta a 0 ao passar de H (rezero ao sinalizar, carta clássica)
+      head  : S volta a par*H ao passar de H (headstart)
+
+    `nunca` usa a versão vetorizada do projeto. As outras precisam de laço,
+    porque o teto e o rezero quebram a forma fechada; `confere_cusum()` prova que
+    o laço com teto infinito é idêntico à versão vetorizada."""
+    if modo == "nunca":
+        return DB.cusum(x, rst)
+    xs, rs = x.tolist(), rst.tolist()
+    S = [0.0] * len(xs); a = 0.0; lim = par * H
+    for i in range(len(xs)):
+        if rs[i]:
+            a *= CARGA
+        else:
+            a = a + xs[i]
+            if a < 0.0:
+                a = 0.0
+            if modo == "teto" and a > lim:
+                a = lim
+        S[i] = a
+        if a > H:
+            if modo == "zero":
+                a = 0.0
+            elif modo == "head":
+                a = lim
+    return np.asarray(S)
+
+
+def confere_cusum() -> float:
+    """max|dif| entre o laço (teto infinito) e o CUSUM vetorizado do projeto."""
+    t, p, ms, ds = sinais(1)
+    E = pd.Series(t, index=idx).ewm(halflife=pd.Timedelta("1h"), times=idx).mean().where(mask)
+    thr = DB.BASE["t"] * DB.K_LO["t"]
+    x = ((E / thr).clip(upper=20) - DB.KAPPA).fillna(0.0).to_numpy()
+    return float(np.max(np.abs(cusum_var(x, DB.reset, DB.H_CUSUM, "teto", 1e18)
+                               - DB.cusum(x, DB.reset))))
+
+
 # ══════════════════════════════════════════════════ o detector, por dentro
-def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = ()) -> dict:
+def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
+             cusum: tuple[str, float] = ("nunca", 0.0)) -> dict:
     """O mesmo detector v2 de `drift_baseline.roda`, devolvendo o interior.
 
     `roda` só devolve o alarme final. Os experimentos precisam dos canais por
     nível (A sensível, B específico), dos votos e da força. `desliga` força
     canais a zero -- é assim que se mede se um canal é essencial num episódio.
+    `cusum` = (modo, par) de `cusum_var`; o padrão é o detector atual.
 
     A equivalência com `roda` é conferida em `confere_equivalencia()`: sem isso,
     um experimento poderia estar medindo outro detector."""
@@ -89,8 +145,8 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = ()) -> dict:
         E = EW[c].where(mask)
         deg = ((E > thr).astype(int).rolling(DB.SUSTAIN, min_periods=DB.SUSTAIN).sum()
                >= DB.SUSTAIN)
-        cu = pd.Series(DB.cusum(((E / thr).clip(upper=20) - DB.KAPPA).fillna(0.0).to_numpy(),
-                                DB.reset) > DB.H_CUSUM, index=idx)
+        x = ((E / thr).clip(upper=20) - DB.KAPPA).fillna(0.0).to_numpy()
+        cu = pd.Series(cusum_var(x, DB.reset, DB.H_CUSUM, *cusum) > DB.H_CUSUM, index=idx)
         return (deg | cu) & mask
 
     A = {c: canal(c, DB.K_LO[c]) for c in SIN}
@@ -172,15 +228,17 @@ def distribuicao(variante=None, dias=DIAS) -> pd.DataFrame:
     return pd.DataFrame(linhas).set_index("dia")
 
 
-def compara(variante, nome: str, dias=DIAS) -> dict:
+def compara(variante, nome: str, dias=DIAS, ref: pd.DataFrame | None = None) -> dict:
     """Pareado contra a referência, com a regra de aceite pré-registrada."""
-    ref, var = distribuicao(None, dias), distribuicao(variante, dias)
+    ref = distribuicao(None, dias) if ref is None else ref
+    var = distribuicao(variante, dias)
     dif = var - ref
     melhora = int((dif["carga_mes"] < -1e-9).sum())
     perde_det = int((dif["det"] < 0).sum())
     ok = (melhora >= 7 and perde_det == 0
           and var["inicio"].median() >= ref["inicio"].median()
-          and var["banda"].median() >= ref["banda"].median())
+          and var["banda"].median() >= ref["banda"].median()
+          and var["fp_mes"].median() <= ref["fp_mes"].median() + 1e-9)
     return dict(nome=nome, ref=ref, var=var, dif=dif, melhora=melhora,
                 perde_det=perde_det, aceito=bool(ok))
 
