@@ -48,9 +48,11 @@ import numpy as np, pandas as pd
 with contextlib.redirect_stdout(io.StringIO()):
     import avalia as AV
     import drift_baseline as DB
+    import pos_processamento as _PP
     import drift_composicao as DC
     from publica_clearml import CARGA
 
+DB.PP = _PP          # estavel e blk, para a entrada do EWMA
 DIAS = (1, 4, 8, 11, 15, 18, 22, 25)
 CACHE = Path(__file__).resolve().parent / "_cache_regua"
 JAN = pd.Timedelta(hours=48)
@@ -121,13 +123,17 @@ def confere_cusum() -> float:
 
 # ══════════════════════════════════════════════════ o detector, por dentro
 def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
-             cusum: tuple[str, float] = ("nunca", 0.0)) -> dict:
+             cusum: tuple[str, float] = ("nunca", 0.0),
+             ewma_vigiado: tuple[str, ...] = ()) -> dict:
     """O mesmo detector v2 de `drift_baseline.roda`, devolvendo o interior.
 
     `roda` só devolve o alarme final. Os experimentos precisam dos canais por
     nível (A sensível, B específico), dos votos e da força. `desliga` força
     canais a zero -- é assim que se mede se um canal é essencial num episódio.
     `cusum` = (modo, par) de `cusum_var`; o padrão é o detector atual.
+    `ewma_vigiado` = canais cujo EWMA só enxerga instantes vigiados. No detector
+    atual o EWMA é calculado sobre o sinal cru INTEIRO (parada e blackout
+    inclusive) e só depois mascarado -- ver `transiente_diagnostico.py`.
 
     A equivalência com `roda` é conferida em `confere_equivalencia()`: sem isso,
     um experimento poderia estar medindo outro detector."""
@@ -135,7 +141,11 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
     spv = np.abs((z["b_all"] - ms) / ds)
     cru = pd.DataFrame({"t": t, "p": p, "sp": spv,
                         "vb": DB.cru_pub["vb"].to_numpy()}, index=idx)
-    EW = {c: cru[c].ewm(halflife=pd.Timedelta(h), times=idx).mean()
+    # o que a máscara enxerga, sem o corte de avaliação (sel): a entrada do EWMA
+    # não pode depender de onde começa a régua
+    vig = (DB.PP.estavel & ~DB.PP.blk) if ewma_vigiado else None
+    EW = {c: (cru[c].where(vig) if c in ewma_vigiado else cru[c])
+              .ewm(halflife=pd.Timedelta(h), times=idx).mean()
           for c, h in DB.HL.items()}
 
     def canal(c, k):
