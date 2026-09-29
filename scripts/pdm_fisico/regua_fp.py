@@ -124,7 +124,9 @@ def confere_cusum() -> float:
 # ══════════════════════════════════════════════════ o detector, por dentro
 def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
              cusum: tuple[str, float] = ("nunca", 0.0),
-             ewma_vigiado: tuple[str, ...] = ()) -> dict:
+             ewma_vigiado: tuple[str, ...] = (),
+             blackout_h: float | None = None,
+             exige_transicao: bool = False) -> dict:
     """O mesmo detector v2 de `drift_baseline.roda`, devolvendo o interior.
 
     `roda` só devolve o alarme final. Os experimentos precisam dos canais por
@@ -134,9 +136,22 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
     `ewma_vigiado` = canais cujo EWMA só enxerga instantes vigiados. No detector
     atual o EWMA é calculado sobre o sinal cru INTEIRO (parada e blackout
     inclusive) e só depois mascarado -- ver `transiente_diagnostico.py`.
+    `blackout_h` = horas após cada partida em que o detector não enxerga (o
+    atual é 6). Muda a máscara e o reset do CUSUM DENTRO do detector; o
+    denominador das métricas (`mede`) continua o tempo de operação da
+    referência, para o FP/mês ser por mês de MÁQUINA, não de detector.
+    `exige_transicao` = um trecho de voto só vale se o detector o viu DESLIGADO
+    antes, por SUSTAIN amostras, depois de já estar armado. Ver `_transicao`.
 
     A equivalência com `roda` é conferida em `confere_equivalencia()`: sem isso,
     um experimento poderia estar medindo outro detector."""
+    if blackout_h is None:
+        m_d, rst = mask, DB.reset
+    else:
+        n_bl = int(round(blackout_h * 30))
+        blk_h = DB.PP.part.rolling(n_bl, min_periods=1).max().astype(bool)
+        m_d = DB.PP.estavel & ~blk_h & sel
+        rst = ((~m_d) | DB.PP.part).to_numpy()
     z = np.load("piso_fisico_cache.npz")
     spv = np.abs((z["b_all"] - ms) / ds)
     cru = pd.DataFrame({"t": t, "p": p, "sp": spv,
@@ -152,23 +167,58 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
         if c in desliga:
             return pd.Series(False, index=idx)
         thr = DB.BASE[c] * k
-        E = EW[c].where(mask)
+        E = EW[c].where(m_d)
         deg = ((E > thr).astype(int).rolling(DB.SUSTAIN, min_periods=DB.SUSTAIN).sum()
                >= DB.SUSTAIN)
         x = ((E / thr).clip(upper=20) - DB.KAPPA).fillna(0.0).to_numpy()
-        cu = pd.Series(cusum_var(x, DB.reset, DB.H_CUSUM, *cusum) > DB.H_CUSUM, index=idx)
-        return (deg | cu) & mask
+        cu = pd.Series(cusum_var(x, rst, DB.H_CUSUM, *cusum) > DB.H_CUSUM, index=idx)
+        return (deg | cu) & m_d
 
     A = {c: canal(c, DB.K_LO[c]) for c in SIN}
     B = {c: canal(c, DB.KH[c]) for c in SIN}
-    vA = pd.Series(sum(A[c].astype(int) for c in SIN) >= DB.VOTO_LO, index=idx) & mask
+    vA = pd.Series(sum(A[c].astype(int) for c in SIN) >= DB.VOTO_LO, index=idx) & m_d
     vB = (pd.Series(sum(B[c].astype(int) for c in SIN) >= DB.VOTO_HI, index=idx)
-          & mask & (B["sp"] | B["vb"]))
+          & m_d & (B["sp"] | B["vb"]))
     voto = vA | vB
-    F = pd.concat([EW[c].where(mask) / (DB.BASE[c] * DB.KH[c]) for c in SIN],
+    if exige_transicao:
+        voto = _transicao(voto, m_d)
+    F = pd.concat([EW[c].where(m_d) / (DB.BASE[c] * DB.KH[c]) for c in SIN],
                   axis=1).max(axis=1)
     fin = _pos(voto, F)
     return dict(A=A, B=B, vA=vA, vB=vB, voto=voto, F=F, EW=EW, fin=fin)
+
+
+def _transicao(voto: pd.Series, m_d: pd.Series) -> pd.Series:
+    """Só vale o trecho de voto que o detector VIU nascer.
+
+    Metade dos episódios nasce no instante em que a máscara abre, qualquer que
+    seja o blackout (6, 24, 32 ou 48 h -- `regimes.py`): como vb e sp ficam
+    acesos a maior parte do tempo normal, o detector, ao começar a olhar, já
+    encontra o voto ligado. O horário desse nascimento é ditado pela máscara.
+
+    Regra: dentro de cada trecho vigiado, as primeiras SUSTAIN amostras são de
+    armar (o degrau ainda não pode acender). Depois disso, um trecho de voto só
+    é aceito se foi precedido por SUSTAIN amostras armadas com o voto DESLIGADO.
+    Sem parâmetro novo: reusa o SUSTAIN."""
+    v = voto.to_numpy(); m = m_d.to_numpy(); out = np.zeros(len(v), dtype=bool)
+    n = DB.SUSTAIN
+    ini = np.flatnonzero(m & ~np.concatenate(([False], m[:-1])))
+    fim = np.flatnonzero(m & ~np.concatenate((m[1:], [False]))) + 1
+    vl = v.tolist()
+    for s, e in zip(ini, fim):
+        off, vale, ant = 0, False, False
+        for j in range(s, e):
+            if vl[j]:
+                if not ant:                       # nasce um trecho de voto
+                    vale = off >= n
+                if vale:
+                    out[j] = True
+                off = 0
+            else:
+                if j - s >= n:                    # já armado: o desligado conta
+                    off += 1
+            ant = vl[j]
+    return pd.Series(out, index=voto.index)
 
 
 def _pos(voto: pd.Series, F: pd.Series) -> pd.Series:
