@@ -27,6 +27,19 @@ Selecao pelos criterios do projeto, nao pelo otimo nos 8 eventos:
   - HOLDOUT TEMPORAL (validacao_temporal.py): escolhe f so com o que aconteceu
     antes de 01/07/2025 e mede depois.
 
+RESULTADO (30/09/2026, task experimento::cva_D_no_detector, 714b397e) -- REFUTADO.
+Controle reproduzido (8/8 · 6/8 · 5/8 · 0,344). O D alcanca a MESMA cobertura do
+PCA no otimo pontual (banda 5/8, inicio 6/8, det 8/8), mas a 1,29-1,38 FP/mes e
+190-230 h/mes de carga, contra 0,344 e 48,9: quatro a cinco vezes o custo.
+Nenhum braco (t e p, so t, so p) supera o PCA no otimo, no minimax ou no
+holdout temporal (empate ou pior em 3 eventos futuros). E o padrao do
+DETECTOR_V2 §7: canal melhor isolado nao e detector melhor -- a camada de
+decisao ja segura o FP do PCA, e o que o D traz vem com mais alarme que trip.
+Nao repetir sem informacao nova. Ressalva: este minimax escala t e p juntos em
+passos de 30-40%, mais duro que o de ponto_de_deploy.py -- vale entre bracos,
+nao como nova medida do ponto publicado. Seguimento: filtro_cva_d.py (o D como
+veto de episodio, nao como canal).
+
 Uso (de dentro de scripts/pdm_fisico, com grade2min.parquet, falhas.csv e
 piso_fisico_cache.npz no diretorio -- ou --dataset-id para baixar):
     python experimento_cva_detector.py
