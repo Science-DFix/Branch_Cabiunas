@@ -103,11 +103,19 @@ ESC_IDADE, ESC_ABS, ESC_DUR = 96, 20.0, 60   # escalada por idade: reanuncio de
 TMIN_BANDA = 4.0       # piso de acionabilidade, ver [[banda-de-acionabilidade]]
 
 
-def reproduz(v2: bool = True):
+def reproduz(v2: bool = True, sinais: dict | None = None,
+             K_: dict | None = None, K_LO_: dict | None = None):
     """Recalcula sinais -> EWMA -> degrau|CUSUM -> voto -> refratario -> duracao.
 
     v2=True  : gatilho de dois niveis + escalada por idade (ponto adotado em 11/09/2026)
-    v2=False : ponto v1, um nivel so (o que estava publicado)"""
+    v2=False : ponto v1, um nivel so (o que estava publicado)
+
+    sinais, K_, K_LO_: substituem canais do cache (ex. {"t": array}) e os
+    multiplicadores dos dois niveis. Sem eles, o ponto publicado -- e para
+    experimentos de TROCA DE SINAL mantendo a camada de decisao intacta
+    (experimento_cva_detector.py)."""
+    K = K_ if K_ is not None else globals()["K"]
+    K_LO = K_LO_ if K_LO_ is not None else globals()["K_LO"]
     g = pd.read_parquet("grade2min.parquet")
     idx = g.index
     op = (g["RUNNING_A"] > 0.5).fillna(False)
@@ -129,6 +137,8 @@ def reproduz(v2: bool = True):
     vbz[z["hot"]] = np.nanmax(np.where(np.isfinite(Z), Z, -np.inf), axis=1)
     vbz[~np.isfinite(vbz)] = np.nan
     out = pd.DataFrame({"t": z["t"], "p": z["p"], "sp": sp, "vb": vbz}, index=idx)
+    for c, v in (sinais or {}).items():
+        out[c] = np.asarray(v, dtype="float64")
 
     E = {c: out[c].ewm(halflife=pd.Timedelta(h), times=idx).mean().where(mask)
          for c, h in HL.items()}
@@ -273,9 +283,24 @@ def main():
     args = ap.parse_args()
 
     al, mask, alvo, ON, idx, sel = reproduz(v2=not args.v1)
+    res, tab_ev, tab_fp = metricas(al, mask, alvo, sel)
+    lo = loeo_aninhado(alvo)
+    if lo:
+        res["loeo_aninhado"] = f"{lo[0]}/{lo[1]}"
+        res["loeo_frac"] = lo[0] / lo[1]
+        res["loeo_eventos_perdidos"] = ",".join(lo[5])
+        res["loeo_evento_mais_fragil"] = f'{lo[4].iloc[0]["evento"]} ({lo[4].iloc[0]["fracao"]:.0%} das configs no orcamento)'
+    _publica(args, res, tab_ev, tab_fp, lo)
+
+
+def metricas(al, mask, alvo, sel, permutacao: bool = True):
+    """As tres reguas, a Regra C, a carga e os leads de uma serie de alarme.
+    Extraido do main() sem mudar uma conta: o main e o experimento de troca de
+    sinal medem com o mesmo codigo."""
     quente = mask & sel
     m = AV.avalia(al, alvo, quente)
-    perm = AV.permuta(al, quente, m["det"], len(alvo))
+    perm = (AV.permuta(al, quente, m["det"], len(alvo)) if permutacao
+            else {"nulo": float("nan"), "p": float("nan"), "cobertura": float("nan")})
     eps = AV.episodios(al)
     jan = [(t - pd.Timedelta(hours=48), t) for t in alvo]
     fps = [(a, b) for a, b in eps if not any(a <= t1 and b >= t0 for t0, t1 in jan)]
@@ -292,7 +317,8 @@ def main():
     tab_ev = pd.DataFrame(linhas)
     tab_fp = pd.DataFrame([dict(inicio=str(a), fim=str(b),
                                 horas=round((b - a).total_seconds() / 3600 + 2 / 60, 2))
-                           for a, b in fps]).sort_values("horas", ascending=False)
+                           for a, b in fps], columns=["inicio", "fim", "horas"]
+                          ).sort_values("horas", ascending=False)
 
     # regua de INICIO (a usada pelas outras equipes) e BANDA ACIONAVEL.
     # A regua "de pe" credita deteccao quando o alarme esta ativo na janela; a de
@@ -317,7 +343,6 @@ def main():
     h_fp_c = sum((b - a).total_seconds()/3600 for a, b, k, _ in cls if k == "FP")
     h_neutro = sum((b - a).total_seconds()/3600 for a, b, k, _ in cls if k == "NEUTRO")
 
-    lo = loeo_aninhado(alvo)
     meses = m["horas_op"] / 730.0
     res = {
         "recall": f'{m["det"]}/{m["n_ev"]}',
@@ -355,12 +380,10 @@ def main():
         "permut_cobertura": round(perm["cobertura"], 4),
         "maior_fp_pct_das_horas": round(100 * tab_fp["horas"].iloc[0] / tab_fp["horas"].sum(), 1) if len(tab_fp) else 0.0,
     }
-    if lo:
-        res["loeo_aninhado"] = f"{lo[0]}/{lo[1]}"
-        res["loeo_frac"] = lo[0] / lo[1]
-        res["loeo_eventos_perdidos"] = ",".join(lo[5])
-        res["loeo_evento_mais_fragil"] = f'{lo[4].iloc[0]["evento"]} ({lo[4].iloc[0]["fracao"]:.0%} das configs no orcamento)'
+    return res, tab_ev, tab_fp
 
+
+def _publica(args, res, tab_ev, tab_fp, lo):
     print(json.dumps(res, indent=1, ensure_ascii=False), flush=True)
     print("\n--- por evento ---\n", tab_ev.to_string(index=False), flush=True)
     print("\n--- falsos positivos ---\n", tab_fp.to_string(index=False), flush=True)
