@@ -126,7 +126,8 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
              cusum: tuple[str, float] = ("nunca", 0.0),
              ewma_vigiado: tuple[str, ...] = (),
              blackout_h: float | None = None,
-             exige_transicao: bool = False) -> dict:
+             exige_transicao: bool = False,
+             reset_extra: np.ndarray | None = None) -> dict:
     """O mesmo detector v2 de `drift_baseline.roda`, devolvendo o interior.
 
     `roda` só devolve o alarme final. Os experimentos precisam dos canais por
@@ -140,6 +141,9 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
     atual é 6). Muda a máscara e o reset do CUSUM DENTRO do detector; o
     denominador das métricas (`mede`) continua o tempo de operação da
     referência, para o FP/mês ser por mês de MÁQUINA, não de detector.
+    `reset_extra` = instantes adicionais em que o CUSUM é reiniciado (acumulador
+    multiplicado por CARGA a cada instante marcado). Serve para descartar a
+    evidência acumulada contra uma referência que acabou de ser trocada.
     `exige_transicao` = um trecho de voto só vale se o detector o viu DESLIGADO
     antes, por SUSTAIN amostras, depois de já estar armado. Ver `_transicao`.
 
@@ -152,6 +156,8 @@ def detector(t, p, ms, ds, *, desliga: tuple[str, ...] = (),
         blk_h = DB.PP.part.rolling(n_bl, min_periods=1).max().astype(bool)
         m_d = DB.PP.estavel & ~blk_h & sel
         rst = ((~m_d) | DB.PP.part).to_numpy()
+    if reset_extra is not None:
+        rst = rst | np.asarray(reset_extra, dtype=bool)
     z = np.load("piso_fisico_cache.npz")
     spv = np.abs((z["b_all"] - ms) / ds)
     cru = pd.DataFrame({"t": t, "p": p, "sp": spv,

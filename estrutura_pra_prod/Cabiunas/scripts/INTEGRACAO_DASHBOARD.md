@@ -183,6 +183,28 @@ O dashboard deve alertar a partir de ~15 dias restantes.
 
 ---
 
+### 4º campo: `observabilidade.drift_dados`
+
+Diz se a referência de "normal" do modelo em vigor ainda representa os sensores.
+**Não muda nenhum alarme**; avisa a equipe.
+
+| veredito | significa | o que fazer |
+|---|---|---|
+| `ok` | o baseline representa os sensores | nada |
+| `atencao` | uma tag passou de 10σ na última semana | acompanhar; pode ser a própria máquina |
+| `degrau_persistente` | uma tag está acima de 10σ há duas semanas, no mesmo sentido | confirmar com a instrumentação: troca, rezero ou regime novo |
+| `sem_dado` | menos de 1 dia vigiado na última semana | nada |
+
+Por que existe: a máquina volta de cada manutenção com um "normal" novo em muitos
+sensores de uma vez, e o retreino mensal leva até um mês para absorver. Em nov/2025
+o diferencial do filtro de gás de selagem foi de +0,245 para −0,400 kgf/cm² depois
+da manutenção, e o canal `p` ficou aceso 96 % do mês. O monitor teria dado
+`degrau_persistente` em 26/11. O campo traz também a data da última manutenção
+(modo manutenção ligado ≥ 24 h, lido da tag `HSX_6240001A`).
+
+Calibrado em 62 semanas de 2025–2026: 10σ numa semana só acontece em 11 % delas;
+a persistência de duas semanas é o que separa troca de instrumento de anomalia real.
+
 ## 4. Como a integração deve ser feita
 
 Recomendação, não contrato — o desenho que eu defenderia numa revisão de projeto,
