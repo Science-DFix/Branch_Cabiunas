@@ -26,6 +26,34 @@ metricas). O controle -- unico no dia 1 -- tem de dar 8/8 · 6/8 · 5/8 · 0,344
 
 Criterio: o PIOR dia de corte e a dispersao entre dias, nao o melhor numero.
 
+RESULTADO (30/09/2026, task geladeira::robustez_do_retreino, 6741a88e) --
+o ensemble NAO remedia, e a leitura da fragilidade muda.
+
+    variante   banda pior  inicio pior  det pior  FP/mes pior  h FP pior  carga pior
+    unico          3/8         4/8        5/8        0,947       154,6      184,5
+    janelas        4/8         6/8        6/8        1,206       143,2      210,3
+    tamanhos       3/8         4/8        5/8        1,033       148,0      189,2
+
+O unico reproduz o drift_composicao (dia 8: 5/8 e 77,3 h; dia 15: 154,6 h). O
+ensemble de janelas melhora o pior caso de banda/inicio/deteccao mas piora FP e
+carga; o de tamanhos nao melhora nada. E os dois PIORAM o dia 1 (8/8 -> 7/8,
+6,6 -> 31-33 h/mes).
+
+A LEITURA QUE MUDA. O dia 1 nao e um sorteio feliz de composicao: e o unico
+IN-SAMPLE. Todos os limiares do v2 (756 configuracoes, vizinhanca de onze
+parametros, minimax) foram escolhidos sobre os sinais do corte no dia 1.
+Deslocar o corte -- ou fazer ensemble -- produz OUTRA realizacao do mesmo sinal,
+e os limiares nao sao dela. O que drift_composicao mediu como "sensibilidade a
+composicao" e, em boa parte, o sobreajuste dos limiares a uma realizacao.
+
+Por isso o ensemble nao tinha como ganhar a limiar fixo: ele tambem e fora da
+amostra. Reajustar limiares no ensemble reproduziria o mesmo sobreajuste.
+
+CONSEQUENCIA PARA O NUMERO A CITAR. Nos tres cortes fora da amostra (8, 15, 22)
+o detector entrega banda 3-5/8, 0,69-0,95 FP/mes e 77-155 h/mes de alarme
+falso. A mediana dos quatro cortes -- 0,82 FP/mes, 77 h/mes, carga 117 h/mes --
+e uma estimativa mais honesta do que producao vera do que 0,344 / 6,6 / 48,9.
+
 Uso (de dentro de scripts/pdm_fisico, com os dados):
     python robustez_retreino.py
     python robustez_retreino.py --clearml --remote     # como task no TesteMLCab
