@@ -24,6 +24,31 @@ Grade (fatores sobre os limiares do v2, preservando a estrutura de dois niveis):
 Publicado = (1, 1, 1). Criterio lexicografico no pior caso: banda, inicio,
 deteccao, depois menor FP/mes e menor carga.
 
+RESULTADO (30/09/2026, task geladeira::limiares_robustos_ao_retreino, 40a2d013)
+-- REFUTADO, e corrige a leitura do robustez_retreino.py.
+
+Selecao: nenhum dos 63 pontos tem pior caso acima de banda 3/8 · inicio 4/8 --
+o mesmo pior caso do publicado. O escolhido (+15% nos dois niveis) so ganha
+deteccao de pior caso (6/8 contra 5/8).
+
+Teste nos cortes 4/11/18/25, nunca vistos (pior / mediana):
+
+               banda    inicio   det   FP/mes         carga h/mes
+    publicado  2 / 4    3 / 5,5   5    1,03 / 0,90    180 / 149
+    robusto    2 / 3    3 / 4     4    0,95 / 0,78    155 / 102
+
+O robusto so TROCA deteccao por custo; pela ordem do projeto (deteccao primeiro)
+nao e melhor. E no dia 1 cairia para det 6/8, banda 3/8.
+
+A LEITURA CORRIGIDA. Se a fragilidade do retreino fosse sobreajuste dos
+limiares, limiares escolhidos pelo pior caso recuperariam as realizacoes novas.
+Nao recuperam: com qualquer limiar da grade o pior caso fica em banda 2-3/8. A
+instabilidade e do SINAL -- cada baseline mensal gera uma estrutura de alarme
+diferente, e nenhum limiar compensa. Coerente com "o teto e dos sinais".
+
+EXPECTATIVA DE PRODUCAO do ponto publicado, em retreinos nunca vistos: banda 2-5/8
+(mediana 4), inicio 3-7/8 (5,5), 0,6-1,03 FP/mes (0,9), carga 123-180 h/mes (149).
+
 Uso (de dentro de scripts/pdm_fisico, com os dados):
     python limiares_robustos.py
     python limiares_robustos.py --clearml --remote

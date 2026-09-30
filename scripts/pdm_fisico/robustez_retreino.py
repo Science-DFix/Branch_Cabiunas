@@ -39,6 +39,11 @@ ensemble de janelas melhora o pior caso de banda/inicio/deteccao mas piora FP e
 carga; o de tamanhos nao melhora nada. E os dois PIORAM o dia 1 (8/8 -> 7/8,
 6,6 -> 31-33 h/mes).
 
+CORRECAO POSTERIOR (limiares_robustos.py, mesmo dia): a leitura abaixo e
+PARCIAL. Limiares escolhidos pelo pior caso entre retreinos NAO recuperam as
+realizacoes novas -- a instabilidade e do sinal, nao so dos limiares. O que
+continua valendo: o dia 1 e in-sample e o numero publicado e otimista.
+
 A LEITURA QUE MUDA. O dia 1 nao e um sorteio feliz de composicao: e o unico
 IN-SAMPLE. Todos os limiares do v2 (756 configuracoes, vizinhanca de onze
 parametros, minimax) foram escolhidos sobre os sinais do corte no dia 1.
