@@ -24,6 +24,30 @@ segundo estagio de protecao), entao um alarme antes dele entra na Regra C como
 NEUTRO, nao como acerto. Ele e reportado a parte: nasceu em [t-48h, t]? E em
 [t-48h, t-4h] (banda)? Os 8 oficiais seguem nas tres reguas.
 
+RESULTADO (30/09/2026, task geladeira::nivel_c_canal_unico, c1eace0e) -- REFUTADO.
+Zero de 20 configuracoes (fator 2-6x, 6-36 h) antecipam o 24/11 na regua de
+inicio. O nivel C DISPARA -- episodio de 19/11 23:28 a 23/11 10:12 no 6x/6h --
+mas nasce 82 h antes da parada, fora da janela.
+
+POR QUE, e e estrutural. A maquina parou no trip oficial de 04/11 e so voltou em
+15/11 20:32. Da PRIMEIRA amostra apos o religamento ate a parada de 24/11, o p
+fica constante em 6-8x o limiar do nivel B, oito dias seguidos. Nao e precursor
+que se desenvolve nas 48 h finais: e um DEGRAU DE NIVEL na volta da manutencao,
+contra um baseline mensal ajustado antes do trip. Nenhum gatilho pode fazer
+nascer dentro de [t-48h, t] uma condicao que comecou 8 dias antes -- e o mesmo
+limite do 17/03 (precursor lento). Nem a regua "de pe" credita: o episodio C
+termina 23 h antes da parada.
+
+Custo nos 8 oficiais: com fator >= 4 as reguas e o FP ficam intactos (5/8 · 6/8
+· 8/8 · 0,344), mas a carga sobe de 48,9 para 53-68 h/mes; abaixo de 4 a banda
+cai para 3-4/8. Nada a ganhar.
+
+Hipotese que sai daqui, NAO testada: o baseline mensal fica velho depois de
+parada longa/manutencao (aqui, 11 dias). Retreino disparado pelo religamento
+apos parada longa mudaria o p em 16-24/11 -- mas com UM caso nao da para dizer
+se isso esconderia um precursor real (pressao de oleo antes de alarme de
+pressao baixa de oleo) ou um artefato de regime.
+
 Uso (de dentro de scripts/pdm_fisico, com os dados):
     python nivel_c_canal_unico.py
     python nivel_c_canal_unico.py --clearml --remote
