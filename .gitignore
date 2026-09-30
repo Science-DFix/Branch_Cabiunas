@@ -32,3 +32,5 @@ scripts/pdm_fisico/falhas.csv
 scripts/pdm_fisico/*.npz
 scripts/pdm_fisico/experimento_cva_grade.csv
 scripts/pdm_fisico/busca_conjunta.csv
+
+scripts/pdm_fisico/robustez_retreino.csv
