@@ -327,13 +327,15 @@ def inicia_clearml(a):
     """Task no ClearML. Com --remote, enfileira e ENCERRA este processo.
 
     O worker clona o repositorio no commit registrado (mais o diff nao
-    commitado) e roda este mesmo comando. Os scorers sao importados por
-    importlib, entao o ClearML nao os enxerga na varredura de imports: as
-    dependencias vao declaradas, SEM pino de versao -- fixar a versao desta
-    maquina foi o que quebrou a primeira tentativa do roda_clearml.py."""
+    commitado) e roda este mesmo comando.
+
+    Dependencias: a lista inteira e SUBSTITUIDA por set_packages, sem pino de
+    versao. O ClearML, sozinho, congela as versoes desta maquina (Python 3.13,
+    numpy 2.3) -- a imagem do worker e Python 3.11 com o numpy < 2 do
+    TensorFlow, e a primeira task morreu no pip. Mesma licao do
+    roda_clearml.py. Os scorers entram por importlib e nao seriam detectados de
+    qualquer forma."""
     from clearml import Task
-    for pkg in ("numpy", "pandas", "scipy", "scikit-learn", "pyarrow"):
-        Task.add_requirements(pkg)
     scorer = "DemoPCA" if a.demo else (a.scorer or "?").split(":")[-1]
     fam = "demo" if a.demo else (a.familia or "tags")
     nome = a.nome or f"avalia_normalidade::{fam}::{scorer}::{a.col or 'score'}"
@@ -341,6 +343,7 @@ def inicia_clearml(a):
                      task_type=Task.TaskTypes.qc, reuse_last_task_id=False,
                      auto_connect_frameworks=False)
     task.set_base_docker(docker_image=IMAGEM)
+    task.set_packages(["numpy", "pandas", "scipy", "scikit-learn", "pyarrow", "clearml"])
     task.add_tags(["avalia-normalidade", fam, scorer, a.col or "score"])
     if a.remote:
         if not (a.demo or a.dataset_id):
