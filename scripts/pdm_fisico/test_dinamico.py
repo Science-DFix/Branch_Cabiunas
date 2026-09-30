@@ -118,6 +118,14 @@ def test_posicao_reinicia_em_buraco_e_nan():
     assert _posicao_no_trecho(idx, ok).tolist() == [0, 1, 2, 0, -1]
 
 
+def test_posicao_independe_da_resolucao_do_indice():
+    """O parquet do detector vem em datetime64[us]; o sintetico, em ns."""
+    idx = pd.date_range("2025-01-01", periods=5, freq="2min", tz="UTC")
+    ok = np.ones(5, bool)
+    for unidade in ("ns", "us", "ms", "s"):
+        assert _posicao_no_trecho(idx.as_unit(unidade), ok).tolist() == [0, 1, 2, 3, 4]
+
+
 def test_sfa_nao_deriva_atraves_de_buraco(sfa):
     X = gera_normal(1000)
     X = pd.concat([X.iloc[:500], X.iloc[600:] + 0.0])    # buraco de 200 min

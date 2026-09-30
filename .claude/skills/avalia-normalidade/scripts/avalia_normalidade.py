@@ -319,6 +319,70 @@ class DemoPCA:
         return pd.DataFrame({"score": r}, index=X.index)
 
 
+# ──────────────────────────────────────────────────────────── clearml
+IMAGEM = "tensorflow/tensorflow:2.16.1-gpu"   # a mesma do resto do repositorio
+
+
+def inicia_clearml(a):
+    """Task no ClearML. Com --remote, enfileira e ENCERRA este processo.
+
+    O worker clona o repositorio no commit registrado (mais o diff nao
+    commitado) e roda este mesmo comando. Os scorers sao importados por
+    importlib, entao o ClearML nao os enxerga na varredura de imports: as
+    dependencias vao declaradas, SEM pino de versao -- fixar a versao desta
+    maquina foi o que quebrou a primeira tentativa do roda_clearml.py."""
+    from clearml import Task
+    for pkg in ("numpy", "pandas", "scipy", "scikit-learn", "pyarrow"):
+        Task.add_requirements(pkg)
+    scorer = "DemoPCA" if a.demo else (a.scorer or "?").split(":")[-1]
+    fam = "demo" if a.demo else (a.familia or "tags")
+    nome = a.nome or f"avalia_normalidade::{fam}::{scorer}::{a.col or 'score'}"
+    task = Task.init(project_name=a.projeto, task_name=nome,
+                     task_type=Task.TaskTypes.qc, reuse_last_task_id=False,
+                     auto_connect_frameworks=False)
+    task.set_base_docker(docker_image=IMAGEM)
+    task.add_tags(["avalia-normalidade", fam, scorer, a.col or "score"])
+    if a.remote:
+        if not (a.demo or a.dataset_id):
+            raise SystemExit("--remote precisa de --dataset-id: o worker nao tem o seu disco")
+        task.execute_remotely(queue_name=a.fila, exit_process=True)
+    return task
+
+
+def publica_clearml(task, G, C, S, sep, ver, saida):
+    """Tabelas L1-L5 no painel, metricas-resumo como valores unicos (para
+    comparar tasks lado a lado na UI) e o JSON completo como artefato."""
+    lg = task.get_logger()
+    lg.report_table("L1+L3 generalizacao", "por mes", iteration=0, table_plot=G.round(4))
+    lg.report_table("L2 curva", "por n_fit", iteration=0, table_plot=C.round(4))
+    if not S.empty:
+        lg.report_table("L4 sensibilidade", "injecao sintetica", iteration=0, table_plot=S.round(3))
+    for _, r in G.iterrows():                       # a "curva" de validacao no tempo
+        i = int(pd.Timestamp(r["mes"]).strftime("%Y%m"))
+        lg.report_scalar("excedencia", "treino", iteration=i, value=float(r["exc_treino"]))
+        lg.report_scalar("excedencia", "validacao", iteration=i, value=float(r["exc_val"]))
+    for _, r in C.dropna(subset=["exc_val"]).iterrows():
+        lg.report_scalar("curva de aprendizado", "excedencia validacao",
+                         iteration=int(r["n_fit"]), value=float(r["exc_val"]))
+    resumo = {"exc_val_mediana": G["exc_val"].median(),
+              "razao_med_mediana": G["razao_med"].median(),
+              "angulo_max_mediano": G["angulo_max_graus"].median()}
+    if not S.empty:
+        d = S[(S.tipo == "degrau") & (S.taxa_det >= 0.8)]
+        resumo["degrau_80pct_mad"] = float(d.mag.min()) if len(d) else float("nan")
+        r3 = S[(S.tipo == "rampa") & (S.mag == 3)]
+        if len(r3):
+            resumo["rampa3_taxa_det"] = float(r3.taxa_det.iloc[0])
+    if sep:
+        resumo.update(auc=sep["auc"], p_perm=sep["p_perm"], enriquecimento=sep["enriquecimento"])
+    for k, v in resumo.items():
+        if v is not None and np.isfinite(v):
+            lg.report_single_value(k, float(v))
+    task.upload_artifact("avaliacao", artifact_object=saida)
+    task.set_comment("\n".join(ver))
+    task.flush(wait_for_uploads=True)
+
+
 # ──────────────────────────────────────────────────────────── main
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -341,7 +405,15 @@ def main():
     ap.add_argument("--desde", help="avaliar so meses a partir desta data (ex. 2025-01-01)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--saida", default="avaliacao_normalidade.json")
+    ap.add_argument("--clearml", action="store_true",
+                    help="registra como task no ClearML (projeto --projeto)")
+    ap.add_argument("--remote", action="store_true",
+                    help="com --clearml: enfileira em --fila e sai; o worker roda")
+    ap.add_argument("--projeto", default="TesteMLCab")
+    ap.add_argument("--fila", default="default")
+    ap.add_argument("--nome", help="nome da task (padrao: familia::scorer::col)")
     a = ap.parse_args()
+    task = inicia_clearml(a) if (a.clearml or a.remote) else None
 
     if a.demo:
         df, tags = demo_dados(a.seed)
@@ -408,6 +480,8 @@ def main():
         sensibilidade=S.to_dict("records"), separacao=sep, veredito=ver,
         args=vars(a)), indent=1, default=str), encoding="utf-8")
     print(f"\nJSON: {a.saida}")
+    if task is not None:
+        publica_clearml(task, G, C, S, sep, ver, a.saida)
 
 
 if __name__ == "__main__":

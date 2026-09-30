@@ -62,7 +62,10 @@ def _posicao_no_trecho(idx: pd.DatetimeIndex, ok: np.ndarray) -> np.ndarray:
     pos = np.full(n, -1, dtype=np.int64)
     if n == 0:
         return pos
-    dt_ok = np.concatenate(([False], np.diff(idx.asi8) == PASSO.value))
+    # Diferenca como Timedelta, nao via asi8: o parquet do detector vem em
+    # datetime64[us] e asi8 devolve a unidade NATIVA -- comparar com PASSO.value
+    # (ns) marcava todo passo como buraco e nenhum trecho existia.
+    dt_ok = np.concatenate(([False], np.asarray((idx[1:] - idx[:-1]) == PASSO)))
     cont = 0
     for i in range(n):
         if not ok[i]:
@@ -105,14 +108,19 @@ class ScorerSFA:
          residual a caracteristica MAIS RAPIDA que a variavel de entrada mais
          rapida -- nao carrega nada que alguma entrada nao tenha, e ruido.
 
-    `n_lentas` fixa M a mao (None = criterio acima). `var_branco` descarta
-    direcoes de variancia desprezivel antes de branquear -- sem isso o
-    branqueamento da peso igual a ruido numerico.
+    `n_lentas` fixa M a mao (None = criterio acima). `piso_rel` descarta so
+    direcoes NUMERICAMENTE degeneradas (autovalor < piso_rel x o maior).
+
+    Nao cortar por fracao de variancia: a primeira versao usava 99,9% e, na
+    pressao real, ficou com 2 de 12 direcoes -- tags quase constantes tem IQR
+    minusculo, o RobustScaler as infla e elas concentram a variancia. As 10
+    direcoes cortadas somem do SFA (nao ha estatistica de residuo para elas),
+    ou seja, 10 sensores ficariam invisiveis. O SFA classico branqueia tudo.
     """
 
-    def __init__(self, n_lentas: int | None = None, var_branco: float = 0.999):
+    def __init__(self, n_lentas: int | None = None, piso_rel: float = 1e-6):
         self.n_lentas = n_lentas
-        self.var_branco = var_branco
+        self.piso_rel = piso_rel
 
     # --- fit ---
     def fit(self, baseline: pd.DataFrame) -> "ScorerSFA":
@@ -125,8 +133,7 @@ class ScorerSFA:
         C = np.cov(X, rowvar=False)
         w, U = np.linalg.eigh(C)
         w, U = w[::-1], U[:, ::-1]
-        k = int(np.searchsorted(np.cumsum(w) / w.sum(), self.var_branco) + 1)
-        k = min(max(k, 2), len(w))
+        k = max(int(np.sum(w > self.piso_rel * w[0])), 2)
         self.W = U[:, :k] / np.sqrt(w[:k])            # x -> z branqueado (d x k)
         Z = X @ self.W
 
