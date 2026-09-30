@@ -343,7 +343,11 @@ def inicia_clearml(a):
                      task_type=Task.TaskTypes.qc, reuse_last_task_id=False,
                      auto_connect_frameworks=False)
     task.set_base_docker(docker_image=IMAGEM)
-    task.set_packages(["numpy", "pandas", "scipy", "scikit-learn", "pyarrow", "clearml"])
+    # tzdata: a imagem do TensorFlow nao traz banco de fusos, e o pandas 3 com
+    # pyarrow converte o indice UTC do parquet via zoneinfo -- sem ele, falha
+    # na leitura (o roda_clearml.py trazia pytz pelo mesmo motivo, no pandas 2)
+    task.set_packages(["numpy", "pandas", "scipy", "scikit-learn", "pyarrow",
+                       "tzdata", "clearml"])
     task.add_tags(["avalia-normalidade", fam, scorer, a.col or "score"])
     if a.remote:
         if not (a.demo or a.dataset_id):
