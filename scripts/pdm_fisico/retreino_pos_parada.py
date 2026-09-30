@@ -22,6 +22,21 @@ Protocolo -- o mesmo do limiares_robustos.py, para nao se enganar:
 Risco conhecido: o baseline pos-religamento tem so H*30 pontos (720 a 2.160,
 contra 20.000), entao o PCA e o p99 de normalizacao ficam mais ruidosos.
 
+RESULTADO (30/09/2026, task geladeira::retreino_pos_parada, 4b4f161a) -- REFUTADO.
+Toda variante e PIOR que nao retreinar, na selecao e no teste:
+
+    selecao (1/8/15/22)   banda pior/med   FP/mes pior/med   carga pior/med
+    sem retreino evento       3 / 4,5        0,95 / 0,82       185 / 117
+    S=72 H=72 (melhor)        3 / 3,5        1,12 / 0,95       210 / 163
+    S=24 H=24                 2 / 3          1,29 / 1,03       284 / 244
+
+    teste (4/11/18/25)    sem: 2/4 · 1,03/0,90 · 180/149   S72H72: 2/3,5 · 1,12/0,95 · 184/173
+
+Monotonico: mais retreinos (S e H menores) -> mais FP e mais carga. O risco
+previsto se confirmou: o baseline pos-religamento (720-2.160 pontos contra
+20.000) e ruidoso demais, e medir contra referencia instavel gera mais alarme do
+que o regime novo evita. O degrau pos-manutencao do 24/11 nao se resolve assim.
+
 Uso (de dentro de scripts/pdm_fisico, com os dados):
     python retreino_pos_parada.py
     python retreino_pos_parada.py --clearml --remote
