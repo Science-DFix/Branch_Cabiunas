@@ -27,3 +27,8 @@ __pycache__/
 # caches locais do pdm_fisico (regeraveis por build_cache.py / diego_stack.py)
 scripts/pdm_fisico/*.parquet
 scripts/pdm_fisico/falhas.csv
+
+# caches e saidas regeneraveis do experimento de troca de sinal (e links para o dataset ClearML)
+scripts/pdm_fisico/*.npz
+scripts/pdm_fisico/experimento_cva_grade.csv
+scripts/pdm_fisico/busca_conjunta.csv
