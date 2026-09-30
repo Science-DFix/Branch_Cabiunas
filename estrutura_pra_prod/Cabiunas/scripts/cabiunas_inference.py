@@ -728,6 +728,9 @@ def diagnostico_entrada(modelos: list[dict], df: pd.DataFrame) -> dict:
 DRIFT_LIMIAR_SIGMA = 10.0     # desvio de uma tag contra o baseline do bundle em vigor
 DRIFT_JANELA_DIAS = 7
 MANUTENCAO_MIN_H = 24.0       # HSX_6240001A ligado por pelo menos isso = manutenção
+TRAVADO_FRACAO = 0.10         # IQR semanal abaixo desta fração do típico do PRÓPRIO sensor
+TRAVADO_SEMANAS = 3           # ... por tantas semanas seguidas
+TRAVADO_REF_MIN = 4           # semanas anteriores com dado para saber o "típico"
 
 
 def _manutencoes(g: pd.DataFrame) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
@@ -747,6 +750,45 @@ def _manutencoes(g: pd.DataFrame) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
     return [(a, b) for a, b in tr if b - a >= pd.Timedelta(hours=MANUTENCAO_MIN_H)]
 
 
+def _sensores_travados(g: pd.DataFrame, mask: pd.Series, cols: list[str]) -> list[dict]:
+    """Sensores cujo espalhamento caiu muito abaixo do PRÓPRIO normal e ficou lá.
+
+    Compara o IQR de cada uma das últimas TRAVADO_SEMANAS semanas com a mediana do
+    IQR semanal das semanas anteriores da janela de entrada. Um sensor que por
+    natureza varia pouco não é punido por isso; só alerta quem cai a menos de 10%
+    do próprio típico e fica lá.
+
+    Por que não outras formas, testadas em `ks_drift.py`: a razão contra o IQR do
+    baseline dispara em 15 de 62 semanas, puxada por sensores que variam pouco por
+    natureza; e contar valores repetidos não funciona numa grade interpolada, onde
+    até sensor travado muda um pouco a cada amostra. Esta regra dispara em 6 de 59
+    semanas, só em dois sensores e só depois da manutenção de nov/2025: o
+    diferencial do filtro de gás de selagem (PDI_0301) e o gás do motor de partida
+    (PI_0319)."""
+    fim = g.index[-1]
+    iqr = []
+    for k in range(13):
+        a, b = fim - pd.Timedelta(days=7 * (k + 1)), fim - pd.Timedelta(days=7 * k)
+        s = mask & (g.index > a) & (g.index <= b)
+        if s.sum() < 2 * 720:
+            iqr.append(None); continue
+        X = g.loc[s, cols]
+        iqr.append((X.quantile(0.75) - X.quantile(0.25)))
+    rec = iqr[:TRAVADO_SEMANAS]
+    ref = [x for x in iqr[TRAVADO_SEMANAS:] if x is not None]
+    if any(x is None for x in rec) or len(ref) < TRAVADO_REF_MIN:
+        return []
+    tip = pd.concat(ref, axis=1).median(axis=1)
+    out = []
+    for c in cols:
+        if not np.isfinite(tip[c]) or tip[c] <= 0:
+            continue
+        r = [float(x[c] / tip[c]) for x in rec]
+        if all(v < TRAVADO_FRACAO for v in r):
+            out.append(dict(tag=c, razao_iqr=round(r[0], 3), semanas=TRAVADO_SEMANAS))
+    return out
+
+
 def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
     """O baseline do bundle em vigor ainda representa os sensores? Não muda alarme.
 
@@ -764,13 +806,20 @@ def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
     fora: o vb já tem referência móvel.
 
     O QUE ALERTA, calibrado em 62 semanas de 2025-2026:
-      degrau_persistente  uma tag >= 10 sigma nas DUAS semanas, mesmo sinal. É a
-                          assinatura de mudança de nível -- instrumento ou regime.
-                          10 sigma numa semana só acontece em 11% das semanas.
+      degrau_persistente  uma tag >= 10 sigma nas DUAS semanas, mesmo sinal: mudança
+                          de nível -- instrumento, regime ou a própria máquina. A
+                          persistência NÃO separa instrumento de máquina (a excursão do
+                          mancal de out/2025 durou duas semanas). 10 sigma numa semana
+                          só acontece em 11% das semanas.
+      sensor_travado      o IQR das últimas 3 semanas abaixo de 10% do típico do
+                          próprio sensor (`_sensores_travados`).
       atencao             >= 10 sigma só na última semana. Pode ser a própria
-                          máquina (em 29/10/2025 o TI_0305 chegou a 37 sigma) --
-                          magnitude sozinha não separa drift de anomalia; a
-                          persistência é que separa.
+                          máquina (em 29/10/2025 o TI_0305 chegou a 37 sigma).
+
+    O KS FOI TESTADO E FICOU DE FORA (`ks_drift.py`): o p-valor dá < 0,05 em 99,9%
+    das comparações (autocorrelação), e o D satura -- o limiar calibrado cai em
+    1,000, o máximo, então não sobra escala. Das duas semanas que só ele pegava, uma
+    é saturação num sensor quantizado e a outra já tinha "atencao" pela mediana.
       ok                  nenhum dos dois.
 
     O QUE NÃO FAZ. Não recentra nem retreina sozinho: recentrar depois de manutenção
@@ -794,7 +843,7 @@ def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
         return dict(veredito="sem_dado", mensagem="menos de 1 dia vigiado na última semana",
                     bundle=m["dir"].name, limiar_sigma=DRIFT_LIMIAR_SIGMA,
                     janela_dias=DRIFT_JANELA_DIAS, tags_persistentes=[], tags_recentes=[],
-                    tags_acima_3sigma=0, maiores_desvios=[], **manut)
+                    sensores_travados=[], tags_acima_3sigma=0, maiores_desvios=[], **manut)
     desvio = {}
     for fam in ("temperatura", "pressao"):
         tr = m[f"{fam}_transformacao"]; cols = m["normalizacao"][fam]["cols"]
@@ -811,6 +860,9 @@ def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
         d1 = (b[w1].median() - sp["mediana"]) / sp["mad_robusto"]
         d0 = ((b[w0].median() - sp["mediana"]) / sp["mad_robusto"]) if w0.sum() >= 720 else np.nan
         desvio["spread_mancal"] = (float(d0), float(d1))
+    cols_trav = [c for fam in ("temperatura", "pressao")
+                 for c in m["normalizacao"][fam]["cols"] if c in g]
+    travados = _sensores_travados(g, mask, cols_trav)
     L = DRIFT_LIMIAR_SIGMA
     persist = [c for c, (a, b) in desvio.items()
                if np.isfinite(a) and abs(a) >= L and abs(b) >= L and np.sign(a) == np.sign(b)]
@@ -818,8 +870,15 @@ def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
     if persist:
         ver = "degrau_persistente"
         msg = (f"nível novo em {', '.join(persist)} há >= 2 semanas contra o baseline do bundle "
-               f"-- provável troca/rezero de instrumento ou mudança de regime. Confirmar com a "
-               f"instrumentação; o retreino do mês seguinte absorve.")
+               f"-- troca/rezero de instrumento, mudança de regime ou a própria máquina (em "
+               f"out/2025 uma excursão do mancal durou duas semanas). Confirmar com a operação "
+               f"e a instrumentação; o retreino do mês seguinte absorve o que for nível novo.")
+    elif travados:
+        ver = "sensor_travado"
+        msg = (f"espalhamento abaixo de {TRAVADO_FRACAO:.0%} do próprio normal há "
+               f"{TRAVADO_SEMANAS} semanas em {', '.join(x['tag'] for x in travados)} -- "
+               f"instrumento possivelmente isolado, travado ou em falha. Confirmar com a "
+               f"instrumentação: enquanto isso, o que ele mede não está sendo vigiado.")
     elif recente:
         ver = "atencao"
         msg = (f"desvio forte na última semana em {', '.join(recente)} -- pode ser a máquina "
@@ -829,7 +888,7 @@ def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
     top = sorted(desvio.items(), key=lambda kv: -abs(kv[1][1]))[:5]
     return dict(veredito=ver, mensagem=msg, bundle=m["dir"].name,
                 limiar_sigma=L, janela_dias=DRIFT_JANELA_DIAS,
-                tags_persistentes=persist, tags_recentes=recente,
+                tags_persistentes=persist, tags_recentes=recente, sensores_travados=travados,
                 tags_acima_3sigma=int(sum(abs(b) >= 3 for _, b in desvio.values())),
                 maiores_desvios=[dict(tag=c, semana_anterior=round(a, 1) if np.isfinite(a) else None,
                                       ultima_semana=round(b, 1)) for c, (a, b) in top],
