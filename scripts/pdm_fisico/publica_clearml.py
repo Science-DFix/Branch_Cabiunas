@@ -104,7 +104,8 @@ TMIN_BANDA = 4.0       # piso de acionabilidade, ver [[banda-de-acionabilidade]]
 
 
 def reproduz(v2: bool = True, sinais: dict | None = None,
-             K_: dict | None = None, K_LO_: dict | None = None):
+             K_: dict | None = None, K_LO_: dict | None = None,
+             nivel_c: tuple | None = None):
     """Recalcula sinais -> EWMA -> degrau|CUSUM -> voto -> refratario -> duracao.
 
     v2=True  : gatilho de dois niveis + escalada por idade (ponto adotado em 11/09/2026)
@@ -113,7 +114,12 @@ def reproduz(v2: bool = True, sinais: dict | None = None,
     sinais, K_, K_LO_: substituem canais do cache (ex. {"t": array}) e os
     multiplicadores dos dois niveis. Sem eles, o ponto publicado -- e para
     experimentos de TROCA DE SINAL mantendo a camada de decisao intacta
-    (experimento_cva_detector.py)."""
+    (experimento_cva_detector.py).
+
+    nivel_c: (fator, horas) -- terceiro gatilho, em OU com A e B: UM canal so,
+    acima de `fator` x o limiar do nivel B, sustentado por `horas`. Para o
+    evento de canal unico que o voto >= 2 nao ve (24/11/2025; nivel_c_canal_unico.py).
+    None = ponto publicado."""
     K = K_ if K_ is not None else globals()["K"]
     K_LO = K_LO_ if K_LO_ is not None else globals()["K_LO"]
     g = pd.read_parquet("grade2min.parquet")
@@ -178,6 +184,12 @@ def reproduz(v2: bool = True, sinais: dict | None = None,
         vB = (pd.Series(sum(ON[c].astype(int) for c in SIN) >= VOTO_HI, index=idx)
               & mask & (ON["sp"] | ON["vb"]))
         voto = vA | vB
+        if nivel_c is not None:
+            fator, horas = nivel_c
+            n_c = int(horas * 30)                      # horas -> amostras de 2 min
+            for c in SIN:
+                forte = (E[c] / (BASE[c] * K[c]) >= fator).astype(int)
+                voto = voto | ((forte.rolling(n_c, min_periods=n_c).sum() >= n_c) & mask)
         forca = pd.concat([E[c] / (BASE[c] * K[c]) for c in SIN], axis=1).max(axis=1)
         refrat, dur = REFRAT_V2, DUR_MIN
 
