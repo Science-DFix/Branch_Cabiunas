@@ -388,6 +388,13 @@ def publica_clearml(task, G, C, S, sep, ver, saida):
 
 # ──────────────────────────────────────────────────────────── main
 def main():
+    # O ClearML injeta os argumentos salvos na task PATCHEANDO o argparse -- e so
+    # consegue se ja estiver importado antes do parse_args. No worker o script roda
+    # sem argumentos na linha de comando (tudo vem do servidor), e o agente marca o
+    # ambiente com CLEARML_TASK_ID.
+    import os
+    if {"--clearml", "--remote"} & set(sys.argv) or os.environ.get("CLEARML_TASK_ID"):
+        import clearml  # noqa: F401
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--parquet")
