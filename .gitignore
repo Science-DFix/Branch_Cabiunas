@@ -35,3 +35,4 @@ scripts/pdm_fisico/busca_conjunta.csv
 
 scripts/pdm_fisico/robustez_retreino.csv
 scripts/pdm_fisico/limiares_robustos_*.csv
+scripts/pdm_fisico/retreino_pos_parada.csv
