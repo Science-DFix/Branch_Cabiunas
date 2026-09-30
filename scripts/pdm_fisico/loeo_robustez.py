@@ -100,4 +100,5 @@ def main():
     print(incons.to_string() if not incons.empty else "  nenhum -- todas as regras concordam em todo evento")
 
 
-main()
+if __name__ == "__main__":
+    main()

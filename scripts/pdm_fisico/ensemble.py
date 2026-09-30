@@ -16,6 +16,7 @@ Tambem se aplica o teto de 12 h SO no braco de 4 sinais (o stack ja produz episo
 curtos, truncar nao faz sentido nele).
 """
 from __future__ import annotations
+import os
 import sys
 import numpy as np, pandas as pd
 
@@ -45,6 +46,8 @@ def main():
 
     linhas = []
     for tag in ["diego_iforest_estatico", "nosso_iforest_estatico"]:
+        if not os.path.exists(f"escore_{tag}.parquet"):   # antes: efeito colateral do import
+            import diego_stack; diego_stack.main()
         s = pd.read_parquet(f"escore_{tag}.parquet")["escore"].reindex(idx)
         mj = mask & s.notna()
         (_, _), p, sm, lim = seleciona(s, mj, tr, ev_tr, mj & tr)
@@ -87,4 +90,5 @@ def main():
     pd.DataFrame(linhas).to_csv("ensemble.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

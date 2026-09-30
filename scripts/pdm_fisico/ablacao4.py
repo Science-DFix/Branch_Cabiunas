@@ -93,4 +93,5 @@ def main():
               f"FP={r1.te_fp:.2f} p={r1.te_p:.3f}")
 
 
-main()
+if __name__ == "__main__":
+    main()

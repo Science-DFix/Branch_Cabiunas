@@ -153,4 +153,5 @@ def main():
         print(f"     4 sinais+teto pega: {','.join(xt['detectados'])}")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -96,4 +96,5 @@ def main():
     print(ev.groupby(ev["evento"].dt.to_period("Q")).size().to_string())
 
 
-main()
+if __name__ == "__main__":
+    main()

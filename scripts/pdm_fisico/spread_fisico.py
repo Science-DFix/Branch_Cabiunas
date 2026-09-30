@@ -77,4 +77,5 @@ def main():
     print("           se 'spread med' fica estavel e o MAD encolhe   -> artefato do normalizador.")
 
 
-main()
+if __name__ == "__main__":
+    main()

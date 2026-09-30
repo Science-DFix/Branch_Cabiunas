@@ -195,4 +195,5 @@ def main():
     print(f"  configuracoes com 8/8: {len(S)} de {len(T)}   menor FP: {S.fp.min():.2f}")
 
 
-main()
+if __name__ == "__main__":
+    main()

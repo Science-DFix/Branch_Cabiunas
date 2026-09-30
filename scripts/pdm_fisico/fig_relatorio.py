@@ -144,4 +144,5 @@ def main():
     print("fig_apresentacao_zoom.png")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -117,4 +117,5 @@ def main():
     print(f"\nLOEO com crest: {int(r.detectado.sum())}/9")
 
 
-main()
+if __name__ == "__main__":
+    main()

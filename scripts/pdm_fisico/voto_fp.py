@@ -117,4 +117,5 @@ def main():
             print(f"    {'+'.join(combo):20s} {c:3d} ({100*c/len(grupo):.0f}%)")
 
 
-main()
+if __name__ == "__main__":
+    main()

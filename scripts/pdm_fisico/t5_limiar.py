@@ -116,4 +116,5 @@ def main():
     pd.DataFrame(L).to_csv("t5_limiar.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

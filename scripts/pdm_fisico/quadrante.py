@@ -148,4 +148,5 @@ def main():
     pd.DataFrame(linhas).to_csv("quadrante.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

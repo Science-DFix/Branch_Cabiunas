@@ -98,4 +98,5 @@ def main():
           .to_string(index=False, float_format=lambda v: f"{v:.1f}"))
 
 
-main()
+if __name__ == "__main__":
+    main()

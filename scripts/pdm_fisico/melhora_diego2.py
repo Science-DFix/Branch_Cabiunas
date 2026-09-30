@@ -93,4 +93,5 @@ def main():
                   f"   -> {r.pred - q.pred:+.0f} preditivos")
 
 
-main()
+if __name__ == "__main__":
+    main()

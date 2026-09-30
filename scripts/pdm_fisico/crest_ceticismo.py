@@ -109,4 +109,5 @@ def main():
                   f"(de {jan.notna().sum()*2/60:5.1f} h pontuaveis)  z max={jan.max():7.1f}")
 
 
-main()
+if __name__ == "__main__":
+    main()

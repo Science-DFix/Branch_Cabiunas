@@ -128,4 +128,5 @@ def main():
     print("\n  largura do IC de 7/9: %.0f pontos percentuais." % (100*(wilson(7,9)[1]-wilson(7,9)[0])))
 
 
-main()
+if __name__ == "__main__":
+    main()

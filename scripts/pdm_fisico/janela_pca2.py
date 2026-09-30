@@ -184,4 +184,5 @@ def main():
               f"{r.hm:7.1f} {r.lead:6.1f}")
 
 
-main()
+if __name__ == "__main__":
+    main()

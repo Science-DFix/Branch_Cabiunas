@@ -148,4 +148,5 @@ def main():
     print(f"\nLOEO do 5o sinal: {sum(pega)}/9    (4 sinais: 7/9 | uniao de alarmes: 9/9)")
 
 
-main()
+if __name__ == "__main__":
+    main()

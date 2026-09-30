@@ -143,4 +143,5 @@ def main():
           .to_string(index=False, float_format=lambda v: f"{v:.1f}") if not b.empty else "  NENHUM")
 
 
-main()
+if __name__ == "__main__":
+    main()

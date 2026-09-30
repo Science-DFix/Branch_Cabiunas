@@ -94,4 +94,5 @@ def main():
         print(f"  {r.blackout_h:>2.0f} h: {r.quais}")
 
 
-main()
+if __name__ == "__main__":
+    main()

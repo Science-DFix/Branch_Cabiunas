@@ -91,4 +91,5 @@ def main():
           f"{'(rejeita H0 -- taxas diferentes)' if bt.pvalue<0.05 else '(nao rejeita H0)'}")
 
 
-main()
+if __name__ == "__main__":
+    main()

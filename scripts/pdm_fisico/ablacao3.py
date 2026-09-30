@@ -7,6 +7,7 @@ no k cujo FP de treino e o mais proximo de X. Assim nenhum braco compra
 deteccao gastando mais alarme -- que foi o vicio da primeira rodada.
 """
 from __future__ import annotations
+import os
 import sys
 import numpy as np, pandas as pd
 
@@ -17,6 +18,8 @@ import avalia as A
 from ablacao import canonico, roda, mascara_pontuacao, CORTE
 from ablacao2 import alerta_k, BRACOS
 
+if not os.path.exists("ablacao2.csv"):   # antes gerado como efeito colateral do import
+    import ablacao2; ablacao2.main()
 t = pd.read_csv("ablacao2.csv")
 ALVO = float(t[(t.braco == "base") & (t.k == 1.0)]["tr_fp"].iloc[0])
 print(f"custo do detector base no seu limiar nativo: {ALVO:.2f} FP/mes no treino\n")

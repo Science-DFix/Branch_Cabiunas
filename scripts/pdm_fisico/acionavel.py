@@ -98,4 +98,5 @@ def main():
     R.to_csv("acionavel.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

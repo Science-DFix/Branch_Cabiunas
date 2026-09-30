@@ -232,4 +232,5 @@ def main():
         print(f"    quais : {r.quais}")
 
 
-main()
+if __name__ == "__main__":
+    main()

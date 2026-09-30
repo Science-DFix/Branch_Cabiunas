@@ -151,4 +151,5 @@ def main():
               f"   -> {gan:+.0f} deteccao a FP igual")
 
 
-main()
+if __name__ == "__main__":
+    main()

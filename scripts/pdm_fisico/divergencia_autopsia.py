@@ -93,4 +93,5 @@ def main():
     print(f"\nmedia geral dos percentis: {R['percentil'].mean():.1f}  (52 no acaso; FFT deu 51.9)")
 
 
-main()
+if __name__ == "__main__":
+    main()

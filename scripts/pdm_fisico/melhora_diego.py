@@ -211,4 +211,5 @@ def main():
     pd.DataFrame(fin).to_csv("melhora_diego.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

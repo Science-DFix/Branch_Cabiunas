@@ -80,4 +80,5 @@ def main():
           f"{R.groupby('evento')['episodio_z5_6h'].any().sum()} de {len(falhas)}")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -98,4 +98,5 @@ def main():
     pd.DataFrame(linhas).to_csv("auto_reset.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

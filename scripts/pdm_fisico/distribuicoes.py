@@ -135,4 +135,5 @@ def main():
               f"{100*s[m]/max(h_op,1e-9):6.1f}%")
 
 
-main()
+if __name__ == "__main__":
+    main()

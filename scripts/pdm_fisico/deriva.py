@@ -106,4 +106,5 @@ def main():
         print(f"  {r['sem']}: {100*r.h_mes/730:5.2f}% do tempo de operacao com alarme ativo")
 
 
-main()
+if __name__ == "__main__":
+    main()

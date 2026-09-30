@@ -78,4 +78,5 @@ def main():
     print("p alto => um portao aleatorio de mesma cobertura faz igual ou melhor.")
 
 
-main()
+if __name__ == "__main__":
+    main()

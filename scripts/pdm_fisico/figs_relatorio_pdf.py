@@ -207,4 +207,5 @@ def main():
     fig3(falhas, al, mask, "fig_pdf_lead.png"); print("fig_pdf_lead.png", flush=True)
 
 
-main()
+if __name__ == "__main__":
+    main()

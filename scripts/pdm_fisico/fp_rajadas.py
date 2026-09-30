@@ -84,4 +84,5 @@ def main():
         print(f"  {k}: {v}")
 
 
-main()
+if __name__ == "__main__":
+    main()

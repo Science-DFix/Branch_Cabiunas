@@ -183,4 +183,5 @@ def main():
     pd.DataFrame(L).to_csv("p_condicional.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

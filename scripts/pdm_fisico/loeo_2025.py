@@ -76,4 +76,5 @@ def main():
           f"({100*R['detectado'].mean():.0f}%) ===")
 
 
-main()
+if __name__ == "__main__":
+    main()

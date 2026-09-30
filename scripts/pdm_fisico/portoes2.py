@@ -86,4 +86,5 @@ def main():
           "ele so esta cortando tempo no atacado, nao mirando falso positivo.")
 
 
-main()
+if __name__ == "__main__":
+    main()

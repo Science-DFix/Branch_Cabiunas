@@ -100,4 +100,5 @@ def main():
     print(f"{n_det}/{len(R)} detectados no leave-one-out (fora 2024-01-16, sem historico)")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -118,4 +118,5 @@ def main():
     print("\ngravado: varre_referencia.csv")
 
 
-main()
+if __name__ == "__main__":
+    main()

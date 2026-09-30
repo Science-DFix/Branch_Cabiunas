@@ -81,4 +81,5 @@ def main():
               f"| {r.te_det:>7} {r.te_fp:6.2f} {r.te_h:6.1f} {r.te_p:6.3f}  {r.te_quais}")
 
 
-main()
+if __name__ == "__main__":
+    main()

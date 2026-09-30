@@ -174,4 +174,5 @@ def main():
     pd.DataFrame(linhas).to_csv("deriva_origem.csv", index=False)
 
 
-main()
+if __name__ == "__main__":
+    main()

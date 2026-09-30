@@ -151,4 +151,5 @@ def main():
     print(f"  Spearman campanha x duty: rho={r.statistic:+.2f}  p={r.pvalue:.3f}  (n=5)")
 
 
-main()
+if __name__ == "__main__":
+    main()

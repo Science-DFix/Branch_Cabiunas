@@ -172,4 +172,5 @@ def main():
     print("fig_anomalias_zoom.png", flush=True)
 
 
-main()
+if __name__ == "__main__":
+    main()

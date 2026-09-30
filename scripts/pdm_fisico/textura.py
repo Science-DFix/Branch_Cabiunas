@@ -158,4 +158,5 @@ def main():
               f"{x['h_fp_mes']:8.1f}")
 
 
-main()
+if __name__ == "__main__":
+    main()

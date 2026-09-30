@@ -139,4 +139,5 @@ def main():
                   f"IC separado do base: {sep}")
 
 
-main()
+if __name__ == "__main__":
+    main()

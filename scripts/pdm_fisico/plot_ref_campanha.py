@@ -5,6 +5,7 @@
 para ver ONDE a reconstrucao gera o excesso de alarme.
 """
 from __future__ import annotations
+import os
 import sys
 import numpy as np, pandas as pd
 import matplotlib
@@ -31,6 +32,8 @@ def main():
     out_b = roda(BRACO, df, falhas)
     al_b = alerta_de(out_b, mask_base)
 
+    if not os.path.exists("ref_campanha_out.parquet"):   # antes: efeito colateral do import
+        import referencia_campanha; referencia_campanha.main()
     out_c = pd.read_parquet("ref_campanha_out.parquet")
     pont = pd.read_parquet("ref_campanha_pont.parquet")["pontuavel"]
     mask_c = mask_base & pont
@@ -83,4 +86,5 @@ def main():
     print("figura salva: fig_ref_campanha.png")
 
 
-main()
+if __name__ == "__main__":
+    main()

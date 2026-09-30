@@ -80,4 +80,5 @@ def main():
     print("figura salva: fig_serie_deteccoes.png")
 
 
-main()
+if __name__ == "__main__":
+    main()
