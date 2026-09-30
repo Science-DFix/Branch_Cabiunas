@@ -305,7 +305,8 @@ def compara(variante, nome: str, dias=DIAS, ref: pd.DataFrame | None = None) -> 
 
 def resumo(df: pd.DataFrame) -> str:
     L = []
-    for c, fmt in (("det", "{:.0f}/8"), ("inicio", "{:.0f}/8"), ("banda", "{:.0f}/8"),
+    # uma casa: "{:.0f}" arredonda para o par (6,5 -> 6; 4,5 -> 4) e escondia meia unidade
+    for c, fmt in (("det", "{:.1f}/8"), ("inicio", "{:.1f}/8"), ("banda", "{:.1f}/8"),
                    ("fp_mes", "{:.3f}"), ("h_fp_mes", "{:.1f}"),
                    ("h_neutro_mes", "{:.1f}"), ("carga_mes", "{:.1f}")):
         L.append(f"  {c:13s} mediana {fmt.format(df[c].median()):>7s}   "
