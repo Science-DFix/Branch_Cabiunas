@@ -6,6 +6,12 @@ aceso sem preceder trip -- e 48,9 h/mes, e 87% dela sao episodios NEUTRO longos
 (153, 135, 112, 52 h de alarme de pe antes de parada real; filtro_cva_d.py). Nao
 e problema de sinal: SFA e CVA foram refutados como canal e como veto.
 
+ATENCAO -- REPETE UMA CONCLUSAO JA REGISTRADA. corte_por_estabilizacao.py
+(commit 44786de, 19/09) ja cortou episodio longo para baixar carga (48,9 -> 7,2
+h/mes a 3x o FP) e a frente foi DESCARTADA porque falso positivo nao pode subir.
+Este script chega ao mesmo lugar por outro mecanismo (teto de tempo em vez de
+estabilizacao). Fica como segunda confirmacao, nao como achado novo.
+
 O que ja foi medido e o que nao foi. O teto de permanencia (auto_reset.py,
 teto_permanencia.py, teto_sob_regra_inicio.py) foi testado no V1 e com outro
 objetivo -- GANHAR deteccao por renascimento. Caiu na regua "de pe" e empatou em
