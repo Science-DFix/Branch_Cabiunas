@@ -1,0 +1,310 @@
+<style>
+.vd{font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; padding:2px 6px; border-radius:2px; white-space:nowrap}
+.vd.ok{color:var(--ok); background:var(--ok-soft)}
+.vd.no{color:var(--crit); background:var(--crit-soft)}
+.vd.wt{color:var(--warn); background:var(--warn-soft)}
+.vd.in{color:var(--accent); background:var(--accent-soft)}
+.vd{display:inline-block; white-space:normal; line-height:1.35}
+.bloco{break-inside:avoid}
+.bloco + p, .bloco + .nota, .bloco + .aviso, .bloco + ul{margin-top:12px}
+table.densa thead th{white-space:normal}
+.tw.flui{break-inside:auto !important}
+@media print{ .tw{overflow:visible} }
+table.densa{font-size:.8rem} table.densa th, table.densa td{padding:7px 10px}
+.toc{columns:2; column-gap:28px; font-size:.88rem; margin:0; padding-left:18px}
+.toc li{margin-bottom:4px; break-inside:avoid}
+.fase{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--muted); letter-spacing:.08em}
+.pq{font-size:.8rem; color:var(--muted)}
+@media(max-width:620px){.toc{columns:1}}
+</style>
+
+<header>
+  <div class="hd">
+    <span class="eyebrow">Petrobras · UTGCA Cabiúnas · SIMPred · 01/10/2026</span>
+    <h1>Relatório de experimentos<br>Detector de trip do TC-33003A</h1>
+    <p class="sub">Tudo o que foi medido de agosto a setembro de 2026: o que entrou no
+      detector, o que foi reprovado e por quê, como o retreino e o drift foram
+      investigados, e o que ficou em aberto. Cada número vem de um script versionado no
+      repositório.</p>
+    <div class="chips">
+      <span class="chip on">detector v2 em produção</span>
+      <span class="chip on">8 trips no alvo</span>
+      <span class="chip">régua de 8 composições</span>
+      <span class="chip hold">a régua estatística acabou</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <div class="shead"><span class="eyebrow">Sumário</span><h2>O que há neste relatório</h2></div>
+  <ol class="toc">
+    <li>Resumo executivo</li>
+    <li>Como medimos: réguas, métricas e limites da amostra</li>
+    <li>Fase 1: a linha CNN-1D (alarme de temperatura)</li>
+    <li>Fase 2: o alvo, trips de segundo estágio</li>
+    <li>Fase 3: construção do detector, do v1 ao v2</li>
+    <li>Fase 4: alavancas do detector testadas e reprovadas</li>
+    <li>Fase 5: comparação com os detectores das outras equipes</li>
+    <li>Fase 6: o pacote de produção</li>
+    <li>Fase 7: redução de falso positivo na régua de 8 composições</li>
+    <li>Fase 8: drift nos dados</li>
+    <li>Fase 9: retreino e governança</li>
+    <li>O plano do especialista, item a item</li>
+    <li>O que está adotado, o que está em aberto</li>
+    <li>Apêndice: scripts por fase</li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 1 -->
+<section>
+  <div class="shead"><span class="eyebrow">1 · Resumo</span><h2>Em uma página</h2></div>
+
+  <div class="placar">
+    <div><div class="v">5/8</div><div class="k">banda acionável</div>
+      <div class="n">8/8 de pé · 6/8 início · ponto publicado (dia 1)</div></div>
+    <div><div class="v">0,344</div><div class="k">FP por mês</div>
+      <div class="n">6,6 h de FP/mês · carga 48,9 h/mês</div></div>
+    <div><div class="v">6,5 · 4,5</div><div class="k">det · banda (mediana)</div>
+      <div class="n">8 composições: 0,861 FP/mês, carga 130,5 h/mês</div></div>
+    <div><div class="v">≈ 1</div><div class="k">evento além do relógio</div>
+      <div class="n">4,2 acima do acaso; o relógio de partida faz 3,2</div></div>
+  </div>
+
+  <h3 style="margin-top:22px">As oito conclusões</h3>
+  <ol>
+    <li><strong>O detector é real, mas o valor próprio dele está num regime.</strong> No nulo
+      circular ele faz 4,2 detecções acima do acaso, com p&nbsp;&lt;&nbsp;0,05 nas 8
+      composições. Só que um relógio que acende nas 24 h após cada partida, sem olhar sinal
+      nenhum, faz 3,2. O que só o sinal entrega são as <strong>3 falhas de regime longo</strong>
+      (3/3 contra 0/3 do relógio). Nos 5 trips pós-partida o detector perde para o relógio
+      (3,5/5 contra 5/5).</li>
+    <li><strong>O ponto publicado é o melhor caso, não o esperado.</strong> Retreinando no dia 1
+      ele é o melhor das 8 composições de baseline em todas as métricas ao mesmo tempo. A
+      expectativa honesta em produção é a mediana: 6,5 detecções, banda 4,5/8, 0,861 FP/mês e
+      130,5 h/mês de carga.</li>
+    <li><strong>O detector está numa fronteira.</strong> Dezenas de alavancas (limiar, memória
+      do CUSUM, máscara, blackout, voto, pós-processamento, novos canais, normalização) trocam
+      detecção por custo ao longo da mesma curva. A causa é mecânica: os canais ficam acesos
+      24–59% do tempo normal, e com 8 eventos heterogêneos cobrir todos exige ser permissivo.</li>
+    <li><strong>A régua estatística acabou antes do detector.</strong> 8/8 tem IC de Wilson
+      [68%; 100%]. O custo tem IC de Poisson [0,53; 1,81] FP/mês. Provar uma queda de 1,03 para
+      0,75 FP/mês exigiria 92 meses de operação. Diferença menor que ~2 eventos ou ~0,6 FP/mês
+      não se resolve nesta base.</li>
+    <li><strong>O retreino mensal é obrigatório.</strong> Os canais <code>t</code> e
+      <code>p</code> são erro de reconstrução de PCA contra um baseline, e o normal da máquina
+      anda. Com um mês a mais de idade, o canal <code>p</code> passa de 41% para 63% do tempo
+      normal aceso e a carga sobe 77%. Retreinar mais rápido que mensal também piora: o modelo
+      aprende a degradação.</li>
+    <li><strong>Toda semana já está em drift.</strong> Contra o baseline, um classificador separa
+      uma semana comum com AUC 0,95. KS, PSI, Wasserstein, T² e Q saturam ou disparam sempre. O
+      monitor certo mira casos patológicos (degrau persistente, sensor travado) e foi adotado.</li>
+    <li><strong>A governança define o custo do retreino sob demanda.</strong> Aprovar em até 3
+      dias não custa nada. Um mês sem aprovação vence o bundle (validade de 62 dias) e deixa o
+      detector cego. Nenhum aviso tirado da saída do detector consegue dizer "retreine agora"
+      sem confundir com degradação real.</li>
+    <li><strong>O próximo ganho vem de dado, não de algoritmo.</strong> As alavancas que sobram
+      são rótulo novo (meses de produção, outras turbinas), sensor novo (as 47 tags no formato
+      certo) e a matriz de causa e efeito.</li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 2 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">2 · Método</span><h2>Como medimos</h2></div>
+
+  <div class="bloco"><h3>As réguas de detecção</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Régua</th><th>Conta como detectado quando…</th><th>Por que existe</th></tr></thead>
+    <tbody>
+      <tr><td><strong>de pé</strong></td><td>o alarme está ativo em algum instante de [t−48 h, t]</td>
+        <td>a régua original. Premia alarme aceso por muito tempo</td></tr>
+      <tr><td><strong>início</strong></td><td>o episódio NASCE dentro de [t−48 h, t]</td>
+        <td>a régua das outras equipes; adotada como métrica de trabalho em 11/09</td></tr>
+      <tr><td><strong>banda [4 h, 48 h]</strong></td><td>o episódio nasce entre 48 h e 4 h antes do trip</td>
+        <td>a mais exigente: alarme a 1,3 h do trip não dá tempo de agir</td></tr>
+    </tbody></table></div></div></div>
+
+  <div class="bloco"><h3>As réguas de custo</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Medida</th><th>Definição</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Regra C</strong></td><td>cada episódio é TP (perto de um trip), NEUTRO (seguido de
+        parada real que não é trip, janela [início, fim + 48 h]) ou FP (o resto)</td></tr>
+      <tr><td><strong>FP/mês</strong></td><td>episódios FP por mês de OPERAÇÃO (730 h vigiadas), não de calendário</td></tr>
+      <tr><td><strong>h FP/mês</strong></td><td>horas de alarme em episódios FP por mês de operação</td></tr>
+      <tr><td><strong>carga</strong></td><td>h FP + h NEUTRO por mês: o tempo de alarme que a sala de controle vê sem trip</td></tr>
+      <tr><td><strong>FP bruto × líquido</strong></td><td>o líquido desconta FP que coincidem com alarme de planta já
+        ativo. O nosso 1,033 era bruto; o 0,43 citado de fora era líquido (o nosso líquido era 0,431)</td></tr>
+      <tr><td><strong>FA/dia × FP/mês</strong></td><td>a régua antiga dividia pelo calendário; o mesmo "0,43" significa
+        coisas 40× diferentes nas duas</td></tr>
+    </tbody></table></div></div>
+
+  <h3>A régua de 8 composições e o critério pré-registrado</h3>
+  <p class="col">Deslocar só o dia do retreino dentro do mês, com o mesmo tamanho de baseline, leva as
+    horas de FP de 6,6 a 154,6 h/mês. Um experimento avaliado só no dia 1 mede a sorte daquela
+    composição. Desde 28/09 todo experimento de FP roda nas 8 composições (retreino nos dias 1, 4, 8,
+    11, 15, 18, 22 e 25), pareado com a referência na mesma composição. Aceito só se:</p>
+  <ul class="col">
+    <li>a carga cai em ≥ 7 das 8 composições;</li>
+    <li>nenhuma composição perde detecção, e início e banda não caem na mediana;</li>
+    <li>o FP/mês não sobe na mediana. Esta condição entrou depois do primeiro experimento:
+      horas e contagem podem andar em sentidos opostos. Endurecer a regra depois de ver um
+      resultado não fabrica acerto, mas fica registrado que foi a posteriori.</li>
+  </ul>
+
+  <div class="bloco"><h3>Os limites da amostra</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Grandeza</th><th class="n">Valor</th><th>Leitura</th></tr></thead>
+    <tbody>
+      <tr><td>recall 8/8, IC 95% de Wilson</td><td class="n">[68%; 100%]</td><td>um detector com recall verdadeiro de 68% acerta 8/8 sem surpresa</td></tr>
+      <tr><td>custo 1,03 FP/mês, IC 95% de Poisson</td><td class="n">[0,53; 1,81]</td><td>desvio-padrão de 0,30 FP/mês</td></tr>
+      <tr><td>meses para provar 1,03 → 0,75 FP/mês (poder 80%)</td><td class="n">92</td><td>8× o que existe</td></tr>
+      <tr><td>ruído entre dois treinos idênticos (linha CNN)</td><td class="n">20,7 pp</td><td>≈ 1,7 evento nesta base</td></tr>
+      <tr><td>detecções acima do acaso (nulo circular)</td><td class="n">4,2 ± 1,2</td><td>das 6,5 típicas, 2,3 viriam do acaso</td></tr>
+    </tbody></table></div></div>
+
+  <h3>Lições de método, todas aprendidas errando</h3>
+  <div class="check">
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Dominância de Pareto não prova efeito</div>
+      <div class="d">Dois treinos idênticos dão um braço dominando o outro em todas as células. Comparar sempre com
+        <code>k</code> reajustado e episódios igualados.</div></div><div class="q">armadilha de Pareto</div></div>
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Platô e LOEO antes de recomendar</div>
+      <div class="d">Reprovaram o voto entre sondas (8/9 em amostra, 3/9 no LOEO), o piso de 1,6 °C e o refratário de
+        120 h. Aprovaram o refratário de 48 h.</div></div><div class="q">validação</div></div>
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Escolher pela média da vizinhança, não pelo máximo</div>
+      <div class="d">No LOEO aninhado: próprio 6/8, máximo 6/8, média 8/8. Maximizar persegue o pico de ruído.</div></div>
+      <div class="q">seleção</div></div>
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Conferir qual episódio mudou</div>
+      <div class="d">Uma "melhora" de 25% no FP era um FP de 7,4 h trocado por 140 h de alarme que a Regra C perdoava.</div></div>
+      <div class="q">mecanismo</div></div>
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Cada detector sob as próprias premissas</div>
+      <div class="d">A nossa máscara aplicada ao detector do Diego apagava 12 FP e 2 detecções dele, e inventava complementaridade.</div></div>
+      <div class="q">comparação</div></div>
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Holdout que contém os casos que geraram a ideia não é holdout</div>
+      <div class="d">O piso de força cortava metade dos FP, mas os 4 FP do "teste" eram os mesmos usados para criá-lo.</div></div>
+      <div class="q">teste temporal</div></div>
+    <div class="item wt"><div class="mk">!</div><div><div class="t">Controle positivo antes de concluir que algo não funciona</div>
+      <div class="d">As 47 tags pareciam inúteis; com controle positivo, o defeito era o formato do export (7 valores/dia).</div></div>
+      <div class="q">controle</div></div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 3 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">3 · Fase 1</span><h2>A linha CNN-1D: alarme de temperatura do TC382_03_A</h2></div>
+  <p class="col">O projeto começou com um autoencoder CNN-1D (TensorFlow/Keras, busca com KerasTuner) para prever
+    os alarmes HI/HIHI do termopar TC382_03_A. Esta fase fechou em 17–20/08/2026, e a conclusão
+    mudou o alvo do projeto.</p>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Experimento</th><th>Resultado</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Dois treinos de config byte a byte idêntica (seed 42)</td>
+        <td>recall difere até 20,7 pp e o val_loss 22%; um domina o outro em Pareto nas 4 células</td>
+        <td><span class="vd in">piso de ruído</span></td></tr>
+      <tr><td>Braço anticausal v17 (cobertura de treino × ausência de sinal em 2024)</td>
+        <td>as janelas de treino têm a mesma distribuição; todos os contrastes caem dentro do ruído</td>
+        <td><span class="vd wt">inconclusivo</span></td></tr>
+      <tr><td>Baseline sem modelo (temperatura → EWMA → rank)</td>
+        <td>iguala o melhor braço em 2024 (45,8% com 4 FP contra 5) e, no FULL, faz 82,7% com 23 FP contra 94,2% com 53</td>
+        <td><span class="vd no">alvo tautológico</span></td></tr>
+      <tr><td>Alvos alternativos nas 47 tags de alarme</td>
+        <td>lead mediano de 15–21 h no gás combustível e no mancal, contra 6–8 h no alvo antigo</td>
+        <td><span class="vd ok">há sinal</span></td></tr>
+    </tbody></table></div></div>
+  <div class="nota"><strong>Por que o alvo mudou.</strong> O alarme HI/HIHI do próprio sensor é um cruzamento de
+    limiar sobre a entrada do modelo: qualquer monitor do sinal "prevê" o alarme. O projeto passou a prever
+    trips da máquina, que não são função direta da entrada.</div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 4 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">4 · Fase 2</span><h2>O alvo: trips de segundo estágio</h2></div>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Questão</th><th>O que se mediu</th><th>Decisão</th></tr></thead>
+    <tbody>
+      <tr><td>O que conta como trip</td>
+        <td>18 dos 20 "episódios de TRIP" do relatório externo são alarme com a máquina já parada (bomba de
+          óleo desligada). Só 2 eram parada real em operação</td>
+        <td>trip = transição RUNNING 1→0 com parada ≥ 2 h e alarme de nível de trip (<code>verdade.py</code>)</td></tr>
+      <tr><td>Quais tags são de trip</td>
+        <td>o catálogo identifica trip pelo sufixo (ALL/LL, AHH/HH). Eram 7 tags, não 3; as 4 ausentes
+          (mancal e selagem) causam 7 dos 11 trips</td>
+        <td>7 tags. Elas reencontram exatamente os nossos 9 eventos por caminho independente</td></tr>
+      <tr><td>2024-01-16</td>
+        <td>o fit de janeiro/2024 tem 0 amostras: <code>t</code>, <code>p</code> e <code>sp</code> são NaN o mês todo.
+          O detector estava desligado, não errado</td>
+        <td>alvo oficial = <strong>8 eventos</strong>; janela de avaliação a partir de 2024-02-01</td></tr>
+      <tr><td>Modos físicos</td>
+        <td>mancal 6 (lead mediano 23,6 h), óleo 2 (14,4 h), selagem 1 (1,5 h)</td>
+        <td>declarar antecedência por modo, não uma mediana única</td></tr>
+      <tr><td>As 14 paradas reais fora do alvo</td>
+        <td>13 são utilidade, gás combustível ou falha de instrumento. A única mecânica (24/11/2025) é
+          evento de canal único, invisível a um voto ≥ 2</td>
+        <td><strong>alvo confirmado pelo usuário; não reabrir</strong></td></tr>
+      <tr><td>Poder do teste temporal</td>
+        <td>com corte em 2025-07-01 (6 trips de treino, 3 de teste), pontos com p = 0,002 no treino deram
+          p = 0,30 e 1,00 no teste</td>
+        <td>o gargalo é o número de rótulos, não o modelo</td></tr>
+    </tbody></table></div></div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 5 -->
+<section>
+  <div class="shead"><span class="eyebrow">5 · Fase 3</span><h2>Construção do detector, do v1 ao v2</h2></div>
+
+  <h3>O detector hoje (v2, ponto de deploy)</h3>
+  <ul class="col">
+    <li><strong>Quatro sinais.</strong> <code>t</code> e <code>p</code>: erro de reconstrução de PCA
+      (14 temperaturas, 12 pressões), máximo sobre os sensores do erro normalizado pelo p99 de cada um,
+      dividido pelo p99 do próprio baseline. <code>sp</code>: z do espalhamento entre os mancais.
+      <code>vb</code>: z máximo das 10 sondas de vibração contra referência rolante de 400 h.</li>
+    <li><strong>Processamento.</strong> EWMA → degrau (sustentado 15 amostras) OU CUSUM (κ 0,75, h 80,
+      carga residual 0,25 a cada instante mascarado).</li>
+    <li><strong>Voto em dois níveis.</strong> A = ≥ 3 de 4 canais no limiar baixo
+      {t 1,10 · p 1,20 · sp 0,90 · vb 2,00}. B = ≥ 2 de 4 no limiar alto {1,7 · 1,7 · 1,7 · 2,2} com
+      portão sp|vb. Alarme = A ou B.</li>
+    <li><strong>Pós-processamento.</strong> Escalada por idade (96 h), refratário de 72 h, duração mínima de 120 min.</li>
+    <li><strong>Máscara.</strong> máquina rodando, T5 &gt; 300 °C, fora das 6 h após cada partida.</li>
+    <li><strong>Retreino.</strong> Mensal, no dia 1, com 20.000 pontos estáveis.</li>
+  </ul>
+
+  <div class="bloco"><h3>Linha do tempo do ponto de operação</h3>
+  <p class="col pq">As métricas mudaram no caminho: até 30/08 o custo era FP bruto e a detecção era "de pé" sobre 9
+    ou 8 eventos. A Regra C entrou em 04/09 e a régua de início em 11/09. Os números de cada linha estão na
+    régua daquele dia.</p>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Data</th><th>Mudança</th><th class="n">Det.</th><th class="n">FP/mês</th><th class="n">h/mês</th><th>Nota</th></tr></thead>
+    <tbody>
+      <tr><td>24/08</td><td>base: k = 1,7 / 2,2, voto ≥ 2 + portão</td><td class="n">8/9</td><td class="n">4,35</td><td class="n">106,7</td><td>p de permutação 0,0003</td></tr>
+      <tr><td>25/08</td><td><strong>refratário 48 h</strong> + duração 60 min</td><td class="n">8/9</td><td class="n">2,23</td><td class="n">54,3</td><td>metade do custo; de quebra resolveu a deriva do custo</td></tr>
+      <tr><td>25/08</td><td>alvo oficial de 8 eventos</td><td class="n">8/8</td><td class="n">2,28</td><td class="n">55,6</td><td>LOEO 7/8</td></tr>
+      <tr><td>26/08</td><td><strong>CUSUM como canal lento</strong> (sobre a EWMA)</td><td class="n">8/8</td><td class="n">1,12</td><td class="n">39,0</td><td>na janela 2025-01 a 2026-04: FP 4,82 → 1,12 (−77%), lead 19,7 → 29,0 h (média censurada)</td></tr>
+      <tr><td>30/08</td><td>porta de mancal</td><td class="n">8/8</td><td class="n">1,033</td><td class="n">38,7</td><td>0,29 σ: ruído de contagem</td></tr>
+      <tr><td>04/09</td><td>Regra C (TP / NEUTRO / FP)</td><td class="n">8/8</td><td class="n">0,517</td><td class="n">7,1</td><td>20 episódios = 8 TP + 6 NEUTRO + 6 FP; início 4/8, banda 3/8</td></tr>
+      <tr><td>06/09</td><td>gatilho de dois níveis (1ª versão)</td><td class="n">8/8</td><td class="n">0,689</td><td class="n">8,7</td><td>início 6/8, banda 5/8, lead 19,3 h</td></tr>
+      <tr class="destaque"><td>11/09</td><td><strong>dois níveis validado</strong> (sem religamento)</td><td class="n">8/8</td><td class="n">0,344</td><td class="n">6,6</td><td>início 6/8, banda 5/8: melhor em todos os eixos</td></tr>
+      <tr class="destaque"><td>14/09</td><td>margem à borda: lo.p 0,70 → 1,20</td><td class="n">8/8</td><td class="n">0,344</td><td class="n">6,6</td><td>mesmo resultado, 2,00× de margem até a quebra</td></tr>
+    </tbody></table></div></div>
+
+  <div class="bloco"><h3>Por que cada peça está lá</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Peça</th><th>O que mostra que ela é necessária</th></tr></thead>
+    <tbody>
+      <tr><td>voto ≥ 2 entre famílias</td><td>os 4 "casos perdidos" eram partidas: manobra move um sinal por vez, degradação move vários.
+        O escape por magnitude custa detecção em qualquer M</td></tr>
+      <tr><td>refratário</td><td>a deriva do custo estava na REPETIÇÃO do mesmo estado, não na taxa (ρ 0,361 → 0,201).
+        Passou permutação, platô (R de 0 a 48 h), supressão e LOEO</td></tr>
+      <tr><td>CUSUM sobre a EWMA</td><td>sobre o sinal cru: +46% de FP e −9 h de lead. A EWMA converte pico pontual em excesso sustentado</td></tr>
+      <tr><td>carga residual 0,25</td><td>zerar na partida apaga degradação entre campanhas (111 partidas em 11,6 meses); 0,25 e 0,50 empatam</td></tr>
+      <tr><td><code>vb</code> no voto</td><td>sem ele o detector cai de 8/8 para 1/8. O limiar no p69 da distribuição sã é essencial (no p99,9: 2/8)</td></tr>
+      <tr><td>máximo entre as sondas</td><td>o voto entre sondas dá 8/9 num único k e 3/9 no LOEO</td></tr>
+      <tr><td>blackout de 6 h</td><td>com blackout ≤ 3 h nenhuma das 18 combinações cabe no teto de custo. É o que torna o orçamento atingível</td></tr>
+      <tr><td>dois níveis</td><td>nível A pega deriva cedo (3 de 4 é raro); nível B cobre o resto, tarde. O voto estava cravado em ≥ 2 em todo o código</td></tr>
+      <tr><td>retreino no dia 1</td><td>o melhor nas duas metades da série; fixar o dia é necessário (bundle determinístico, validade)</td></tr>
+    </tbody></table></div></div>
+  <div class="aviso"><h3>Peça inerte</h3><p>O portão sp|vb do nível B não faz nada no ponto atual: removê-lo dá exatamente os
+    mesmos números. Os 8 alvos movem ≥ 2 canais (mediana 4 de 7), e a regra do alvo já seleciona eventos de assinatura ampla.</p></div>
+</section>

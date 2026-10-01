@@ -1,0 +1,403 @@
+
+<!-- ═════════════════════════════════════════════════════════════════ 6 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">6 · Fase 4</span><h2>Alavancas do detector testadas e reprovadas</h2></div>
+  <p class="col">Medidas entre 24/08 e 19/09, antes da régua de 8 composições, cada uma na régua vigente. O
+    padrão se repete: encurtar episódio melhora a régua de início e cobra cobertura e custo; alongar faz o inverso.</p>
+
+  <div class="bloco"><h3>Limiar, calibração e gravidade</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Ideia</th><th>Resultado</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Subir o limiar para cortar FP</td><td>kb de 1,5 a 5,0: detecção 8/8 → 0/8 e o custo parado entre 0,86 e 1,55 FP/mês.
+        Com 0/8 ainda há ~1 FP/mês. Os FP são excursões do mesmo tamanho que as falhas</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Autocalibração por percentil mensal</td><td>melhor caso p80: 7/8 a 132 h/mês contra 7,15 h/mês do limiar fixo. O limiar
+        autocalibrado de <code>p</code> varia de 0,28× a 591× entre meses</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Limiar por alvo de duty (CFAR)</td><td>8/9 → 1–5/9</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Ordenar episódios por gravidade (6 medidas)</td><td>nenhuma separa: o episódio mais grave por CUSUM integrado é um FP (43.479 contra 11.752 do maior TP)</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Piso de escala no spread (φ, piso absoluto)</td><td>o "ganho" vinha do k reajustado; a k fixo custa uma detecção</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Portão de temperatura sub-limiar</td><td>AUC 0,78 isolado, mas no LOEO corta 2 de 8 FP e custa 1 detecção (limiar preso ao mínimo dos TP)</td><td><span class="vd no">reprovada</span></td></tr>
+    </tbody></table></div></div></div>
+
+  <div class="bloco"><h3>Máscara, blackout e partida</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Ideia</th><th>Resultado</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Tirar o T5 &gt; 300 da máscara</td><td>abre 48 h em 2,5 anos, 5× mais densas em alarme; a custo igualado perde uma parada</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Blackout curto (0 a 3 h)</td><td>1–2 h chegam a 8/8, mas a 128–154 h/mês; nenhuma configuração cabe no teto de 1,15 FP/mês</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Modelo próprio para o pós-religamento</td><td>score calibrado, e mesmo assim não paga: a janela tem excursões que sobrevivem à recalibração</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Gate de não-decaimento na borda do blackout</td><td>1.152 pontos; a versão permissiva custa exatamente o 04/11/2025, a estrita cai para 5–6/8</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Duração da parada e rampa de T5 como discriminantes da borda</td><td>os TP ficam inteiramente dentro da faixa dos FP</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Blackout de 1 h pela robustez do 04/11</td><td>mantém 8/8, robustez média +16 pp, mas triplica as horas de FP (7,15 → 22,51 h/mês)</td><td><span class="vd wt">troca, não adotada</span></td></tr>
+    </tbody></table></div></div>
+  <div class="nota"><strong>O 04/11/2025 é limite de observação.</strong> Nas 48 h antes dele a máquina rodou 15,3 h (os outros
+    sete: 47,6 a 48,0 h), e o detector viu 9,3 h. É o evento que cai em todo LOEO.</div>
+
+  <div class="bloco"><h3>Voto, sinais e pós-processamento</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Ideia</th><th>Resultado</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Escape por magnitude (um sinal muito alto basta)</td><td>a episódios igualados, k sobe e a detecção cai (M = 3: 5/9). O que ele acrescenta são partidas</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Voto entre as 10 sondas</td><td>8/9 só em k_vib = 1,0; LOEO 3/9 contra 7/9 do máximo</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Refratário de 120 h / 168 h</td><td>sem platô; 1 evento cai na sombra do episódio anterior. 7/8 a 0,43 FP/mês existe, mas é instável</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Varredura de pós-processamento (720 pontos)</td><td>o menor custo com 8/8 em toda a grade é o ponto em uso</td><td><span class="vd in">exaurido</span></td></tr>
+      <tr><td>Refratário com escalada</td><td>ganha detecção em 192 combinações e não perde em nenhuma; no ponto atual não muda nada</td><td><span class="vd in">seguro, sem efeito hoje</span></td></tr>
+      <tr><td>Teto de permanência com rearme</td><td>nenhum teto preserva a detecção; a 120 h dá 6/8 e piora os dois custos</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Histerese</td><td>só prolonga alarme: FP 6 → 11, horas 7,1 → 18,2</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Corte de episódio por decaimento com religamento</td><td>8/8, início 4/8 → 5/8, mas FP 0,517 → 0,861. No v2 deixou de ser necessário</td><td><span class="vd wt">superado pelo v2</span></td></tr>
+      <tr><td>CUSUM com esquecimento</td><td>5/8 a 0,861 FP/mês e 62,5 h/mês: o CUSUM é o que pega a deriva fraca</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Ordem de acendimento dos canais como assinatura</td><td>sem separação; os canais acendem juntos</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Nível de atenção antes do alarme</td><td>em 4 de 8 eventos a atenção não precede o confirmado; duty de 37,5%</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Piso de força no nascimento do nível B</td><td>FP 0,344 → 0,172, mas os 4 FP do "teste" foram os que geraram a regra; platô vazio de dado; Fisher p = 0,22</td><td><span class="vd wt">candidata, não aplicada</span></td></tr>
+    </tbody></table></div></div>
+
+  <div class="bloco"><h3>Sinais novos e normalização</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Ideia</th><th>Resultado</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Os 87 sensores do export (rotação, torque, vazão, posição axial, termopares de mancal)</td><td>80 varridos, zero com ≥ 3 de 5 eventos acima do p99 do nulo</td><td><span class="vd no">sem sinal</span></td></tr>
+      <tr><td>Órbita X-Y (30 grandezas)</td><td>nenhuma supera o máximo das 10 sondas</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>GLR multiescala</td><td>4/8 sozinho, 7/8 em OU com o degrau; nunca 8/8</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Canais lentos (EWMA 3–24 h)</td><td>8/8 a 154,7 h/mês contra 42,6</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Atacar o <code>p</code> (5 tentativas)</td><td>nenhuma segura 8/8; a intensidade do <code>p</code> é MAIOR nos FP</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Resíduo condicionado à carga (T5)</td><td>a contaminação do <code>p</code> cai de 14,5× para 4,4×, mas o detector piora (h/mês 7,1 → 80,3): a resposta anormal à carga É a assinatura da falha</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Dinâmica (taxa de subida) como 5º canal</td><td>48 combinações, 47 empatam ou pioram; o único "ganho" era artefato da Regra C</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Margem ao setpoint de engenharia (TI_0305, m ≥ 20%)</td><td>no v1: banda 3/8 → 4/8 por +0,086 FP/mês, p = 0,0006. No v2: 60 combinações, melhor caso empate</td><td><span class="vd wt">subsumida pelo v2</span></td></tr>
+      <tr><td>Casamento de trajetória / template dos 8 eventos</td><td>os templates ficam mais distantes entre si (6,24) que de um instante qualquer da série (4,85)</td><td><span class="vd no">sem base</span></td></tr>
+      <tr><td>Normalizador: limpar o baseline, 8k/14k/30k/45k pontos, ensemble de scores, suavizar o p99</td><td>todas pioram: 6,6 → 39 a 119 h/mês. FIT_POINTS = 20.000 é um pico isolado; o par (PCA, p99) é atômico</td><td><span class="vd no">reprovada</span></td></tr>
+    </tbody></table></div></div>
+  <div class="aviso"><h3>A explicação de fundo</h3><p>Os 8 eventos são heterogêneos (ao menos 3 modos físicos, sem forma comum).
+    Cobrir todos exige canais permissivos; canais permissivos ficam acesos 24–59% do tempo; com o voto saturado
+    os episódios se fundem. Cinco canais construídos e melhores isoladamente não melhoraram o detector.
+    Qualidade de canal e cobertura do detector estão em tensão, e isso é aritmética de amostra, não engenharia de sinal.</p></div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 7 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">7 · Fase 5</span><h2>Comparação com os detectores das outras equipes</h2></div>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Pergunta</th><th>O que se mediu</th><th>Conclusão</th></tr></thead>
+    <tbody>
+      <tr><td>Quem é melhor nos trips?</td><td>a custo igualado, o stack do Diego cai de 8/9 para 3/9 (p de permutação 0,47); o nosso faz 8/9 com p = 0,0003</td>
+        <td>o 8/9 dele era densidade de alarme. São dois produtos, para alvos distintos</td></tr>
+      <tr><td>O ganho de capa do EXP15b</td><td>regrid offline reproduz 100%; a 0,30% de alarme os dois braços dão 31/40</td>
+        <td>o ganho é limiar. O mecanismo é real, mas é troca 2 por 2; o gap para o ocsvm é ~10 pp, não 15</td></tr>
+      <tr><td>A vibração "não separa" (percentil 79–85)</td><td>aplicado aos nossos 4 canais, o critério reprova os 4; o nosso <code>vb</code> opera em p69</td>
+        <td>o limiar, não o sensor. No p99,9 dele: 2/8</td></tr>
+      <tr><td>O nosso <code>vb</code> na máquina do Francisco</td><td>controle reproduz o publicado dele; com o <code>vb</code> como 5º sinal: mesmo 6/8 a 4× o FP</td>
+        <td>falta estrutura de voto (canal obrigatório qualificado), não limiar</td></tr>
+      <tr><td>A nossa camada de decisão nos canais do Diego</td><td>128 configurações; só a dele faz 8/8; voto ≥ 3 dá 0/8</td>
+        <td>dois canais modelados dele acendem juntos em 1,2% do tempo</td></tr>
+      <tr><td>O canal 4 do Diego (proximidade a alarme de processo)</td><td>aceso 47,6% do tempo, essencial em 5 de 8; sem as 3 tags de utilidade cai a 3/8 · 1,51 FP/mês; enriquecimento 1,45× (p = 0,051)</td>
+        <td>o resultado dele se apoia nele</td></tr>
+      <tr><td>Passo 2 da auditoria do Diego</td><td>rodado o nulo: enriquecimento 0,94–1,44×; uma janela aleatória tem 6 de 14 sensores com |z| ≥ 3</td>
+        <td>o critério não discrimina</td></tr>
+      <tr><td>Régua de associação</td><td>nosso v1: 8/8 de pé, 4/8 por início. A régua é inerte para eles (episódios curtos)</td>
+        <td>origem do v2 e da banda de acionabilidade</td></tr>
+      <tr><td>Banda de acionabilidade</td><td>leads dele 3,8–43,2 h, todos usáveis; os nossos 1,3–194,9 h. Com τ_min ≥ 4 h ele ganha em toda banda (antes do v2)</td>
+        <td>os nossos erros estavam nas duas pontas, os dele no meio</td></tr>
+      <tr><td>Ensemble dos dois detectores</td><td>cada um sob as próprias premissas: o dele pega todos os nossos e mais 4; a união ganha zero evento por +0,518 FP/mês</td>
+        <td>refutado; a complementaridade era artefato da nossa máscara</td></tr>
+    </tbody></table></div></div>
+  <div class="nota"><strong>Quatro direções de combinação, todas negativas</strong>: o nosso sinal no detector deles, a nossa decisão nos
+    sinais deles, os sinais deles na nossa máquina, e a união das saídas. Nenhuma peça transfere, porque a
+    seletividade de cada detector vem da combinação inteira, não de um canal.</div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 8 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">8 · Fase 6</span><h2>O pacote de produção</h2></div>
+  <p class="col">O pacote em <code>estrutura_pra_prod/Cabiunas/</code> reproduz o detector de pesquisa:
+    5/8 banda, 6/8 início, 8/8 de pé, 0,344 FP/mês, 6,6 h/mês e 21 episódios, com leads idênticos ao centésimo de hora.</p>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Achado</th><th>Efeito</th><th>Situação</th></tr></thead>
+    <tbody>
+      <tr><td>Um bundle só no aquecimento de 60 dias</td><td>aplicava o PCA de hoje a dado de dois meses atrás; o CUSUM levou o erro para dentro do mês</td><td><span class="vd ok">corrigido</span></td></tr>
+      <tr><td><code>ffill(limit=2)</code> na regrade</td><td>inventava dado em transiente: 63,0 h/mês de FP contra 6,6, com detecção APARENTEMENTE melhor</td><td><span class="vd ok">corrigido</span></td></tr>
+      <tr><td>Registro de trips congelado no bundle</td><td><code>vb</code> médio 3,56 onde o correto era 8,63</td><td><span class="vd ok">corrigido</span></td></tr>
+      <tr><td><code>vigencia()</code> pegava o bundle do mês seguinte</td><td>nos últimos dias de cada mês escolhia o bundle do mês seguinte (9,8 dias do histórico); a saída do detector não mudava</td><td><span class="vd ok">corrigido</span></td></tr>
+      <tr><td>Cabeça de aquecimento</td><td><code>vb</code> difere em 100% dos instantes até o dia 21 e em 0% depois do dia 30</td><td><span class="vd ok"><code>corte_valido</code>, 30 d</span></td></tr>
+      <tr><td>Transformação em pickle</td><td>bundle fechado, dependente de versão de biblioteca</td><td><span class="vd ok">100% JSON</span></td></tr>
+      <tr><td>Início de episódio falso ao recortar a saída</td><td>episódio cortado no início da janela parecia nascer ali</td><td><span class="vd ok">corrigido</span></td></tr>
+      <tr><td>As 47 tags catalogadas e ausentes da grade</td><td>o export <code>recorded</code> tem ~7 valores/dia (MAD = 0); o <code>interpolated</code> acaba em 2024-02</td><td><span class="vd wt">pedido de dado</span></td></tr>
+      <tr><td>Portão do <code>constroi_bundle</code></td><td>só recusa baseline com menos de 5.000 pontos; os 16 bundles do histórico tiveram 20.000</td><td><span class="vd wt">recomendado exigir 20.000</span></td></tr>
+    </tbody></table></div></div>
+  <p class="col pq">Também no pacote: diagnóstico de entrada (sai com código 3 se o detector estiver cego), checagem de
+    validade (código 2 se o bundle venceu), contrato JSON para o dashboard com <code>em_curso</code>, canais acesos e
+    o bloco <code>observabilidade.drift_dados</code> do monitor de drift (seção 10).</p>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 9 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">9 · Fase 7</span><h2>Redução de falso positivo na régua de 8 composições</h2></div>
+  <p class="col">Branch <code>exp/reducao-falsos-positivos</code>, 28 a 30/09. Todos os experimentos com o critério
+    pré-registrado da seção 2 e comparados com a referência: mediana de 6,5 detecções, início 6/8, banda 4,5/8,
+    0,861 FP/mês e 130,5 h/mês de carga.</p>
+
+  <div class="bloco"><h3>Diagnóstico: por que o custo é o que é</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Pergunta</th><th>Resposta medida</th></tr></thead>
+    <tbody>
+      <tr><td>O ponto publicado é representativo?</td><td>não: retreinando no dia 1 ele é o melhor das 8 composições em todas as métricas; FIT_POINTS ±10% dá h/mês de 6,6 a 68,1</td></tr>
+      <tr><td>Por que o FP varia entre composições?</td><td>não é volume (21–28 episódios em todas): é ONDE caem. No dia 1, 48% dos episódios caem em janela de trip; nas outras, 26–42%</td></tr>
+      <tr><td>O que são os canais?</td><td>estados, não eventos: o voto A fica ligado 33% do tempo normal. Teto de informação = 1/ciclo (vb: 1,71)</td></tr>
+      <tr><td>De onde vem o ciclo?</td><td>do CUSUM: só o degrau acenderia o <code>p</code> 13,7% do tempo; com o CUSUM, 37,9%</td></tr>
+      <tr><td><code>t</code> e <code>p</code> contam em dobro?</td><td>não (lift 1,17); fundi-los mataria 35% do voto pré-trip. Redundantes de verdade: <code>t</code> e <code>sp</code> (lift 1,57)</td></tr>
+      <tr><td>Há sonda defeituosa?</td><td>não: os 4 FP vêm de 3 sondas, as mesmas dos TP</td></tr>
+      <tr><td>A borda do blackout</td><td>os 11 nascimentos em 6,4667 h são acesos pelo degrau, não pelo CUSUM; 6 dos 7 NEUTRO nascem ali</td></tr>
+      <tr><td>O transiente de partida</td><td>não existe no sinal cru (6,5 h após religar, t e p estão em 0,28 e 0,14 do limiar). Quem carrega é o EWMA, que atravessa a parada</td></tr>
+    </tbody></table></div></div></div>
+
+  <div class="bloco"><h3>Os experimentos</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Experimento</th><th>Resultado (mediana das 8)</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Memória do CUSUM: 9 variantes de teto, headstart e rezero</td><td>carga 130,5 → 77–103 em 7/8, mas 5–7 composições perdem 1–2 detecções, início 6 → 4,5 e o FP SOBE (0,95–1,55): episódio curto se parte em vários</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>EWMA que só vê instante vigiado</td><td>carga → 105,6 (8/8), FP → 0,517, mas 6 composições perdem detecção; início 6 → 4</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>Regimes: blackout de 24, 32 e 48 h</td><td>FP → 0,56–0,60, mas a carga cai em só 5/8 e o regime longo perde detecção em 2–3 composições</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>Exigir transição observada (o detector tem de ver o voto desligado antes)</td><td>carga −70% (→ 39,4) e FP pela metade, mas o regime longo perde 1–2 detecções em todas</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>Relógio de partida como comparador</td><td>aceso até 24 h após cada partida: banda 4/8 a 9,3% de cobertura, contra 4,5/8 do detector a ~34%</td><td><span class="vd in">comparador</span></td></tr>
+      <tr><td>Nulo circular</td><td>detector 6,5, acaso 2,3 ± 1,2: 4,2 acima, p &lt; 0,05 em 8/8. O relógio faz 3,2 no mesmo nulo</td><td><span class="vd in">referência</span></td></tr>
+      <tr><td>Gestão de alarme ISA-18.2 (ativo nas primeiras 24 h, depois "condição conhecida")</td><td>carga ATIVA 130,5 → 24,5 h/mês (−81%), mesmas 2,07 notificações/mês e mesmo início 6/8. Não reduz FP</td><td><span class="vd ok">adotar na apresentação</span></td></tr>
+      <tr><td>Assinatura da partida (exploratório)</td><td>temperatura máx. dos mancais em 5,5–6 h: 69,6 → 79,6 °C nas partidas que viram trip (p Bonferroni 0,005), mas some contra a semana anterior (p = 0,16)</td><td><span class="vd wt">hipótese futura</span></td></tr>
+      <tr><td>Retreino em dia fixo</td><td>o dia 1 é o melhor nas duas metades da série; não separa ajuste de estrutura</td><td><span class="vd ok">manter o dia 1</span></td></tr>
+    </tbody></table></div></div>
+  <div class="aviso"><h3>O "8/8" mistura dois produtos</h3><p>Nos 5 trips pós-partida (07/04, 11/04 e 29/04/2025, 04/11 e 09/12/2025) o
+    detector faz 3,5/5 e o relógio de partida, 5/5. Nas 3 falhas de regime longo (27/02/2025, 17/03/2025 e 26/02/2026) o
+    detector faz 3/3 em 7 de 8 composições e o relógio, 0/3. A parte das 4,2 detecções acima do acaso que vem só
+    do sinal é da ordem de 1 evento além do relógio.</p></div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 10 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">10 · Fase 8</span><h2>Drift nos dados</h2></div>
+
+  <div class="bloco"><h3>O que deriva, e quando</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Achado</th><th>Medida</th></tr></thead>
+    <tbody>
+      <tr><td>Cada canal é comandado por um sensor</td><td><code>t</code> = TI_0305 (mancal radial) em 68,5% do tempo aceso; <code>p</code> = PDI_0301 40%, PDIT_0305 22%, PDI_0317 15%, PDI_0338 7%</td></tr>
+      <tr><td>Todo mês se desloca contra o próprio baseline</td><td>a tag mediana anda ~1σ; a pior, 1,2 a 18σ. Em nov/2025, 93% dos pontos do PDI_0301 fora da faixa conhecida</td></tr>
+      <tr><td>Modo de manutenção</td><td>HSX_6240001A liga só com a máquina parada: 79 acionamentos, 14 manutenções ≥ 24 h (a maior, 47 dias)</td></tr>
+      <tr><td>Drift abrupto pós-manutenção</td><td>semanas com manutenção: ≥ 5 tags saltando &gt; 3σ em 75% (contra 40%, p = 0,012); mediana de 14 tags contra 4. Mas 65% dos saltos são fora de manutenção</td></tr>
+      <tr><td>Nov/2025</td><td>PDI_0301 de +0,245 para −0,400 kgf/cm² (instrumento rezerado ou trocado); <code>p</code> aceso 96% do mês até o bundle de dezembro absorver</td></tr>
+      <tr><td>Dente de serra dos filtros</td><td>não: o filtro de óleo é constante, o de selagem sobe 0,18σ/mês</td></tr>
+      <tr><td>FP concentrados após manutenção</td><td>não: 0 de 4 FP nascem nos 21 dias seguintes</td></tr>
+    </tbody></table></div></div></div>
+
+  <div class="bloco"><h3>Técnicas de detecção de drift, na mesma régua</h3>
+  <p class="col pq">Limiar = p90 das semanas normais; verdade = as 14 semanas pós-manutenção. 62 semanas.</p>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Técnica</th><th>Como funciona</th><th class="n">AUC</th><th class="n">Pega</th><th>Numa semana NORMAL</th></tr></thead>
+    <tbody>
+      <tr><td>Mediana em σ (o monitor)</td><td>deslocamento do centro por tag</td><td class="n">0,53</td><td class="n">3/14</td><td>3,9σ</td></tr>
+      <tr><td>KS</td><td>maior distância entre as distribuições acumuladas</td><td class="n">—</td><td class="n">—</td><td>p &lt; 0,05 em 99,9%; D satura em 1,0</td></tr>
+      <tr><td>PSI</td><td>faixas pelos decis do baseline</td><td class="n">0,56</td><td class="n">0/14</td><td>7,8 (a regra de bolso chama 0,25 de drift grande)</td></tr>
+      <tr><td>Wasserstein</td><td>distância de transporte, em σ</td><td class="n">0,52</td><td class="n">0/14</td><td>10,8σ; explode em tag estreita</td></tr>
+      <tr><td>Classificador de domínio</td><td>um modelo tenta separar semana e baseline com as 26 tags juntas</td><td class="n">0,72</td><td class="n">6/14</td><td><strong>AUC 0,95</strong></td></tr>
+      <tr><td>T² (Hotelling)</td><td>desvio dentro do subespaço do PCA</td><td class="n">0,45</td><td class="n">0/14</td><td>só acorda em nov/2025</td></tr>
+      <tr><td>Q (SPE)</td><td>resíduo do PCA, a família do nosso canal</td><td class="n">0,63</td><td class="n">2/14</td><td>8% acima do p99</td></tr>
+    </tbody></table></div></div>
+  <div class="nota"><strong>Contra o baseline, toda semana já está em drift.</strong> O salto da manutenção existe de uma
+    semana para a outra, mas se perde no drift que acontece o tempo todo. Detector genérico dispararia sempre.
+    MMD, KSWIN e ADWIN não foram rodados: são da mesma família do classificador e do KS, que saturaram.</div>
+
+  <div class="bloco"><h3>O que foi feito com isso</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Medida</th><th>Resultado</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>Recentragem pós-manutenção (pré-registrada, N = 3 e 7 dias)</td><td>funciona no sinal (p cru 100% → 8,3%), mas o CUSUM soma contra a referência velha; FP 0,861 → 0,947</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Recentragem descartando o acumulado (a posteriori)</td><td>NEUTRO −13 h/mês, mas o FP sobe nas 8: o bundle de dezembro já tinha aprendido o salto</td><td><span class="vd no">reprovada</span></td></tr>
+      <tr><td>Monitor: degrau persistente</td><td>tag ≥ 10σ duas semanas seguidas, mesmo sinal; alerta PDI_0301 em 26/11/2025</td><td><span class="vd ok">adotado</span></td></tr>
+      <tr><td>Monitor: sensor travado</td><td>IQR das 3 últimas semanas &lt; 10% do típico do próprio sensor; 6 de 59 semanas, só PDI_0301 e PI_0319 após nov/2025</td><td><span class="vd ok">adotado</span></td></tr>
+      <tr><td>KS no monitor</td><td>as 2 semanas "só KS" eram saturação ou já tinham alerta</td><td><span class="vd no">fora</span></td></tr>
+    </tbody></table></div></div>
+  <p class="col pq">Correção registrada: a persistência de duas semanas não separa instrumento de máquina. A excursão do
+    mancal de out/2025 também dá degrau persistente.</p>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 11 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">11 · Fase 9</span><h2>Retreino e governança</h2></div>
+
+  <div class="bloco"><h3>Por que mensal: a curva de idade do bundle</h3>
+  <p class="col pq">O histórico inteiro servido por bundles de idade fixa, sem vencimento, 8 composições.
+    Duty = fração do tempo normal com o canal aceso.</p>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Idade</th><th class="n">Média</th><th class="n">Det.</th><th class="n">Início</th><th class="n">Banda</th><th class="n">FP/mês</th><th class="n">Carga</th><th class="n">Duty t</th><th class="n">Duty p</th></tr></thead>
+    <tbody>
+      <tr class="destaque"><td>0 (mensal, hoje)</td><td class="n">15 d</td><td class="n">6,5</td><td class="n">6,0</td><td class="n">4,5</td><td class="n">0,861</td><td class="n">130,5</td><td class="n">33%</td><td class="n">41%</td></tr>
+      <tr><td>1 mês</td><td class="n">46 d</td><td class="n">7,5</td><td class="n">5,0</td><td class="n">4,0</td><td class="n">0,947</td><td class="n">231,4</td><td class="n">52%</td><td class="n">63%</td></tr>
+      <tr><td>2 meses</td><td class="n">76 d</td><td class="n">7,0</td><td class="n">5,0</td><td class="n">4,0</td><td class="n">0,904</td><td class="n">219,4</td><td class="n">60%</td><td class="n">66%</td></tr>
+      <tr><td>3 meses</td><td class="n">107 d</td><td class="n">8,0</td><td class="n">3,5</td><td class="n">3,0</td><td class="n">0,732</td><td class="n">172,2</td><td class="n">57%</td><td class="n">66%</td></tr>
+      <tr><td>6 meses</td><td class="n">198 d</td><td class="n">7,0</td><td class="n">3,0</td><td class="n">2,0</td><td class="n">1,249</td><td class="n">261,6</td><td class="n">60%</td><td class="n">92%</td></tr>
+      <tr><td>congelado</td><td class="n">581 d</td><td class="n">7,0</td><td class="n">3,5</td><td class="n">2,5</td><td class="n">1,292</td><td class="n">183,8</td><td class="n">8%</td><td class="n">100%</td></tr>
+    </tbody></table></div></div></div>
+  <p class="col">A detecção "de pé" sobe com a idade porque os canais ficam acesos quase sempre. As réguas de
+    nascimento caem: o alarme vira fundo de tela. A cadência, medida em 104 cenários, confirma: bimestral a
+    semestral mantêm o FP (0,82–0,95), mas a carga sobe de +36% a +44% e o início cai de 6 para 5.</p>
+
+  <div class="bloco"><h3>Mais rápido que mensal</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Desenho</th><th class="n">Det.</th><th class="n">Início</th><th class="n">Banda</th><th class="n">FP/mês</th><th class="n">Carga</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>mensal (referência)</td><td class="n">6,5</td><td class="n">6</td><td class="n">4,5</td><td class="n">0,861</td><td class="n">130,5</td><td></td></tr>
+      <tr><td>quinzenal</td><td class="n">5,0</td><td class="n">4</td><td class="n">3,0</td><td class="n">1,120</td><td class="n">127,7</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>semanal</td><td class="n">4,0</td><td class="n">2</td><td class="n">1,0</td><td class="n">0,947</td><td class="n">113,2</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>semanal, guarda de 11 dias</td><td class="n">6,0</td><td class="n">5</td><td class="n">4,0</td><td class="n">0,689</td><td class="n">62,9</td><td><span class="vd wt">candidato</span></td></tr>
+      <tr><td>semanal, guarda de 21 dias</td><td class="n">7,0</td><td class="n">7</td><td class="n">5,0</td><td class="n">0,689</td><td class="n">157,2</td><td><span class="vd wt">candidato</span></td></tr>
+    </tbody></table></div></div>
+  <p class="col">Sem guarda, o modelo aprende a degradação pré-trip como normal. Com a referência terminando G dias antes
+    do corte, as duas guardas reprovam o critério (exigia melhorar tudo junto), mas a variação do FP entre cenários cai de
+    0,69 para 0,26–0,34. A guarda foi decidida depois de ver o semanal: escolher um G intermediário agora seria ajuste sobre os mesmos 8 eventos.</p>
+
+  <div class="bloco"><h3>Retreino com aprovação do operador</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Política</th><th class="n">Det.</th><th class="n">Início</th><th class="n">Banda</th><th class="n">FP/mês</th><th class="n">Carga</th><th class="n">Dias cegos</th><th>Veredito</th></tr></thead>
+    <tbody>
+      <tr><td>automático (hoje)</td><td class="n">6,5</td><td class="n">6,0</td><td class="n">4,5</td><td class="n">0,861</td><td class="n">130,5</td><td class="n">0</td><td></td></tr>
+      <tr><td>atraso de 3 dias</td><td class="n">6,5</td><td class="n">6,0</td><td class="n">4,5</td><td class="n">0,775</td><td class="n">141,2</td><td class="n">0</td><td><span class="vd ok">tolerável</span></td></tr>
+      <tr><td>atraso de 7 / 14 / 21 dias</td><td class="n">7,0–7,5</td><td class="n">5,5–6,5</td><td class="n">4,5</td><td class="n">0,78–0,90</td><td class="n">160–214</td><td class="n">0</td><td><span class="vd no">+23 a +64%</span></td></tr>
+      <tr><td>1 em 4 meses sem aprovação</td><td class="n">6,0</td><td class="n">5,0</td><td class="n">4,0</td><td class="n">0,861</td><td class="n">164,6</td><td class="n">28,5</td><td><span class="vd no">cego 39/40</span></td></tr>
+      <tr><td>1 em 2 meses sem aprovação</td><td class="n">5,0</td><td class="n">4,0</td><td class="n">3,0</td><td class="n">0,689</td><td class="n">132,3</td><td class="n">98,7</td><td><span class="vd no">cego 40/40</span></td></tr>
+      <tr><td>veto: 72 h sem alarme</td><td class="n">6,5</td><td class="n">5,5</td><td class="n">4,5</td><td class="n">0,861</td><td class="n">143,9</td><td class="n">0–3</td><td><span class="vd no">reprovado</span></td></tr>
+      <tr><td>veto: 7 dias sem alarme</td><td class="n">7,0</td><td class="n">5,5</td><td class="n">4,0</td><td class="n">0,861</td><td class="n">121,4</td><td class="n">0–6,7</td><td><span class="vd no">reprovado</span></td></tr>
+    </tbody></table></div></div>
+  <p class="col">A validade de 62 dias é exatamente dois meses: um mês sem aprovação mais qualquer atraso vence o bundle.
+    Sem vencimento a detecção volta a 7,0, mas a carga sobe 40–52%. O vencimento troca carga por cegueira. Treinar na
+    hora da aprovação é melhor que deixar o candidato pronto (18,5 contra 28,5 dias cegos). O veto "não retreino com
+    alarme" não protege (ganho ≤ 0,5 evento) e segura o retreino por até 27 dias.</p>
+
+  <div class="bloco"><h3>Retrain Advisory pela saída do detector</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Medida</th><th class="n">AUC novo × velho</th><th>Observação</th></tr></thead>
+    <tbody>
+      <tr><td>tempo aceso de <code>t</code> / <code>p</code></td><td class="n">0,60 / 0,63</td><td>quase binário por semana (memória do CUSUM); mediana 0,31 contra 0,99 no <code>p</code></td></tr>
+      <tr><td>troca do sensor dominante (máx. de t e p)</td><td class="n">0,69</td><td>a melhor; dispara em 13% das semanas pré-trip</td></tr>
+      <tr><td>champion × challenger, mesma semana</td><td class="n">—</td><td>o velho acende mais em 40–43% das semanas normais e em <strong>59–61% das pré-trip</strong></td></tr>
+    </tbody></table></div></div>
+  <div class="tw" style="margin-top:12px"><table class="densa">
+    <thead><tr><th>Política de retreino</th><th class="n">Det.</th><th class="n">Início</th><th class="n">Banda</th><th class="n">FP/mês</th><th class="n">Carga</th><th class="n">Retreinos/ano</th></tr></thead>
+    <tbody>
+      <tr><td>mensal automático</td><td class="n">6,5</td><td class="n">6</td><td class="n">4,5</td><td class="n">0,861</td><td class="n">130,5</td><td class="n">12</td></tr>
+      <tr><td>aviso acima do p75</td><td class="n">5,0</td><td class="n">5</td><td class="n">4,0</td><td class="n">1,206</td><td class="n">112,1</td><td class="n">10,8</td></tr>
+      <tr><td>aviso acima do p90</td><td class="n">4,0</td><td class="n">3</td><td class="n">2,0</td><td class="n">1,033</td><td class="n">94,7</td><td class="n">8,5</td></tr>
+    </tbody></table></div>
+  <p class="col">Reprovado nas duas partes. Os três trips que a política p75 perde (17/03, 29/04 e 09/12/2025) tiveram um
+    retreino por aviso de 0 a 10 dias antes; o de 09/12 retreinou 8 horas antes do trip. A evidência de "precisa
+    retreinar" cresce justamente antes da falha. A troca do sensor dominante fica como informação no painel.</p>
+
+  <div class="bloco"><h3>Champion/challenger: o que fazer quando ninguém promove</h3>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Cliente promove 3 de 4 meses</th><th class="n">Det.</th><th class="n">Início</th><th class="n">Banda</th><th class="n">Carga</th><th class="n">Dias cegos</th></tr></thead>
+    <tbody>
+      <tr><td>fica cego (hoje)</td><td class="n">6,0</td><td class="n">5</td><td class="n">4</td><td class="n">164,6</td><td class="n">28,5</td></tr>
+      <tr><td>segue com o bundle velho</td><td class="n">7,0</td><td class="n">5</td><td class="n">4</td><td class="n">182,4</td><td class="n">0</td></tr>
+      <tr><td>promove o challenger sozinho no dia 62</td><td class="n">7,0</td><td class="n">5</td><td class="n">4</td><td class="n">178,3</td><td class="n">0</td></tr>
+      <tr><td>roda só com <code>sp</code> e <code>vb</code></td><td class="n">6,5</td><td class="n">5</td><td class="n">4</td><td class="n">177,4</td><td class="n">0</td></tr>
+    </tbody></table></div></div>
+  <p class="col">As três políticas novas acabam com a cegueira, mas nenhuma passa: o custo está nos 30–62 dias em que o
+    bundle envelhece esperando. Sozinhos no histórico inteiro, <code>sp</code> e <code>vb</code> pegam 2,5 de 8.
+    O que resolve é encurtar a espera: promoção por exceção em até 3 dias.</p>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 12 -->
+<section>
+  <div class="shead"><span class="eyebrow">12 · Especialista</span><h2>O plano do especialista, item a item</h2></div>
+  <p class="col pq">Plano em 5 fases (backtest, quick wins, estabilidade sem retreino, estrutural, governança) recebido em
+    30/09. É um modelo genérico para turbina a gás; o nosso detector não é "PCA com limiares de T² e SPE".</p>
+  <div class="tw flui"><table class="densa">
+    <thead><tr><th>Item</th><th>Situação aqui</th><th>Usar?</th></tr></thead>
+    <tbody>
+      <tr><td>F0 backtest sem retreino</td><td>feito: curva de idade (seção 11). Recall por mês é inviável com 8 trips</td><td><span class="vd ok">adaptado</span></td></tr>
+      <tr><td>1.1 qualidade de dados</td><td>parcial: sensor travado e diagnóstico de entrada; falta mascarar antes do modelo</td><td><span class="vd ok">sim</span></td></tr>
+      <tr><td>1.2 T² × SPE</td><td>não alarmamos por T²; como drift, AUC 0,45</td><td><span class="vd no">não</span></td></tr>
+      <tr><td>1.3 contribuições ao SPE</td><td>o score já é o máximo por sensor; útil para separar falha de instrumento</td><td><span class="vd ok">sim</span></td></tr>
+      <tr><td>1.4 k-de-n, EWMA, CUSUM, histerese</td><td>já temos todos; a histerese foi reprovada</td><td>—</td></tr>
+      <tr><td>1.5 máscara operacional</td><td>já temos; variantes reprovadas</td><td>—</td></tr>
+      <tr><td>1.6 limpar o treino em volta de alarmes</td><td>testado e piora: 6,6 → 68 h/mês</td><td><span class="vd no">não</span></td></tr>
+      <tr><td>2.1 correção ISO</td><td>não há T_amb/P_amb nas 38 tags; mancal e selagem não são caminho de gás</td><td><span class="vd no">não hoje</span></td></tr>
+      <tr><td>2.2 normalização por regime</td><td>reprovada (regimes, carga)</td><td><span class="vd no">não</span></td></tr>
+      <tr><td>2.3 normalização adaptativa com controle</td><td>não testada nessa forma; parentes reprovados</td><td><span class="vd wt">experimento</span></td></tr>
+      <tr><td>2.4 DSPOT</td><td>autocalibração reprovada; o limiar não é alavanca de custo</td><td><span class="vd no">provável não</span></td></tr>
+      <tr><td>3.1 resíduo contra condições</td><td>reprovado para carga</td><td><span class="vd no">não</span></td></tr>
+      <tr><td>3.2 PCA por subsistema</td><td>já é dividido; separar selagem de óleo no <code>p</code> não testado</td><td><span class="vd wt">possível</span></td></tr>
+      <tr><td>3.3 DPCA</td><td>não testado</td><td><span class="vd wt">possível</span></td></tr>
+      <tr><td>3.4 classificador de 2º estágio</td><td>8 positivos sem forma comum; rótulos do SDCD ruidosos</td><td><span class="vd no">não agora</span></td></tr>
+      <tr><td>4.1 monitor de drift PSI/KS</td><td>testado: satura</td><td><span class="vd no">não</span></td></tr>
+      <tr><td>4.2 champion/challenger</td><td>simulado (seção 11); encaixa no requisito de retreino sob demanda</td><td><span class="vd ok">sim</span></td></tr>
+      <tr><td>4.3 re-baseline por ordem de manutenção</td><td>recentragem reprovada</td><td><span class="vd no">não</span></td></tr>
+      <tr><td>4.4 versionamento</td><td>ClearML já existe</td><td>—</td></tr>
+    </tbody></table></div>
+  <div class="nota">O critério de sucesso do plano ("FP/semana plano por 6 meses sem retreino") não é mensurável aqui: são ~6 FP
+    em produção (≈ 0,08 por semana), e a curva de idade mostra que o oposto acontece.</div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 13 -->
+<section>
+  <div class="shead"><span class="eyebrow">13 · Estado</span><h2>O que está adotado, o que está em aberto</h2></div>
+
+  <h3>Adotado</h3>
+  <div class="check">
+    <div class="item ok"><div class="mk">✓</div><div><div class="t">Detector v2 no ponto de deploy</div>
+      <div class="d">dois níveis, CUSUM, refratário 72 h com escalada, duração 120 min, blackout 6 h; lo.p = 1,20 pela margem à borda</div></div><div class="q">detector</div></div>
+    <div class="item ok"><div class="mk">✓</div><div><div class="t">Retreino mensal no dia 1, com 20.000 pontos</div>
+      <div class="d">obrigatório pela curva de idade; dia fixo pela reprodutibilidade</div></div><div class="q">retreino</div></div>
+    <div class="item ok"><div class="mk">✓</div><div><div class="t">Monitor de drift nos dados</div>
+      <div class="d">degrau persistente e sensor travado, no contrato do dashboard</div></div><div class="q">pacote</div></div>
+    <div class="item ok"><div class="mk">✓</div><div><div class="t">Pacote 100% JSON, aquecimento de 30 dias, correções de deploy</div>
+      <div class="d">vigência, aquecimento, ffill, registro de trips, recorte de episódio</div></div><div class="q">pacote</div></div>
+    <div class="item ok"><div class="mk">✓</div><div><div class="t">Gestão de alarme ISA-18.2 (recomendação para a integração)</div>
+      <div class="d">ativo nas primeiras 24 h: −81% de carga ativa, mesmas notificações</div></div><div class="q">apresentação</div></div>
+  </div>
+
+  <h3 style="margin-top:22px">Em aberto</h3>
+  <div class="check">
+    <div class="item wt"><div class="mk">→</div><div><div class="t">Bootstrap sobre os eventos nas comparações já feitas</div>
+      <div class="d">confirmar que as reprovações são reais, e não ruído de 8 eventos</div></div><div class="q">próximo</div></div>
+    <div class="item wt"><div class="mk">→</div><div><div class="t">Teste híbrido com mais peso a sinais invariantes à deriva</div>
+      <div class="d">a única via que reduz a dependência de retreino; ressalva: o ensemble foi refutado e o canal 4 do Diego vive de tags de utilidade</div></div><div class="q">próximo</div></div>
+    <div class="item wt"><div class="mk">→</div><div><div class="t">DPCA e o item 1.6 com calibração separada</div>
+      <div class="d">PCA ajustado em dado limpo, p99 calibrado no baseline inteiro, atacando o mecanismo de "o baseline precisa de anormalidade"</div></div><div class="q">próximo</div></div>
+    <div class="item wt"><div class="mk">→</div><div><div class="t">Governança: challenger mensal com promoção por exceção em até 3 dias</div>
+      <div class="d">e, como rede de proteção, promoção automática no dia 62. A <code>vigencia()</code> precisaria de data de publicação</div></div><div class="q">decisão</div></div>
+    <div class="item wt"><div class="mk">→</div><div><div class="t">Portão de 20.000 pontos no <code>constroi_bundle</code></div>
+      <div class="d">hoje aceita baseline de 5.000 sem aviso</div></div><div class="q">pacote</div></div>
+    <div class="item wt"><div class="mk">→</div><div><div class="t">Corrigir os documentos de entrega</div>
+      <div class="d">números de cadência (v2, 104 cenários) e o resultado esperado em produção (a mediana, não o dia 1)</div></div><div class="q">documento</div></div>
+  </div>
+
+  <h3 style="margin-top:22px">O que destravaria um ganho real (pedidos, não modelagem)</h3>
+  <ul class="col">
+    <li><strong>As 47 tags no formato <code>interpolated</code></strong> (30 s, 86 colunas, de 2025-01 em diante): o script já está pronto.</li>
+    <li><strong>Rótulos de produção</strong>: FP e trips novos, que nunca entraram em nenhum ajuste, são o primeiro holdout real.</li>
+    <li><strong>Outras turbinas do mesmo modelo</strong>: mais eventos por unidade de tempo.</li>
+    <li><strong>Matriz de causa e efeito</strong> e a planilha de setpoints de outros equipamentos.</li>
+    <li><strong>Rótulo de religamento</strong> (trip × partida comandada, do SOE ou do log do operador): a borda do blackout não se separa com os sinais atuais.</li>
+  </ul>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════════ 14 -->
+<section>
+  <div class="bloco"><div class="shead"><span class="eyebrow">Apêndice</span><h2>Scripts por fase</h2></div>
+  <p class="col pq">Todos em <code>scripts/pdm_fisico/</code>, com o resultado gravado no docstring de cada um.</p>
+  <div class="tw"><table class="densa">
+    <thead><tr><th>Fase</th><th>Scripts</th></tr></thead>
+    <tbody>
+      <tr><td>Alvo</td><td><code>verdade.py</code> · <code>trips_completos.py</code> · <code>modos.py</code> · <code>janela_valida.py</code> · <code>revisita_alvo.py</code> · <code>caso_2411.py</code></td></tr>
+      <tr><td>Construção</td><td><code>reduz_fp.py</code> · <code>ponto_final.py</code> · <code>cusum.py</code> · <code>cusum_valida.py</code> · <code>cusum_cru.py</code> · <code>combina_final.py</code> · <code>confirma_vizinhanca.py</code> · <code>ponto_de_deploy.py</code> · <code>margem_de_borda.py</code></td></tr>
+      <tr><td>Reprovadas</td><td><code>escape.py</code> · <code>voto_sondas.py</code> · <code>sem_t5.py</code> · <code>blackout_curto.py</code> · <code>blackout_decompoe.py</code> · <code>nao_decaimento.py</code> · <code>limiar_e_troca.py</code> · <code>severidade.py</code> · <code>pos_processamento.py</code> · <code>varre_87.py</code> · <code>orbita.py</code> · <code>glr_lento.py</code> · <code>residuo_carga.py</code> · <code>dinamica_no_v2.py</code> · <code>margem_no_v2.py</code> · <code>trajetoria.py</code> · <code>piso_no_nascimento.py</code> · <code>drift_normalizador.py</code> · <code>baseline_limpo.py</code></td></tr>
+      <tr><td>Comparação</td><td><code>quadrante.py</code> · <code>nosso_nos_trips.py</code> · <code>francisco_lara.py</code> · <code>controle_negativo_zscore.py</code> · <code>banda_acionabilidade.py</code> · <code>ensemble_detectores.py</code> · <code>fp_liquido.py</code> · <code>denominador.py</code></td></tr>
+      <tr><td>Estatística</td><td><code>piso_estatistico.py</code> · <code>lead_censura.py</code> · <code>nulo_circular.py</code> · <code>relogio_partida.py</code></td></tr>
+      <tr><td>Régua de FP</td><td><code>regua_fp.py</code> · <code>drift_composicao.py</code> · <code>drift_vizinhanca_fit.py</code> · <code>por_que_fp_varia.py</code> · <code>dia_fixo.py</code> · <code>coativacao.py</code> · <code>anatomia_canais.py</code> · <code>pericia_fp_atual.py</code> · <code>cusum_memoria.py</code> · <code>transiente_diagnostico.py</code> · <code>ewma_vigiado.py</code> · <code>regimes.py</code> · <code>transicao_observada.py</code> · <code>gestao_alarme.py</code> · <code>assinatura_partida.py</code></td></tr>
+      <tr><td>Drift</td><td><code>drift_nos_dados.py</code> · <code>drift_eventos.py</code> · <code>recentragem.py</code> · <code>ks_drift.py</code> · <code>drift_tecnicas.py</code></td></tr>
+      <tr><td>Retreino</td><td><code>cadencia_retreino.py</code> · <code>retreino_semanal.py</code> · <code>idade_referencia.py</code> · <code>aprovacao_operador.py</code> · <code>advisory_retreino.py</code> · <code>degradacao.py</code></td></tr>
+    </tbody></table></div></div>
+</section>
+
+<footer>
+  Petrobras · UTGCA Cabiúnas · Projeto SIMPred · TC-33003A · 01/10/2026<br>
+  Detector v2 no ponto de deploy · dados até 30/04/2026 · branch <code>exp/reducao-falsos-positivos</code>
+</footer>
+
+</div>
