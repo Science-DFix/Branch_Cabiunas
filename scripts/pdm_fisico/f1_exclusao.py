@@ -43,9 +43,11 @@ RESULTADO (01/10/2026) -- REPROVADO pela regra pré-registrada (A).
     PI_0319 do canal p.
   · O MECANISMO DA PERDA. Na composição 4, o 09/12 não tinha precursor no p: nas 48 h
     antes do trip o EWMA do p está em 0,14-0,17 do limiar. O canal estava aceso
-    pela MEMÓRIA do CUSUM, acumulada no fim de novembro, quando o p passou de 350x o
-    limiar com o degrau pós-manutenção (PDI_0301 e as pressões do header de óleo). A
-    exclusão encurta o artefato, o CUSUM esvazia antes, e o voto (vb + p) não fecha.
+    pela MEMÓRIA do CUSUM, acumulada enquanto o bundle de novembro pontuou o degrau
+    pós-manutenção (o p passou de 350x o limiar no fim de novembro e seguia a ~7x,
+    100% PDI_0301, até a troca de 04/12). O bundle de dezembro vê o p normal; o
+    acumulador levou o artefato 4 dias para dentro dele (`memoria_nas_comparacoes.py`).
+    A exclusão encurta o artefato, o CUSUM esvazia antes, e o voto (vb + p) não fecha.
     A regra estrita conta como perda; fica registrado que era detecção sustentada por
     artefato de instrumento. A regra não foi mudada depois de ver isso.
   · CONSEQUÊNCIAS. Não excluir sensor do canal. Ficam: (1) a notificação à
