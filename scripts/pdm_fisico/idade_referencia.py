@@ -40,8 +40,9 @@ RESULTADO (30/09/2026). Mediana das 8 composições.
     pedem o alarme NASCENDO antes da falha caem: início 6 → 5 → 3, banda 4,5 → 4 → 2.
     O alarme vira fundo de tela.
   · A carga não é monótona (1 mês 231, 3 meses 172): com tudo aceso, os episódios se
-    fundem e a contagem por episódio perde sentido. O duty e as réguas de nascimento
-    são monótonos.
+    fundem e a contagem por episódio perde sentido. O que anda numa direção só até 6
+    meses é o duty do p (41 → 63 → 66 → 66 → 92%) e as réguas de nascimento; o duty
+    do t satura em ~55-60% já no 2º mês.
   · Congelado: o t quase não acende (8%) e o p fica aceso 100% -- a escala do primeiro
     PCA (`recon_p99`) decide tudo, como em `o normalizador é o ponto frágil`.
 
