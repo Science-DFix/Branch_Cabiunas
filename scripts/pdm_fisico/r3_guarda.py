@@ -33,6 +33,29 @@ reduz, não elimina, o otimismo. Um GANHO aqui é candidato a validação em dad
 não decisão de produção. E retreino semanal só faz sentido com o enquadramento do R2
 (promoção automática, rotina auditada): 52 promoções por ano.
 
+RESULTADO (01/10/2026) -- REPROVADO pela regra pré-registrada.
+
+    G (dias)        7      10     13     16     19     22     25     28
+    det           6,0    7,0    6,0    6,0    7,0    8,0    8,0    7,0
+    início        5,0    6,0    5,0    6,0    6,0    7,0    6,0    6,0
+    banda         4,0    4,0    4,0    4,0    5,0    5,0    5,0    5,0
+    FP/mês        0,947  0,689  0,775  0,861  0,689  0,603  0,775  0,861
+    carga         107,8   60,2  100,7  138,0  148,5  150,2  196,2  243,6
+  (mensal: det 6,5 · início 6,0 · banda 4,5 · FP 0,861 · carga 133,4)
+
+  · Elegíveis pela vizinhança: 7, 10, 13 e 16. Escolhido: G = 16 (maior banda da
+    vizinhança, 4,33). Teste: det 6,0, início 6,0, banda 4,0 -> reprova em A;
+    Δcarga +4,6 [-73,5; +72,8] -> reprova em B2.
+  · A regra da vizinhança fez o que devia: o G = 10, sozinho, parece o melhor ponto
+    (carga 60 com det 7), mas os vizinhos 7 e 13 são piores em detecção e início --
+    é pico, não platô.
+  · A curva é uma troca monótona, não um ótimo: com G maior a detecção sobe (6 -> 8)
+    e a carga também (60 -> 244). Nenhum G melhora o mensal em tudo. G = 19-25 detecta
+    mais que o mensal com mais carga, e o aumento (+12% a +47%) não se distingue de
+    zero num desenho não pareado (IC de +-70 h/mês).
+  · A vantagem que persiste em toda a grade é a estabilidade entre cenários: a
+    amplitude do FP fica em 0,17-0,52 contra 0,69 do mensal.
+
 Uso:  PYTHONPATH=. python r3_guarda.py calcula G1,G2,...   # gera os caches
       PYTHONPATH=. python r3_guarda.py                     # escolhe e testa
 """

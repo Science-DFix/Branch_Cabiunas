@@ -25,6 +25,24 @@ EXPECTATIVA REGISTRADA: efeito pequeno. As janelas pré-trip são no máximo ~7%
 a ~25% (7 dias) do ajuste, e um PCA de 95% da variância quase não muda com isso. Se o
 PCA não aprende a falha, limpar o ajuste não muda nada; se aprende, a detecção sobe.
 
+RESULTADO (01/10/2026) -- AS DUAS VARIANTES REPROVAM.
+
+    variante            det   início banda  FP/mês  Δcarga [IC]             carga cai em
+    referência          6,5    6,0   4,5   0,861   --
+    +-7 d (primária)    5,0    4,5   3,5   0,732   +3,6 [-6,9; +17,5] 95%   5/8
+    +-48 h (secundária) 5,5    4,5   3,0   0,732  +13,1 [+0,1; +30,3] 97,5%  3/8
+
+  · A expectativa registrada (efeito pequeno) errou onde mais importa: na composição
+    do dia 1 -- a publicada -- a detecção cai de 8 para 4 e a carga vai de 49 para
+    142 (+-7 d) ou 135 (+-48 h). Nas outras sete o efeito é de +-1 evento e poucas
+    horas, para os dois lados.
+  · O mecanismo não é "o PCA aprendia a falha". Tirar as janelas e completar os
+    20.000 pontos puxa o baseline para mais longe no passado: muda a COMPOSIÇÃO, e o
+    dia 1 é justamente o ponto mais sensível a composição (o melhor de nove). A
+    calibração separada preserva a escala, mas não protege da composição.
+  · O FP cai na mediana (0,861 -> 0,732) e a carga não: é a fronteira de novo, com
+    perda de detecção. Item 1.6 fechado nas duas formas.
+
 Uso:  PYTHONPATH=. python f3_calibracao_separada.py
 """
 from __future__ import annotations
