@@ -23,6 +23,20 @@ blackout (transiente que a máscara deixa entrar) e os estados longos (canais ac
 por memória do CUSUM). O DPCA pode reduzir resíduo de rampa, mas a rampa de partida
 já fica fora da máscara.
 
+RESULTADO (01/10/2026) -- AS DUAS VARIANTES REPROVAM.
+
+    variante                 det  início banda  FP/mês  Δcarga [IC]              carga cai em
+    referência               6,5   6,0   4,5   0,861   --
+    0-10-30 min (primária)   5,0   4,0   3,0   0,947   +2,6 [-34,0; +40,0] 95%    5/8
+    0-60 min (secundária)    5,5   3,5   2,5   0,947  +28,7 [-1,8; +66,8] 97,5%   1/8
+
+  · Piora em tudo: perde detecção e nascimento, sobe o FP e não corta carga. No dia 1
+    (a composição publicada) a banda cai de 5 para 2 e a carga vai de 49 para 114-120.
+  · Expectativa registrada (baixa) confirmada. Aprender a dinâmica normal não ataca
+    nenhuma das causas de custo medidas, e o modelo maior (42 e 36 colunas em vez de
+    14 e 12) muda a escala do score -- o p99 de um modelo diferente --, o que já se
+    sabe que desloca quando os canais cruzam o limiar.
+
 Uso:  PYTHONPATH=. python dpca.py
 """
 from __future__ import annotations
