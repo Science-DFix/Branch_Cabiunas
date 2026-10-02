@@ -40,12 +40,12 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 
 <h2>Resumo em uma página</h2>
 <div class="kpi">
-<div><b>4,0 s</b><small>retreino (CSV de 2 min)</small></div>
-<div><b>1,6 s</b><small>inferência, 90 dias de 2 min</small></div>
-<div><b>4,0 s</b><small>inferência, 90 dias de 30 s</small></div>
-<div><b>200 MB / 800 MB</b><small>pico de RAM da inferência: 2 min / 30 s</small></div>
+<div><b>1,5 s / 4,7 s</b><small>retreino: CSV de 2 min / export de 30 s</small></div>
+<div><b>0,7 s / 4,8 s</b><small>inferência (90 dias): 2 min / 30 s</small></div>
+<div><b>250 / 830 MB</b><small>pico de RAM da inferência: 2 min / 30 s</small></div>
+<div><b>2,0 GB</b><small>pico de RAM do retreino a partir de 30 s</small></div>
 </div>
-<p>O modelo é leve: roda em CPU, usa pouca memória e retreina em segundos. Não há busca de hiperparâmetros nem validação no retreino mensal: ele só recalibra a referência de "normal" do mês, com parâmetros fixos validados offline. O retreino é obrigatório todo mês, com corte fixo no dia 1, e a publicação do bundle pode ser automática desde que passe num portão técnico.</p>
+<p>O modelo é leve: roda em CPU, usa pouca memória e retreina em segundos (tempos medidos num worker do ClearML do servidor Cica, ver perguntas 10 e 11). Não há busca de hiperparâmetros nem validação no retreino mensal: ele só recalibra a referência de "normal" do mês, com parâmetros fixos validados offline. O retreino é obrigatório todo mês, com corte fixo no dia 1, e a publicação do bundle pode ser automática desde que passe num portão técnico.</p>
 
 <h2>As 15 respostas</h2>
 
@@ -78,9 +78,9 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 
 <div class="q"><h3><span>06</span>O pipeline carrega toda a base na memória?</h3>
 <p>Sim. O retreino e a inferência leem o arquivo de entrada inteiro; não há leitura em blocos. Por isso <b>o arquivo entregue deve ser só a janela necessária</b>, e não o histórico completo:</p>
-<ul><li><b>Inferência:</b> os últimos 90 dias. Com 30 s, são 154 MB de arquivo e 800 MB de RAM; com 2 min, 200 MB de RAM.</li>
-<li><b>Retreino:</b> os últimos ~240 dias bastam (o maior baseline do histórico precisou de 64 dias). Com 30 s, são 331 MB de arquivo e 2,0 GB de RAM.</li>
-<li>Entregar um export de 30 s de 1,06 GB inteiro (o da pesquisa, desde 01/2024) ao retreino leva a 6,7 GB de RAM e 25 s. Para o período do pacote seria menor; não foi medido.</li></ul></div>
+<ul><li><b>Inferência:</b> os últimos 90 dias. Com 30 s, são 154 MB de arquivo e 830 MB de RAM; com 2 min, 250 MB de RAM.</li>
+<li><b>Retreino:</b> os últimos ~240 dias bastam (o maior baseline do histórico precisou de 64 dias). Com 30 s, são 331 MB de arquivo e 2,0 GB de RAM; com 2 min, 520 MB.</li>
+<li>Entregar um export de 30 s de 1,06 GB inteiro (o da pesquisa, desde 01/2024) ao retreino leva a 6,7 GB de RAM e 25 s (medido uma vez, no notebook de desenvolvimento). Para o período do pacote seria menor; não foi medido.</li></ul></div>
 
 <div class="q"><h3><span>07</span>Existe busca de hiperparâmetros?</h3>
 <p>Não no retreino. O retreino mensal só reajusta o PCA e a normalização sobre o baseline novo. Os parâmetros do detector (limiares, voto, bloqueio, duração e o tamanho do baseline, 20.000 pontos) são fixos.</p>
@@ -98,17 +98,26 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <p>Um. Um equipamento, um bundle por mês. Equipamentos adicionais seriam independentes e rodariam em sequência, em segundos cada.</p></div>
 
 <div class="q"><h3><span>10</span>Quanto tempo o treinamento demora atualmente?</h3>
-<table><tr><th>Etapa</th><th>Entrada</th><th>Tempo</th><th>Pico de RAM</th></tr>
-<tr><td>Retreino (1 bundle)</td><td>CSV de 2 min, 484 dias</td><td class="n">4,0 s</td><td class="n">570 MB</td></tr>
-<tr><td>Retreino (1 bundle)</td><td>export de 30 s, últimos 240 dias</td><td class="n">7,8 s</td><td class="n">2,0 GB</td></tr>
-<tr><td>Retreino (1 bundle)</td><td>export de 30 s inteiro, 1,06 GB (desde 01/2024)</td><td class="n">25 s</td><td class="n">6,7 GB</td></tr>
-<tr><td>Inferência</td><td>90 dias, grade de 2 min</td><td class="n">1,6 s</td><td class="n">200 MB</td></tr>
-<tr><td>Inferência</td><td>90 dias, export de 30 s</td><td class="n">4,0 s</td><td class="n">800 MB</td></tr></table>
-<p>Mediana de três execuções (a linha de 25 s é uma execução só). Os tempos incluem a leitura do CSV. A inferência a partir de 30 s e a partir de 2 min dá exatamente o mesmo alarme (conferido nos 90 dias medidos).</p></div>
+<p>Medido no worker do ClearML do servidor Cica (máquina na pergunta 11), mediana de três execuções, cada uma num processo novo. A inferência é a execução completa do pacote (leitura, diagnóstico da entrada, preprocessar, prever, resumo e monitor de drift).</p>
+<table><tr><th>Etapa</th><th>Entrada</th><th class="n">Tempo</th><th class="n">Pico de RAM</th></tr>
+<tr><td>Retreino (1 bundle)</td><td>CSV de 2 min, 484 dias</td><td class="n">1,5 s</td><td class="n">524 MB</td></tr>
+<tr><td>Retreino (1 bundle)</td><td>export de 30 s, últimos 240 dias</td><td class="n">4,7 s</td><td class="n">2,0 GB</td></tr>
+<tr><td>Inferência completa</td><td>90 dias, grade de 2 min</td><td class="n">0,7 s</td><td class="n">249 MB</td></tr>
+<tr><td>Inferência completa</td><td>90 dias, export de 30 s</td><td class="n">4,8 s</td><td class="n">833 MB</td></tr></table>
+<p><b>Onde o tempo vai, com entrada de 30 s.</b></p>
+<table><tr><th>Etapa</th><th class="n">Retreino</th><th class="n">Inferência</th></tr>
+<tr><td>Leitura do CSV</td><td class="n" colspan="1">(inclui a grade) 4,6 s</td><td class="n">0,9 s</td></tr>
+<tr><td>Montar a grade de 2 min (mediana de 30 s)</td><td class="n">dentro da leitura</td><td class="n">1,1 s, 3 vezes (diagnóstico, preprocessar e monitor)</td></tr>
+<tr><td>Ajuste do PCA, t e p</td><td class="n">0,03 s</td><td class="n">não se aplica</td></tr>
+<tr><td>PCA de t e p (reconstrução)</td><td class="n">não se aplica</td><td class="n">0,01 s</td></tr>
+<tr><td>vb: referência rolante de 400 h</td><td class="n">não se aplica</td><td class="n">0,3 s</td></tr>
+<tr><td>Canais, voto, escalada, refratário</td><td class="n">não se aplica</td><td class="n">0,06 s</td></tr></table>
+<p>O ajuste do modelo é desprezível. Quase todo o tempo é ler o arquivo e montar a grade de 2 min; com entrada de 2 min o retreino cai para 1,5 s. Na inferência, a grade é refeita três vezes (cerca de 3,4 dos 4,8 s). Calculá-la uma vez só é uma melhoria possível; não foi feita. A inferência a partir de 30 s e a partir de 2 min dá exatamente o mesmo alarme (14.383 instantes nos 90 dias medidos).</p></div>
 
 <div class="q"><h3><span>11</span>Em qual máquina esse tempo foi medido?</h3>
-<p>Notebook com Intel Core i5-11300H (4 núcleos, 8 threads, 3,1 GHz), 16 GB de RAM, sem GPU, Linux. Python 3.12.3, numpy 1.26.4, pandas 3.0.2, scikit-learn 1.9.0.</p>
-<p>Qualquer servidor comum sobra. Em contêiner, com a entrada já cortada na janela: <b>1 GB</b> bastam para a inferência a partir de 30 s (512 MB se a entrada for de 2 min) e <b>3 GB</b> para o retreino a partir de 30 s (1 GB com 2 min).</p></div>
+<p>Num worker do ClearML do servidor Cica, em contêiner <code>python:3.12-slim</code>: <b>AMD Threadripper 7970X, 32 núcleos (64 lógicos)</b>, Linux. Python 3.12.15, numpy 2.5.3, pandas 3.0.6, scikit-learn 1.8.0 (as versões do <code>requirements.txt</code> do pacote). Os workers são compartilhados com outros jobs.</p>
+<p><b>O contêiner padrão dos workers é Python 3.8 e não roda o pacote</b> (numpy 2.4 e pandas 3 exigem Python 3.11 ou mais novo). É preciso uma imagem com Python 3.11+.</p>
+<p>Como referência, no notebook de desenvolvimento (Intel Core i5-11300H, 16 GB), os mesmos cenários levaram de 1,3 a 6,9 s, cerca de 1,4 a 1,8 vez mais. Qualquer servidor comum sobra. Em contêiner, com a entrada já cortada na janela: <b>1,5 GB</b> bastam para a inferência a partir de 30 s (512 MB se a entrada for de 2 min) e <b>3 GB</b> para o retreino a partir de 30 s (1 GB com 2 min). Esses limites vêm do pico de RAM medido mais uma folga; não foram testados com limite de memória imposto.</p></div>
 
 <div class="q"><h3><span>12</span>Com que frequência deve ocorrer o retreino?</h3>
 <p>Mensal, obrigatório, com corte fixo no dia 1. O script (<code>constroi_bundle.py --mes AAAA-MM</code>) pode rodar em qualquer dia do mês, mas o corte é sempre o dia 1.</p>
@@ -141,5 +150,5 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <div class="box w"><b>1. O retreino aceita baselines menores que o validado.</b> Hoje o <code>constroi_bundle.py</code> só recusa gerar o bundle quando há menos de 5.000 pontos estáveis. Os 16 bundles do histórico tiveram exatamente 20.000, mas um mês com muita parada passaria com um baseline menor, sem aviso, e o tamanho do baseline pesa muito no resultado. <b>Recomendação:</b> exigir os 20.000 pontos no portão técnico; um mês que não os tenha não publica, e a inferência segue com o bundle anterior. (Ainda não implementado.)</div>
 <div class="box w"><b>2. Fixar o contrato de entrada: export de 30 s.</b> O sistema que alimenta o pacote deve entregar o export do PI a 30 s, cortado na janela (90 dias na inferência, ~240 dias no retreino), e não uma grade de 2 min montada fora. Uma grade montada com uma leitura por janela é aceita sem erro e custa 0,344 → 0,603 falso positivo por mês, sem mudar a detecção, de modo que nada denuncia o problema. O conversor do <code>.xlsx</code> do portal para esse CSV ainda não existe.</div>
 
-<div class="rod">Petrobras · UTGCA Cabiúnas · Projeto SIMPred · TC-33003A · 02/10/2026 · Detector v2 (gatilho de dois níveis) no ponto de deploy · bundles até 29/03/2026 · dados até 30/04/2026 · medições em i5-11300H, 16 GB. Alteração desde 30/09: entrada recomendada passa de grade de 2 min para o export de 30 s (perguntas 3, 6, 10, 11 e 13).</div>
+<div class="rod">Petrobras · UTGCA Cabiúnas · Projeto SIMPred · TC-33003A · 02/10/2026 · Detector v2 (gatilho de dois níveis) no ponto de deploy · bundles até 29/03/2026 · dados até 30/04/2026 · medições no worker do servidor Cica (Threadripper 7970X, contêiner Python 3.12). Alteração desde 30/09: entrada recomendada passa de grade de 2 min para o export de 30 s (perguntas 3, 6, 10, 11 e 13).</div>
 </body></html>
