@@ -44,6 +44,13 @@ RESULTADO (02/10/2026) -- O NÚMERO VALIDADO SÓ VALE PARA A GRADE DA PESQUISA.
     MODELO. Têm de estar no pacote -- no `prepara_dados.py` pendente ou, melhor,
     no próprio `cabiunas_inference`, que hoje recebe a grade pronta e não confere.
 
+CORRIGIDO (02/10/2026): o pacote agora monta a grade ele mesmo
+(`cabiunas_inference.preparar_grade`, também no `constroi_bundle`); a paridade a partir
+do export de 30 s está provada em `paridade_pacote.py`. Os números acima são do pacote
+ANTERIOR. Rodado de novo com o pacote corrigido, a "amostra crua" deixa de existir (a
+faixa física agora é aplicada dentro dele); a "amostra+faixa" continua -- uma grade de
+2 min montada errado não tem como ser reconhecida.
+
 Uso:  PYTHONPATH=. python paridade_entrada.py
 """
 from __future__ import annotations
