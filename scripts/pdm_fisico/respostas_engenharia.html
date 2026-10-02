@@ -66,8 +66,8 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <table><tr><th>O quê</th><th>Tamanho</th><th>Detalhe</th></tr>
 <tr><td><b>Entrada recomendada: export do PI a 30 s</b></td><td class="n">~600 MB</td><td>Para o mesmo período do pacote (jan/2025 a abr/2026, 484 dias): ~1,39 milhão de registros, um a cada 30 s (2.880 por dia). Estimado por proporção a partir do export completo da pesquisa (1,06 GB, desde 01/2024), que não faz parte do pacote. Cresce cerca de 450 MB por ano. O pacote reduz isso à grade de 2 min.</td></tr>
 <tr><td>Entrada já em grade de 2 min</td><td class="n">134,7 MB</td><td>349.200 registros × 38 tags, jan/2025 a abr/2026 (484 dias), ~100 MB/ano. Ainda aceita, mas <b>só vale se a grade tiver sido montada pela mediana</b> de 2 min.</td></tr>
-<tr><td>Matéria-prima</td><td class="n">~1,6 GB</td><td>xlsx exportados do portal, de onde o CSV é montado; fica fora do pacote</td></tr>
-<tr><td>Modelos</td><td class="n">151 KB</td><td>16 bundles, ~9 KB por mês, só JSON</td></tr></table>
+<tr><td>Matéria-prima</td><td class="n">~1,7 GB</td><td>58 arquivos xlsx exportados do portal, de onde o CSV é montado (535 MB deles dentro da pasta <code>dados/</code> do pacote)</td></tr>
+<tr><td>Modelos</td><td class="n">217 KB</td><td>16 bundles. A inferência lê só os JSON (151 KB no total); os 16 trazem também arquivos <code>.pkl</code> legados (~65 KB), que não são usados. Um bundle novo gera só os 6 JSON, ~9 KB por mês.</td></tr></table>
 <div class="box"><b>Por que o export de 30 s.</b> Uma grade de 2 min montada com uma leitura por janela, em vez da mediana, passa sem erro e sem mudar a detecção, mas leva o falso positivo de 0,344 para 0,603 por mês. O pacote não consegue reconhecer uma grade de 2 min montada errado; com o export de 30 s ele mesmo faz a mediana, igual ao treino. Um passo maior que 2 min é recusado.</div></div>
 
 <div class="q"><h3><span>04</span>Quantos sensores e equipamentos entram em cada treinamento?</h3>
@@ -127,8 +127,8 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <div class="q"><h3><span>14</span>Quais métricas determinam se o novo modelo é melhor?</h3>
 <p>O retreino mensal não é uma escolha de modelo. Não se compara o novo com o antigo para ficar com o melhor: o novo sempre substitui o anterior, porque cada bundle só vale para o seu mês. Comparar os dois no mesmo dado favorece o novo, já que o antigo está desatualizado. O que existe são duas verificações:</p>
 <ul><li><b>Portão técnico, na geração:</b> baseline completo (20.000 pontos estáveis), os 6 arquivos gerados, nenhuma tag faltando.</li>
-<li><b>Monitoramento do resultado, em produção:</b> ~2 alarmes por mês, falsos positivos na faixa de 0,3 a 1,0 por mês, e as horas de alarme.</li></ul>
-<div class="box w"><b>Não usar como portão o p99 da normalização nem o número de componentes.</b> Eles variam muito de um mês para outro (o p99 chega a 2,45×; a pressão retém de 1 a 9 componentes) e isso é deriva legítima do processo, não defeito. Um portão neles bloquearia bundles bons.</div>
+<li><b>Monitoramento do resultado, em produção:</b> ~2 alarmes por mês (1,8 por mês de operação no histórico), falsos positivos na faixa de 0,3 a 1,0 por mês, e as horas de alarme.</li></ul>
+<div class="box w"><b>Não usar como portão o p99 da normalização nem o número de componentes.</b> Eles variam muito de um mês para outro (o p99 varia até 2,4× entre os 16 bundles; a pressão retém de 1 a 8 componentes) e isso é deriva legítima do processo, não defeito. Um portão neles bloquearia bundles bons.</div>
 <p>Alterar o detector em si (código, limiares, estrutura) é outra coisa: exige revalidação offline e aprovação humana.</p></div>
 
 <div class="q"><h3><span>15</span>A publicação pode ser automática ou precisa de aprovação humana?</h3>

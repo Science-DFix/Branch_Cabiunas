@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Respostas à engenharia: modelo da branch de pesquisa do TC-33003A</title>
+<style>
+@page { size: A4; margin: 15mm 14mm 16mm; }
+:root { --ink:#16202E; --muted:#64768C; --line:#D2DCE6; --acc:#0E5A78; --accsoft:#E4F0F5; --warn:#8F5D0C; --warnsoft:#F7EEDD; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
+body { font: 10pt/1.5 "DejaVu Sans", Arial, sans-serif; color: var(--ink); margin: 0; }
+.topo { font-size: 8.5pt; color: var(--muted); letter-spacing: .04em; }
+h1 { font-size: 20pt; margin: 4px 0 2px; line-height: 1.15; }
+.lead { color: #3C4E63; margin: 4px 0 10px; }
+h2 { font-size: 12.5pt; color: var(--acc); border-bottom: 2px solid var(--acc); margin: 20px 0 6px; padding-bottom: 3px; break-after: avoid; }
+.q { break-inside: avoid; margin: 12px 0; }
+.q h3 { font-size: 10.5pt; margin: 0 0 3px; }
+.q h3 span { display: inline-block; background: var(--acc); color: #fff; border-radius: 3px; padding: 0 6px; margin-right: 6px; font-size: 9pt; }
+p { margin: 4px 0; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0; font-size: 8.8pt; break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+th { background: var(--accsoft); }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.5pt; background: #F4F7FA; padding: 0 3px; }
+ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
+.box { border-left: 4px solid var(--acc); background: var(--accsoft); padding: 6px 10px; margin: 8px 0; break-inside: avoid; }
+.box.w { border-color: var(--warn); background: var(--warnsoft); }
+.rod { margin-top: 18px; font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 5px; }
+</style></head><body>
+
+<div class="topo">PETROBRAS · UTGCA CABIÚNAS · SIMPRED · 02/10/2026</div>
+<h1>Respostas à engenharia<br>Modelo da branch de pesquisa do TC-33003A</h1>
+<p class="lead">As mesmas 15 perguntas, respondidas para o código da branch <code>exp/reducao-falsos-positivos</code> (pasta <code>scripts/pdm_fisico/</code>), não para o pacote entregue. Para o pacote de produção, ver o documento "Respostas à engenharia: detector de trip do TC-33003A".</p>
+
+<h2>O que é a branch, em relação à produção</h2>
+<table>
+<tr><th style="width:24%"></th><th>Pacote de produção</th><th>Branch de pesquisa</th></tr>
+<tr><td><b>Detector</b></td><td>v2, gatilho de dois níveis</td><td><b>O mesmo, sem nenhuma alteração adotada.</b> Os 11 testes de redução de FP desta rodada foram reprovados pela regra pré-registrada e não entraram.</td></tr>
+<tr><td><b>Para que serve</b></td><td>Rodar todo dia sobre dado novo e alarmar</td><td>Avaliar variantes do detector e medir se reduzem o falso positivo sem perder detecção</td></tr>
+<tr><td><b>Entrada</b></td><td>Export do PI a 30 s (ou grade de 2 min), montada pelo pacote</td><td><code>grade2min.parquet</code>, grade de 2 min já montada por <code>build_cache.py</code> a partir do export de 30 s</td></tr>
+<tr><td><b>Retreino</b></td><td>1 bundle por mês, <code>constroi_bundle.py</code></td><td>Simulação de walk-forward mensal, 8 composições de baseline (retreino nos dias 1, 4, 8, 11, 15, 18, 22 e 25)</td></tr>
+<tr><td><b>Régua</b></td><td>Não aplicável (só monitoramento)</td><td>Detecção, início, banda, FP/mês e carga, com bootstrap em blocos mensais</td></tr>
+</table>
+<div class="box w"><b>Nenhuma das variantes testadas está em produção.</b> O pacote de produção (<code>estrutura_pra_prod/Cabiunas</code>) vive nesta mesma branch, ao lado do código de pesquisa (<code>scripts/pdm_fisico</code>). As alterações recentes nele (monitor de drift, sensor travado, escolha do bundle por mês servido e a paridade da entrada com <code>preparar_grade</code>) não mudam o detector: a paridade reproduz exatamente os números publicados.</div>
+
+<h2>As 15 respostas</h2>
+
+<div class="q"><h3><span>01</span>Qual algoritmo está sendo utilizado?</h3>
+<p>O mesmo detector não supervisionado de quatro sinais físicos da produção (resíduo de PCA de temperatura e de pressão, spread de mancal, vibração), com EWMA, degrau ou CUSUM, voto em dois níveis, escalada por idade, refratário de 72 h e duração mínima de 120 min. O que a branch acrescenta não é um algoritmo novo, e sim uma <b>bancada de teste</b>: o detector refeito por dentro (<code>regua_fp.detector</code>), as métricas, e as variantes que foram medidas contra ele (excluir sensor, biblioteca de referências, retreino semanal, PCA dinâmico, zerar o CUSUM na troca de bundle, autoescala, teto antes da EWMA, 30 s).</p>
+<p>O repositório contém também uma linha mais antiga de autoencoder CNN-1D (TensorFlow e KerasTuner). Ela não faz parte deste modelo.</p></div>
+
+<div class="q"><h3><span>02</span>O treinamento é feito somente em CPU ou atualmente usa GPU?</h3>
+<p>Só CPU: scikit-learn, numpy, pandas e scipy. Não há GPU nesta linha. (A linha antiga de autoencoder pode usar GPU, mas não é este modelo.)</p></div>
+
+<div class="q"><h3><span>03</span>Qual é o tamanho atual da base em GB e em número de registros?</h3>
+<table><tr><th>O quê</th><th>Tamanho</th><th>Detalhe</th></tr>
+<tr><td>Export do PI a 30 s</td><td class="n">1,06 GB</td><td>2.450.520 registros, 01/2024 a 04/2026</td></tr>
+<tr><td><code>grade2min.parquet</code></td><td class="n">87 MB</td><td>612.630 instantes × 38 colunas, a grade de 2 min usada em todos os experimentos</td></tr>
+<tr><td>Cache de vibração e spread (<code>piso_fisico_cache.npz</code>)</td><td class="n">26 MB</td><td>Referência rolante do <code>vb</code> e spread, calculados uma vez</td></tr>
+<tr><td>Caches da régua (<code>_cache_regua/</code>)</td><td class="n">5,7 GB</td><td>Sinais por composição e por experimento; <b>regeneráveis</b>, podem ser apagados</td></tr></table>
+<p>Eventos: <code>falhas.csv</code> tem 9 trips; o alvo de avaliação são os <b>8 a partir de 01/01/2025</b> (o de 16/01/2024 é partida a frio sem dado válido).</p></div>
+
+<div class="q"><h3><span>04</span>Quantos sensores e equipamentos entram em cada treinamento?</h3>
+<p>1 equipamento e 36 tags de sensor (14 de temperatura, 12 de pressão, 10 de vibração), mais <code>RUNNING_A</code> para a máscara de operação (o <code>T5_AVG_A</code>, também usado na máscara, já está entre as 14 temperaturas). O PCA de temperatura usa as 14; o de pressão, as 12 (nos testes C3 e H2, 11).</p></div>
+
+<div class="q"><h3><span>05</span>Cada equipamento possui um modelo próprio ou existe um modelo global?</h3>
+<p>Próprio. Em cada experimento são treinados cerca de <b>27 modelos por composição</b> (um por mês) e <b>219 no total</b> nas 8 composições, cada um com a referência de normal do seu mês. Os limiares foram calibrados para esta máquina.</p></div>
+
+<div class="q"><h3><span>06</span>O pipeline carrega toda a base na memória?</h3>
+<p>Sim: carrega a grade de 2 min inteira (87 MB em disco) e os caches. Medido para uma composição (carregar a régua, refazer o walk-forward de t, p e sp, rodar o detector): pico de <b>1,2 GB</b> de RAM. O teste a 30 s, que lê o export inteiro, é mais pesado; a RAM dele não foi medida com precisão.</p></div>
+
+<div class="q"><h3><span>07</span>Existe busca de hiperparâmetros?</h3>
+<p>Sim, offline e uma vez: busca em grade sobre <b>2.187 configurações</b> (3<sup>7</sup>; <code>busca_conjunta.py</code>), seguida de escolha por margem à borda entre 560 vizinhas. Depois disso, cada variante testada nesta rodada teve seus parâmetros <b>fixados em pré-registro antes de rodar</b> (por exemplo, o tamanho de janela do retreino semanal foi varrido de 7 a 28 dias e a regra escolheu um valor). Não há busca automática no retreino.</p></div>
+
+<div class="q"><h3><span>08</span>É utilizada validação cruzada? Quantos folds?</h3>
+<p>Não há k-fold (embaralhar vazaria o futuro). Usa-se:</p>
+<ul><li>walk-forward mensal: cada mês pontuado só com o passado;</li>
+<li><b>8 composições de baseline</b> como réplicas: o mesmo detector com o retreino em 8 dias diferentes do mês;</li>
+<li>deixar um evento de fora (LOEO, 8 dobras): dá <b>7/8</b> sob qualquer regra de desempate, e o evento que cai é sempre 04/11/2025;</li>
+<li>holdout temporal com 3 trips nunca vistos;</li>
+<li><b>decisão pré-registrada</b> por experimento: nenhuma composição perde detecção, a carga cai em ≥ 7 de 8, o IC por bootstrap em blocos mensais exclui zero, o FP não sobe;</li>
+<li>teste de permutação: um detector sem informação, com a mesma cobertura, acerta em média 2,7 dos 8 eventos por acaso.</li></ul>
+<p><b>Limite:</b> são 8 eventos. Qualquer ajuste de limiar está sobreajustado em algum grau.</p></div>
+
+<div class="q"><h3><span>09</span>Quantos treinamentos precisam ocorrer simultaneamente?</h3>
+<p>Um. Os experimentos rodam em sequência: 8 composições por experimento, 27 meses cada, em um processo só.</p></div>
+
+<div class="q"><h3><span>10</span>Quanto tempo o treinamento demora atualmente?</h3>
+<table><tr><th>Etapa</th><th class="n">Tempo</th></tr>
+<tr><td>Carregar a régua, a grade e os caches (uma vez por processo)</td><td class="n">43 s</td></tr>
+<tr><td>Walk-forward de t, p e sp, 1 composição (~27 meses, 2 PCAs por mês)</td><td class="n">6,1 s</td></tr>
+<tr><td>Detector completo, 1 composição, 2,5 anos de dados</td><td class="n">1,1 s</td></tr>
+<tr><td>Métricas da régua</td><td class="n">&lt; 0,1 s</td></tr>
+<tr><td>Um experimento nas 8 composições</td><td class="n">~1 min (estimado a partir das linhas acima, sem o bootstrap)</td></tr></table>
+<p>Uma medição de cada, na mesma máquina. O tempo total de um experimento, incluindo o bootstrap e o teste de decisão, não foi medido separadamente.</p></div>
+
+<div class="q"><h3><span>11</span>Em qual máquina esse tempo foi medido?</h3>
+<p>Notebook com Intel Core i5-11300H (4 núcleos, 8 threads, 3,1 GHz), 16 GB de RAM, sem GPU, Linux. Python 3.12.3, numpy 1.26.4, pandas 3.0.2, scikit-learn 1.9.0.</p></div>
+
+<div class="q"><h3><span>12</span>Com que frequência deve ocorrer o retreino?</h3>
+<p>Mensal, com corte no dia 1 (o publicado). A pesquisa mostrou que o dia do retreino dentro do mês muda o resultado: com o mesmo tamanho de baseline, o custo vai de 6,6 a 154,6 h/mês só pelo dia escolhido. Congelar o modelo derrubou a detecção de 8/8 para 6/8 e subiu as horas de FP de ~7 para ~108 por mês (medido num ponto anterior do detector). Retreino semanal com guarda e outras cadências foram testados e reprovados.</p></div>
+
+<div class="q"><h3><span>13</span>Por quanto tempo dados e modelos antigos precisam ser guardados?</h3>
+<ul><li><b>Dados:</b> o histórico completo (export de 30 s ou a grade de 2 min), para repetir qualquer experimento.</li>
+<li><b>Os 9 trips</b> em <code>falhas.csv</code>: a referência de vibração os usa, e a régua também.</li>
+<li><b>Caches da régua (5,7 GB):</b> não precisam ser guardados; são regenerados a partir da grade.</li>
+<li><b>Cada experimento</b> guarda o pré-registro e o resultado no próprio arquivo de código, versionado no git. Esse é o registro permanente.</li></ul></div>
+
+<div class="q"><h3><span>14</span>Quais métricas determinam se o novo modelo é melhor?</h3>
+<p>Seis, sempre pareadas contra a referência nas mesmas 8 composições: detecção (alarme em [T−48 h, T)), início (o episódio nasce na janela), banda (nasce com ao menos 4 h de antecedência), FP por mês de operação, horas de FP e neutro (carga), e o IC por bootstrap da diferença de carga. A regra de aprovação é a da resposta 8, escrita antes de rodar.</p>
+<table><tr><th>Medida (mediana das 8 composições)</th><th class="n">Referência</th></tr>
+<tr><td>Detecção</td><td class="n">6,5 de 8</td></tr><tr><td>Início</td><td class="n">6,0 de 8</td></tr><tr><td>Banda</td><td class="n">4,5 de 8</td></tr>
+<tr><td>FP/mês</td><td class="n">0,861</td></tr><tr><td>Carga (média)</td><td class="n">133,4 h/mês</td></tr></table>
+<p>O ponto publicado (retreino no dia 1) é o melhor das 8: 8 de 8, 0,344 FP/mês, 48,9 h/mês.</p>
+<table><tr><th>Teste</th><th>Resultado</th></tr>
+<tr><td>F1, R1, R3, F3, DPCA (2ª rodada)</td><td>Reprovam: perdem detecção</td></tr>
+<tr><td>H1 zerar o CUSUM na troca de bundle</td><td>Reprova: perde detecção em 6/8; FP sobe</td></tr>
+<tr><td>H2 PI_0319 fora do canal de pressão</td><td>Reprova só por 3 nascimentos de 64; detecção idêntica, carga −44 h/mês</td></tr>
+<tr><td>C1 autoescala; C2 teto antes da EWMA</td><td>Reprovam: perdem detecção</td></tr>
+<tr><td>C3 PI_5134001 fora do canal de pressão</td><td>Neutro</td></tr>
+<tr><td>D30 detector a 30 s</td><td>Reprova: início 6→4, banda 4,5→2,5, FP +0,18</td></tr></table></div>
+
+<div class="q"><h3><span>15</span>A publicação pode ser automática ou precisa de aprovação humana?</h3>
+<p><b>Humana, sempre.</b> Nada da branch vai para produção sem revisão. Dois itens existem como proposta para a engenharia, nenhum como decisão:</p>
+<ul><li><b>H2</b> (tirar o PI_0319 do canal de pressão): candidato com argumento físico (é sensor de estado, que liga e desliga), mas reprovado pela regra; a confirmação exige dado novo.</li>
+<li><b>C3</b> (tirar o PI_5134001, tag de outra unidade): higiene, sem efeito medido.</li></ul></div>
+
+<div class="rod">Petrobras · UTGCA Cabiúnas · Projeto SIMPred · TC-33003A · 02/10/2026 · branch exp/reducao-falsos-positivos · medições em i5-11300H, 16 GB. Os números de desempenho valem para estes 8 eventos.</div>
+</body></html>
