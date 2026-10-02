@@ -338,8 +338,9 @@ def preparar_grade(df: pd.DataFrame) -> pd.DataFrame:
             lo, hi = _faixa(c)
             if np.isfinite(lo) or np.isfinite(hi):
                 X[c] = X[c].where((X[c] >= lo) & (X[c] <= hi))
-    passo = (pd.Timedelta(int(np.median(np.diff(X.index.asi8))), "ns")
-             if len(X) > 1 else pd.Timedelta(GRID))
+    # a mediana dos intervalos, em Timedelta: `index.asi8` muda de unidade entre versões
+    # do pandas (ns no 2.x, us no 3.x) e leria 2 min como 0,12 s
+    passo = X.index.to_series().diff().median() if len(X) > 1 else pd.Timedelta(GRID)
     if passo > pd.Timedelta(GRID):
         raise ValueError(f"entrada com passo de {passo}, mais grossa que {GRID}: o detector "
                          f"conta amostras de {GRID}. Use o export de 30 s do PI.")
