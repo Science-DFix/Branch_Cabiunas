@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Respostas à engenharia: detector de trip do TC-33003A</title>
+<style>
+@page { size: A4; margin: 15mm 14mm 16mm; }
+:root { --ink:#16202E; --muted:#64768C; --line:#D2DCE6; --acc:#0E5A78; --accsoft:#E4F0F5;
+        --warn:#8F5D0C; --warnsoft:#F7EEDD; --ok:#2C6B50; --oksoft:#E4F0E9; --crit:#A03728; --critsoft:#F8E7E3; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
+body { font: 10pt/1.5 "DejaVu Sans", Arial, sans-serif; color: var(--ink); margin: 0; }
+.topo { font-size: 8.5pt; color: var(--muted); letter-spacing: .04em; }
+h1 { font-size: 21pt; margin: 4px 0 2px; line-height: 1.15; }
+.lead { color: #3C4E63; margin: 4px 0 10px; }
+h2 { font-size: 12.5pt; color: var(--acc); border-bottom: 2px solid var(--acc); margin: 20px 0 6px; padding-bottom: 3px; break-after: avoid; }
+.q { break-inside: avoid; margin: 12px 0; }
+.q h3 { font-size: 10.5pt; margin: 0 0 3px; }
+.q h3 span { display: inline-block; background: var(--acc); color: #fff; border-radius: 3px; padding: 0 6px; margin-right: 6px; font-size: 9pt; }
+p { margin: 4px 0; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0; font-size: 8.8pt; break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+th { background: var(--accsoft); }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.5pt; background: #F4F7FA; padding: 0 3px; }
+ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
+.box { border-left: 4px solid var(--acc); background: var(--accsoft); padding: 6px 10px; margin: 8px 0; break-inside: avoid; }
+.box.w { border-color: var(--warn); background: var(--warnsoft); }
+.box.o { border-color: var(--ok); background: var(--oksoft); }
+.box.c { border-color: var(--crit); background: var(--critsoft); }
+.kpi { display: flex; gap: 6px; margin: 8px 0; break-inside: avoid; }
+.kpi div { flex: 1; border: 1px solid var(--line); padding: 6px; text-align: center; }
+.kpi b { display: block; font-size: 15pt; color: var(--acc); }
+.kpi small { color: var(--muted); font-size: 7.5pt; text-transform: uppercase; }
+.rod { margin-top: 18px; font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 5px; }
+</style></head><body>
+
+<div class="topo">PETROBRAS · UTGCA CABIÚNAS · SIMPRED · 02/10/2026 (atualização do documento de 30/09/2026)</div>
+<h1>Respostas à engenharia<br>Detector de trip do TC-33003A</h1>
+<p class="lead">Infraestrutura de treino, retreino e publicação do modelo em produção. Tempos, memória e tamanhos medidos executando os scripts do pacote de entrega.</p>
+
+<div class="box w"><b>O que mudou desde 30/09.</b> O pacote passou a aceitar o export do PI a <b>30 s</b> e a montar sozinho a grade de 2 min com que os modelos foram treinados (mediana de 2 min, faixa física, texto do PI como vazio). Essa é agora a entrada recomendada, e <b>muda os números de volume, tempo e memória</b> das perguntas 3, 6, 10, 11 e 13. As demais respostas não mudaram.</div>
+
+<h2>Resumo em uma página</h2>
+<div class="kpi">
+<div><b>4,0 s</b><small>retreino (CSV de 2 min)</small></div>
+<div><b>1,6 s</b><small>inferência, 90 dias de 2 min</small></div>
+<div><b>4,0 s</b><small>inferência, 90 dias de 30 s</small></div>
+<div><b>200 MB / 800 MB</b><small>pico de RAM da inferência: 2 min / 30 s</small></div>
+</div>
+<p>O modelo é leve: roda em CPU, usa pouca memória e retreina em segundos. Não há busca de hiperparâmetros nem validação no retreino mensal: ele só recalibra a referência de "normal" do mês, com parâmetros fixos validados offline. O retreino é obrigatório todo mês, com corte fixo no dia 1, e a publicação do bundle pode ser automática desde que passe num portão técnico.</p>
+
+<h2>As 15 respostas</h2>
+
+<div class="q"><h3><span>01</span>Qual algoritmo está sendo utilizado?</h3>
+<p>Um detector não supervisionado de quatro sinais físicos. Não usa rede neural.</p>
+<table><tr><th>Sinal</th><th>O que é</th></tr>
+<tr><td>t</td><td>PCA sobre 14 temperaturas (RobustScaler, 95% da variância); o sinal é o erro de reconstrução</td></tr>
+<tr><td>p</td><td>o mesmo, sobre 12 pressões</td></tr>
+<tr><td>sp</td><td>z robusto (mediana e MAD) da diferença entre o mancal radial LNA e os outros três mancais</td></tr>
+<tr><td>vb</td><td>maior z robusto entre as 10 sondas de vibração, contra uma referência móvel de 400 h</td></tr></table>
+<p>A decisão combina média móvel, limiar com persistência ou acumulador (CUSUM) e um voto em dois níveis. Depois vêm um bloqueio de 72 h, uma duração mínima de 120 min e o reanúncio quando o episódio piora.</p>
+<p>O repositório também contém uma linha de pesquisa com autoencoder CNN-1D (TensorFlow e KerasTuner), descrita no <code>CLAUDE.md</code>. Ela não é o modelo em produção para o TC-33003A.</p></div>
+
+<div class="q"><h3><span>02</span>O treinamento é feito somente em CPU ou atualmente usa GPU?</h3>
+<p>Só CPU. O retreino usa scikit-learn; a inferência usa apenas numpy e pandas. Não há GPU no processo, nem necessidade dela.</p></div>
+
+<div class="q"><h3><span>03</span>Qual é o tamanho atual da base em GB e em número de registros?</h3>
+<table><tr><th>O quê</th><th>Tamanho</th><th>Detalhe</th></tr>
+<tr><td><b>Entrada recomendada: export do PI a 30 s</b></td><td class="n">1,06 GB</td><td>2.450.520 registros, 01/2024 a 04/2026, um a cada 30 s (2.880 por dia). Cresce cerca de 450 MB por ano. O pacote reduz isso à grade de 2 min.</td></tr>
+<tr><td>Entrada já em grade de 2 min</td><td class="n">134,7 MB</td><td>349.200 registros × 38 tags, jan/2025 a abr/2026 (484 dias), ~100 MB/ano. Ainda aceita, mas <b>só vale se a grade tiver sido montada pela mediana</b> de 2 min.</td></tr>
+<tr><td>Matéria-prima</td><td class="n">~1,6 GB</td><td>xlsx exportados do portal, de onde o CSV é montado; fica fora do pacote</td></tr>
+<tr><td>Modelos</td><td class="n">151 KB</td><td>16 bundles, ~9 KB por mês, só JSON</td></tr></table>
+<div class="box"><b>Por que o export de 30 s.</b> Uma grade de 2 min montada com uma leitura por janela, em vez da mediana, passa sem erro e sem mudar a detecção, mas leva o falso positivo de 0,344 para 0,603 por mês. O pacote não consegue reconhecer uma grade de 2 min montada errado; com o export de 30 s ele mesmo faz a mediana, igual ao treino. Um passo maior que 2 min é recusado.</div></div>
+
+<div class="q"><h3><span>04</span>Quantos sensores e equipamentos entram em cada treinamento?</h3>
+<p>1 equipamento e 37 tags: 14 de temperatura (as 4 dos mancais usadas no sp estão entre elas), 12 de pressão, 10 de vibração, e o <code>RUNNING_A</code>, que indica máquina de pé (mais o <code>T5_AVG_A</code>, já contado entre as temperaturas e usado na máscara). O CSV tem 38 colunas; a <code>HSX_6240001A</code> vem junto, mas só o monitor de manutenção a usa.</p></div>
+
+<div class="q"><h3><span>05</span>Cada equipamento possui um modelo próprio ou existe um modelo global?</h3>
+<p>Próprio, e renovado a cada mês: cada mês tem seu bundle, com a referência de "normal" daquele período. Para um segundo equipamento, o código é reaproveitável, mas os limiares não: foram calibrados para esta máquina.</p></div>
+
+<div class="q"><h3><span>06</span>O pipeline carrega toda a base na memória?</h3>
+<p>Sim. O retreino e a inferência leem o arquivo de entrada inteiro; não há leitura em blocos. Por isso <b>o arquivo entregue deve ser só a janela necessária</b>, e não o histórico completo:</p>
+<ul><li><b>Inferência:</b> os últimos 90 dias. Com 30 s, são 154 MB de arquivo e 800 MB de RAM; com 2 min, 200 MB de RAM.</li>
+<li><b>Retreino:</b> os últimos ~240 dias bastam (o maior baseline do histórico precisou de 64 dias). Com 30 s, são 331 MB de arquivo e 2,0 GB de RAM.</li>
+<li>Entregar o export de 30 s inteiro (1,06 GB) ao retreino leva a 6,7 GB de RAM e 25 s.</li></ul></div>
+
+<div class="q"><h3><span>07</span>Existe busca de hiperparâmetros?</h3>
+<p>Não no retreino. O retreino mensal só reajusta o PCA e a normalização sobre o baseline novo. Os parâmetros do detector (limiares, voto, bloqueio, duração e o tamanho do baseline, 20.000 pontos) são fixos.</p>
+<p>Foram escolhidos offline, uma única vez: busca em grade sobre 2.187 configurações, seguida de escolha por margem de segurança entre 560 vizinhas. O único ajuste automático é o número de componentes do PCA (95% da variância), que nos 16 bundles variou de 1 a 3 na temperatura e de 1 a 8 na pressão.</p></div>
+
+<div class="q"><h3><span>08</span>É utilizada validação cruzada? Quantos folds?</h3>
+<p>Não há k-fold. Em série temporal, embaralhar os dados vazaria o futuro para o treino. A validação offline usou:</p>
+<ul><li>walk-forward mensal: cada mês pontuado por um modelo treinado só com o passado;</li>
+<li>deixar um evento de fora, com 8 dobras (uma por trip);</li>
+<li>holdout temporal com 3 trips nunca vistos;</li>
+<li>8 composições de baseline, variando o dia do retreino.</li></ul>
+<p>No retreino de produção não há validação: não existe rótulo no momento do retreino.</p></div>
+
+<div class="q"><h3><span>09</span>Quantos treinamentos precisam ocorrer simultaneamente?</h3>
+<p>Um. Um equipamento, um bundle por mês. Equipamentos adicionais seriam independentes e rodariam em sequência, em segundos cada.</p></div>
+
+<div class="q"><h3><span>10</span>Quanto tempo o treinamento demora atualmente?</h3>
+<table><tr><th>Etapa</th><th>Entrada</th><th>Tempo</th><th>Pico de RAM</th></tr>
+<tr><td>Retreino (1 bundle)</td><td>CSV de 2 min, 484 dias</td><td class="n">4,0 s</td><td class="n">570 MB</td></tr>
+<tr><td>Retreino (1 bundle)</td><td>export de 30 s, últimos 240 dias</td><td class="n">7,8 s</td><td class="n">2,0 GB</td></tr>
+<tr><td>Retreino (1 bundle)</td><td>export de 30 s inteiro (1,06 GB)</td><td class="n">25 s</td><td class="n">6,7 GB</td></tr>
+<tr><td>Inferência</td><td>90 dias, grade de 2 min</td><td class="n">1,6 s</td><td class="n">200 MB</td></tr>
+<tr><td>Inferência</td><td>90 dias, export de 30 s</td><td class="n">4,0 s</td><td class="n">800 MB</td></tr></table>
+<p>Mediana de três execuções (a linha de 25 s é uma execução só). Os tempos incluem a leitura do CSV. A inferência a partir de 30 s e a partir de 2 min dá exatamente o mesmo alarme (conferido nos 90 dias medidos).</p></div>
+
+<div class="q"><h3><span>11</span>Em qual máquina esse tempo foi medido?</h3>
+<p>Notebook com Intel Core i5-11300H (4 núcleos, 8 threads, 3,1 GHz), 16 GB de RAM, sem GPU, Linux. Python 3.12.3, numpy 1.26.4, pandas 3.0.2, scikit-learn 1.9.0.</p>
+<p>Qualquer servidor comum sobra. Em contêiner, com a entrada já cortada na janela: <b>1 GB</b> bastam para a inferência a partir de 30 s (512 MB se a entrada for de 2 min) e <b>3 GB</b> para o retreino a partir de 30 s (1 GB com 2 min).</p></div>
+
+<div class="q"><h3><span>12</span>Com que frequência deve ocorrer o retreino?</h3>
+<p>Mensal, obrigatório, com corte fixo no dia 1. O script (<code>constroi_bundle.py --mes AAAA-MM</code>) pode rodar em qualquer dia do mês, mas o corte é sempre o dia 1.</p>
+<p>Congelar o modelo derruba a detecção de 8/8 para 6/8 e multiplica as horas de alarme falso de ~7 para ~108 por mês. Por isso a inferência recusa um bundle com mais de 62 dias e sai com código 2. A inferência em si é recomendada a cada 15 min.</p></div>
+
+<div class="q"><h3><span>13</span>Por quanto tempo dados e modelos antigos precisam ser guardados?</h3>
+<table><tr><th>O quê</th><th>Mínimo para operar</th><th>Recomendado</th></tr>
+<tr><td>Modelos (bundles)</td><td>os ~4 últimos</td><td>todos (~9 KB/mês)</td></tr>
+<tr><td>Dados, inferência</td><td>90 dias</td><td>90 dias (154 MB a 30 s)</td></tr>
+<tr><td>Dados, retreino</td><td>~2 meses antes do mês servido</td><td>12 meses ou mais (~450 MB/ano a 30 s; ~100 MB/ano em 2 min)</td></tr>
+<tr><td><code>registro_trips.csv</code></td><td colspan="2">guardar sempre</td></tr></table>
+<ul><li><b>Modelos:</b> cada trecho da janela de entrada é pontuado pelo bundle que valia naquele momento; por isso os antigos não podem ser apagados.</li>
+<li><b>Retreino:</b> os 20.000 pontos estáveis costumam cobrir cerca de 5 semanas, mas o maior baseline do histórico precisou de 64 dias.</li>
+<li><b>Registro de trips:</b> a referência de vibração usa os trips passados.</li></ul></div>
+
+<div class="q"><h3><span>14</span>Quais métricas determinam se o novo modelo é melhor?</h3>
+<p>O retreino mensal não é uma escolha de modelo. Não se compara o novo com o antigo para ficar com o melhor: o novo sempre substitui o anterior, porque cada bundle só vale para o seu mês. Comparar os dois no mesmo dado favorece o novo, já que o antigo está desatualizado. O que existe são duas verificações:</p>
+<ul><li><b>Portão técnico, na geração:</b> baseline completo (20.000 pontos estáveis), os 6 arquivos gerados, nenhuma tag faltando.</li>
+<li><b>Monitoramento do resultado, em produção:</b> ~2 alarmes por mês, falsos positivos na faixa de 0,3 a 1,0 por mês, e as horas de alarme.</li></ul>
+<div class="box w"><b>Não usar como portão o p99 da normalização nem o número de componentes.</b> Eles variam muito de um mês para outro (o p99 chega a 2,45×; a pressão retém de 1 a 9 componentes) e isso é deriva legítima do processo, não defeito. Um portão neles bloquearia bundles bons.</div>
+<p>Alterar o detector em si (código, limiares, estrutura) é outra coisa: exige revalidação offline e aprovação humana.</p></div>
+
+<div class="q"><h3><span>15</span>A publicação pode ser automática ou precisa de aprovação humana?</h3>
+<table><tr><th></th><th>Situação</th><th>Regime</th></tr>
+<tr><td>✓</td><td><b>Bundle mensal: automático</b> desde que passe no portão técnico; o processo é determinístico e é o mesmo que foi validado</td><td>AUTOMÁTICO</td></tr>
+<tr><td>!</td><td><b>Portão falhou: não publica e avisa.</b> A inferência segue com o bundle anterior até ele vencer, cerca de 30 dias para resolver</td><td>ALERTA</td></tr>
+<tr><td>×</td><td><b>Revisão humana obrigatória</b> quando o portão falhar, quando o monitoramento do mês sair da faixa esperada, e sempre que o código ou os parâmetros do detector mudarem</td><td>HUMANO</td></tr></table></div>
+
+<h2>Dois ajustes recomendados antes de automatizar</h2>
+<div class="box w"><b>1. O retreino aceita baselines menores que o validado.</b> Hoje o <code>constroi_bundle.py</code> só recusa gerar o bundle quando há menos de 5.000 pontos estáveis. Os 16 bundles do histórico tiveram exatamente 20.000, mas um mês com muita parada passaria com um baseline menor, sem aviso, e o tamanho do baseline pesa muito no resultado. <b>Recomendação:</b> exigir os 20.000 pontos no portão técnico; um mês que não os tenha não publica, e a inferência segue com o bundle anterior. (Ainda não implementado.)</div>
+<div class="box w"><b>2. Fixar o contrato de entrada: export de 30 s.</b> O sistema que alimenta o pacote deve entregar o export do PI a 30 s, cortado na janela (90 dias na inferência, ~240 dias no retreino), e não uma grade de 2 min montada fora. Uma grade montada com uma leitura por janela é aceita sem erro e custa 0,344 → 0,603 falso positivo por mês, sem mudar a detecção, de modo que nada denuncia o problema. O conversor do <code>.xlsx</code> do portal para esse CSV ainda não existe.</div>
+
+<div class="rod">Petrobras · UTGCA Cabiúnas · Projeto SIMPred · TC-33003A · 02/10/2026 · Detector v2 (gatilho de dois níveis) no ponto de deploy · bundles até 29/03/2026 · dados até 30/04/2026 · medições em i5-11300H, 16 GB. Alteração desde 30/09: entrada recomendada passa de grade de 2 min para o export de 30 s (perguntas 3, 6, 10, 11 e 13).</div>
+</body></html>
