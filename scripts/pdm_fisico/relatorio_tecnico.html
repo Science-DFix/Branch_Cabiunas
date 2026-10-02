@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Detector físico de precursores de trip do TC-33003A: descrição técnica</title>
+<style>
+@page { size: A4; margin: 16mm 15mm 17mm; }
+:root { --ink:#16202E; --ink2:#3C4E63; --muted:#64768C; --line:#D2DCE6; --acc:#0E5A78;
+        --accsoft:#E4F0F5; --warn:#8F5D0C; --warnsoft:#F7EEDD; --crit:#A03728; --critsoft:#F8E7E3;
+        --ok:#2C6B50; --oksoft:#E4F0E9; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
+body { font: 10pt/1.5 "DejaVu Sans", "Helvetica Neue", Arial, sans-serif; color: var(--ink); background:#fff; margin:0; }
+h1 { font-size: 20pt; line-height:1.2; margin: 0 0 4px; }
+h2 { font-size: 13pt; margin: 22px 0 6px; padding-bottom: 3px; border-bottom: 2px solid var(--acc); color: var(--acc); break-after: avoid; }
+h3 { font-size: 10.5pt; margin: 14px 0 4px; break-after: avoid; }
+p { margin: 5px 0; }
+.sub { color: var(--muted); font-size: 9.5pt; margin-bottom: 14px; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 8.8pt; break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 3.5px 6px; text-align: left; vertical-align: top; }
+th { background: var(--accsoft); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+code, .m { font-family: "DejaVu Sans Mono", monospace; font-size: 8.6pt; background:#F4F7FA; padding: 0 3px; }
+.box { border-left: 4px solid var(--acc); background: var(--accsoft); padding: 7px 11px; margin: 10px 0; break-inside: avoid; }
+.box.w { border-color: var(--warn); background: var(--warnsoft); }
+.box.c { border-color: var(--crit); background: var(--critsoft); }
+.box.o { border-color: var(--ok); background: var(--oksoft); }
+.flow { display: flex; gap: 4px; align-items: stretch; margin: 10px 0; break-inside: avoid; }
+.flow div { flex: 1; border: 1px solid var(--acc); background: var(--accsoft); padding: 5px 5px; font-size: 8pt; text-align: center; }
+.flow b { display:block; color: var(--acc); }
+.flow .ar { flex: 0 0 8px; border: 0; background: none; padding: 0; align-self: center; color: var(--acc); font-size: 11pt; }
+ul { margin: 4px 0 4px 18px; padding: 0; } li { margin: 2px 0; }
+.fim { margin-top: 20px; font-size: 8.5pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
+</style></head><body>
+
+<h1>Detector físico de precursores de trip do TC-33003A</h1>
+<div class="sub">Descrição técnica e estado da validação, para revisão por especialista · UTGCA Cabiúnas, projeto SIMPred · posição em 02/10/2026</div>
+
+<div class="box"><b>Resumo.</b> O detector é não supervisionado e usa quatro sinais físicos (resíduo de PCA de temperatura, resíduo de PCA de pressão, spread de mancal e vibração). Ele marca como alarme os períodos que antecedem um trip de 2º estágio. O alvo são 8 trips (jan/2025 a abr/2026). No ponto publicado ele detecta 8 de 8 com 0,344 alarme falso por mês, mas esse é o melhor de oito composições de baseline: a mediana delas é 6,5 de 8 e 0,861 FP/mês. A validação é limitada pelos 8 eventos. Este documento descreve o detector com precisão, diz o que foi medido e o que não foi, e lista onde um olhar experiente ajudaria.</div>
+
+<h2>1. Problema e dados</h2>
+<ul>
+<li><b>Alvo:</b> trip de 2º estágio do turbocompressor. Alarmes com a máquina parada ficam fora do denominador.</li>
+<li><b>Entrada:</b> export do PI a 30 s, reduzido a uma grade de 2 min (mediana de cada janela; RUNNING_A como fração). 36 tags de sensor (14 temperaturas, 12 pressões, 10 vibrações) mais RUNNING_A e T5_AVG_A. Tags fora de faixa física viram vazias.</li>
+<li><b>Período:</b> 01/2024 a 04/2026. A avaliação usa o período a partir de 01/01/2025, com <b>8 eventos</b> de trip (os demais anteriores são partida a frio sem dado válido).</li>
+<li><b>Observabilidade:</b> o detector só opina com a máquina de pé e em regime (RUNNING_A &gt; 0,5, T5 &gt; 300 °C, fora das 6 h seguintes a cada partida). Isso é cerca de 59% do tempo; nos outros 41% ele está cego, não "normal".</li>
+</ul>
+
+<h2>2. Arquitetura</h2>
+<div class="flow">
+<div><b>Grade 2 min</b>mediana de 30 s, faixa física</div><div class="ar">→</div>
+<div><b>4 sinais</b>t · p · sp · vb</div><div class="ar">→</div>
+<div><b>EWMA</b>meia-vida 1 h / 30 min</div><div class="ar">→</div>
+<div><b>Canal aceso</b>degrau OU CUSUM</div><div class="ar">→</div>
+<div><b>Voto</b>2 níveis (A ou B)</div><div class="ar">→</div>
+<div><b>Pós</b>escalada, refratário, duração</div>
+</div>
+
+<h3>2.1 Os quatro sinais</h3>
+<table>
+<tr><th>Sinal</th><th>Definição</th><th>Normalização</th></tr>
+<tr><td><b>t</b></td><td>Erro de reconstrução de um PCA (95% da variância) sobre as 14 temperaturas, depois de <code>RobustScaler</code>. Score = máximo, entre as tags, do erro quadrático da tag dividido pelo p99 da própria tag no baseline (piso 0,10 × mediana dos p99).</td><td>Dividido pelo <code>recon_p99</code> do score no próprio baseline.</td></tr>
+<tr><td><b>p</b></td><td>Idem sobre as 12 pressões.</td><td>Idem.</td></tr>
+<tr><td><b>sp</b></td><td>|z robusto| do spread do mancal radial LNA (TI_0305) contra a mediana dos três mancais irmãos (TI_0301, 0303, 0307).</td><td>Mediana e MAD do baseline.</td></tr>
+<tr><td><b>vb</b></td><td>Maior |z robusto| entre as 10 sondas de vibração, cada uma contra uma referência rolante da própria sonda: 400 h estáveis, guarda de 24 h, reavaliada a cada 6 h, excluindo −7 d / +2 d em torno de trips já ocorridos.</td><td>Mediana e MAD da referência rolante.</td></tr>
+</table>
+<p><b>Baseline de t, p e sp:</b> as últimas 20.000 amostras estáveis e completas (cerca de 28 dias de operação) anteriores ao dia 1 do mês. Retreino mensal obrigatório; o par (PCA, <code>recon_p99</code>) é ajustado junto e tratado como atômico.</p>
+
+<h3>2.2 Do sinal ao alarme</h3>
+<ul>
+<li><b>EWMA:</b> meia-vida de 1 h em t e p, 30 min em sp e vb.</li>
+<li><b>Canal aceso</b> quando o EWMA passa do limiar por 15 amostras seguidas (30 min), <b>ou</b> quando um CUSUM passa de 80. O CUSUM acumula <span class="m">min(EWMA/limiar, 20) − 0,75</span> por amostra, sem teto no acumulador; a cada instante mascarado o acumulador é multiplicado por 0,25.</li>
+<li><b>Limiares-base</b> {t 2,0; p 2,0; sp 3,0; vb 3,0}, multiplicados por K:
+  <b>nível A (sensível)</b> K = {1,10; 1,20; 0,90; 2,00}, voto ≥ 3 de 4;
+  <b>nível B (específico)</b> K = {1,7; 1,7; 1,7; 2,2}, voto ≥ 2 de 4 e com sp ou vb entre os acesos. Voto = A ou B.</li>
+<li><b>Pós-processamento:</b> escalada por idade (um episódio com 96 h ou mais cuja força passa de 20× é partido em dois para que o segundo "nasça"); refratário de 72 h depois de cada alarme, com furo para episódio forte e velho; duração mínima de 120 min (60 min se forte); alarmes a menos de 2 h se fundem em um episódio.</li>
+</ul>
+
+<h2>3. Como foi avaliado</h2>
+<ul>
+<li><b>Detecção:</b> há alarme em [T−48 h, T). <b>Início:</b> um episódio <i>nasce</i> nessa janela. <b>Banda acionável:</b> nasce em [T−48 h, T−4 h].</li>
+<li><b>Falso positivo (Regra C):</b> episódio seguido de parada real (≥ 2 h) em até 48 h é neutro; os demais fora da janela são FP. A <b>carga</b> é o total de horas de FP mais neutro por mês de operação (730 h). A Regra C não limita a duração do perdão; por isso a carga é a medida honesta de custo.</li>
+<li><b>Oito composições de baseline:</b> o retreino cai nos dias 1, 4, 8, 11, 15, 18, 22 e 25 do mês. Mudar o dia muda <i>quais</i> 20.000 amostras entram, e o custo varia de 6,6 a 154,6 h/mês só por isso. Todo experimento é comparado pareado contra a referência nas oito.</li>
+<li><b>Decisão pré-registrada</b> (código commitado antes de rodar): (A) nenhuma composição perde detecção e as medianas de início e banda não caem; (B1) a carga cai em ≥ 7/8; (B2) o IC por bootstrap em blocos mensais exclui zero; (C) o FP não sobe. Hipóteses que nascem de olhar os mesmos 8 eventos são marcadas como a posteriori.</li>
+</ul>
+
+<h2>4. Resultado</h2>
+<table>
+<tr><th></th><th class="n">Detecção</th><th class="n">Início</th><th class="n">Banda</th><th class="n">FP/mês</th><th class="n">Carga h/mês</th></tr>
+<tr><td>Ponto publicado (retreino no dia 1)</td><td class="n">8/8</td><td class="n">6/8</td><td class="n">5/8</td><td class="n">0,344</td><td class="n">48,9</td></tr>
+<tr><td>Mediana das 8 composições</td><td class="n">6,5/8</td><td class="n">6,0/8</td><td class="n">4,5/8</td><td class="n">0,861</td><td class="n">133,4 (média)</td></tr>
+</table>
+<div class="box w"><b>Como ler os números.</b>
+<ul>
+<li>O "8/8" é a composição do dia 1, a melhor das oito. Nas outras sete, com os mesmos parâmetros, a detecção é menor (5 a 7 de 8) e o FP maior. O valor representativo é a linha da mediana.</li>
+<li>Os parâmetros foram escolhidos olhando estes 8 eventos. Uma validação deixando um evento de fora (LOEO, escolha dos parâmetros sem ele) dá <b>7/8</b> sob qualquer regra de desempate, e o evento que cai é sempre 04/11/2025.</li>
+<li>Um detector sem informação, com a mesma cobertura temporal de alarme, acerta em média 2,7 dos 8 por acaso. O detector acerta 6,5: cerca de <b>3,8 acima do acaso</b>.</li>
+<li>A antecedência média é de 29 h, mas 4 dos 8 estão limitados pela janela de 48 h e o mínimo é 2,8 h.</li>
+<li>Com 4 FP no ponto publicado, o intervalo de Poisson é muito largo; a diferença entre 0,344 e 0,5 FP/mês não é estatisticamente distinguível.</li>
+</ul></div>
+
+<h2>5. O que foi tentado para reduzir FP</h2>
+<p>Cerca de 30 alavancas foram medidas nas mesmas oito composições. O padrão é sempre o mesmo: <b>cortar tempo aceso corta carga e custa nascimentos de alarme dentro da janela</b>. Os canais ficam acesos 24 a 52% do tempo normal, com a seletividade vinda do voto; cada canal sozinho discrimina pouco, e a razão de verossimilhança máxima de um canal aceso 59% do tempo é 1/0,59 ≈ 1,7.</p>
+<table>
+<tr><th>Rodada / família</th><th>Teste</th><th>Resultado</th></tr>
+<tr><td>Antiga</td><td>Limiares, voto, refratário, duração, blackout, teto/rezero do CUSUM, condicionamento à carga, ensemble de scores, autocalibração por percentil, limpar baseline, tamanho do baseline</td><td>Todos trocam detecção por custo, ou pioram ambos.</td></tr>
+<tr><td>2ª rodada</td><td>F1 excluir sensor travado; R1 biblioteca de referências; R3 retreino semanal com guarda; F3 PCA em dado limpo; DPCA (lags)</td><td>Reprovam em A (perdem detecção); F1 corta 31 h/mês de carga mas perde um evento.</td></tr>
+<tr><td>H1</td><td>Zerar o CUSUM na troca de bundle</td><td>Perde detecção em 6/8 composições; FP sobe.</td></tr>
+<tr><td>H2</td><td>PI_0319 (gás do motor de partida) fora do canal p</td><td>Detecção idêntica nas 8; carga −44 h/mês [IC −90; −7,5]; FP 0,861→0,646. Reprova só por perder 3 nascimentos de 64. <b>Melhor resultado da pesquisa.</b></td></tr>
+<tr><td>C1</td><td>StandardScaler no lugar do RobustScaler</td><td>Início 6→4, banda 4,5→3; corrige a estrutura do PCA e perde detecção.</td></tr>
+<tr><td>C2</td><td>Teto de 20× antes da EWMA</td><td>Perde detecção em 6/8; carga cai em só 5/8.</td></tr>
+<tr><td>C3</td><td>PI_5134001 (tag de outra unidade) fora do p</td><td>Neutro.</td></tr>
+<tr><td>D30</td><td>Detector inteiro a 30 s</td><td>Início 6→4, banda 4,5→2,5, FP +0,18.</td></tr>
+</table>
+
+<h2>6. Diagnósticos que explicam o comportamento</h2>
+<h3>6.1 O canal p é, na maior parte do tempo, quase univariado</h3>
+<p>Em 219 bundles (8 composições), o PCA de pressão retém <b>1 componente em 68%</b> deles (até 9). A causa é o <code>RobustScaler</code>: o PI_0319 liga e desliga, tem IQR minúsculo e, depois da escala, concentra 97,9% da variância (mediana). As pressões diferenciais de selagem têm IQR mensal de 0,002 a 0,006 kgf/cm². Resultado: o p vira o máximo de 11 desvios univariados ao quadrado, com um score bimodal (acima de 1000× o limiar em 0,37% do tempo; máximo de 12.590× em jan/2026). O <code>sens_p99</code> do PDI_0302 vale 0,039 num bundle e 13.452 em outro, conforme o baseline viu ou não um salto de nível. Com StandardScaler, nenhuma tag passa de 8,3% da variância e k fica em 8–10.</p>
+<p>O teto de 20× que protege o CUSUM é aplicado <i>depois</i> da EWMA; 104 h por composição ficam com a EWMA do p ≥ 20× o limiar, e esses instantes são 25% da massa positiva do CUSUM do p. Mesmo assim, as duas correções (C1, C2) reprovam: parte das detecções vive do mesmo mecanismo que gera a carga.</p>
+
+<h3>6.2 A memória do CUSUM sustenta a carga, não a detecção</h3>
+<p>Em 57% das horas de FP e neutro, nenhum voto se forma com os canais acima do limiar naquele instante: o alarme está de pé só pela memória do acumulador. Só 5 das 51 detecções da referência dependem de evidência com mais de 7 dias, mas cortar a memória (teto, rezero, zerar na troca de bundle) perde detecção em 5 a 7 das 8 composições. A memória longa do CUSUM é a "cola" que faz evidência de canais descoordenados coincidir no voto.</p>
+
+<h3>6.3 Fragilidade do normalizador e do retreino</h3>
+<p>O <code>recon_p99</code> varia 2,45× ao longo da série (até +91% de um mês para o outro). O baseline não pode ser limpo de janelas pré-falha (o p99 precisa da cauda; limpar leva a carga de 6,6 para 68 h/mês). Tamanho do baseline, ensemble de scores e suavização do normalizador também pioram: 20.000 pontos é um pico isolado. Em produção, 20.000 pontos estáveis cobrem de 28 a 129 dias de calendário.</p>
+
+<h3>6.4 Os eventos não têm forma comum</h3>
+<p>Os templates dos oito eventos são mais distantes entre si (distância 6,24) que do ruído (4,85). Isso explica por que uma peça que ajuda um evento prejudica outro, e é a razão de fundo da fronteira acima.</p>
+
+<h2>7. Implantação</h2>
+<ul>
+<li>Pacote autocontido (<code>numpy</code> e <code>pandas</code>); bundles em JSON legível, um por mês, guardados todos (cada trecho é pontuado pelo bundle que vigia nele). O bundle vence em 62 dias.</li>
+<li>O pacote reproduz a pesquisa: 8/8, 0,344 FP/mês, 21 episódios, com 0,012% de pontos discordantes.</li>
+<li><b>Quatro defeitos silenciosos já encontrados</b> (nenhum dá erro; todos mudam o alarme): pontuar o aquecimento com um bundle só; preencher buraco com <code>ffill</code> (63 h/mês de FP contra 6,6, com detecção <i>aparentemente melhor</i>); congelar o registro de trips dentro do bundle; e <b>montar a grade de 2 min com uma leitura por janela em vez da mediana</b> (FP de 0,344 a 0,603; corrigido em 02/10 com <code>preparar_grade</code> no pacote, com paridade provada a partir do dado de 30 s).</li>
+<li>Janela de entrada: 60 d, dos quais os primeiros 30 d são aquecimento da referência de 400 h do vb. O monitor de drift (tags que saltam &gt;10σ, sensor travado) não altera o alarme.</li>
+</ul>
+
+<h2>8. Limitações</h2>
+<ul>
+<li><b>8 eventos.</b> Qualquer ajuste de limiar está sobreajustado em algum grau; o resultado da validação cruzada (7/8) é o mais honesto.</li>
+<li>Um dos oito (04/11/2025) não tem precursor físico atribuível e nasce numa partida comum.</li>
+<li>Em ~41% do tempo o detector está cego. A tela deve mostrar isso, não "normal".</li>
+<li>Os FP restantes se concentram na borda das 6 h de blackout: o transiente pós-partida e a falha real têm a mesma geometria nos quatro sinais.</li>
+<li>Tags em falta não dão erro, dão número errado; o diagnóstico de entrada existe por isso.</li>
+</ul>
+
+<h2>9. Perguntas para o revisor</h2>
+<ol>
+<li>Dado que o PI_0319 e as pressões diferenciais são sensores de <i>estado</i> (dois ou três níveis), PCA global com escala robusta é a ferramenta certa para o canal p? Um modelo condicionado ao estado da linha de gás de partida, ou limiares por estado, seria preferível?</li>
+<li>O CUSUM sobre um EWMA já suavizado integra duas vezes. Há uma formulação (GLR, CUSUM sobre o resíduo bruto padronizado com teto por observação) que preserve a "cola" entre canais sem carregar a memória por semanas?</li>
+<li>Com 8 rótulos, que protocolo de seleção de parâmetros o senhor considera defensável? Hoje: composições de baseline como réplica, pré-registro, bootstrap em blocos mensais.</li>
+<li>As horas de FP que nascem na abertura da máscara de blackout: há uma forma de distinguir transiente de partida de falha de religamento sem perder o evento de 04/11/2025?</li>
+<li>Que dado adicional (tags fora do export atual de 38 colunas, ordens de manutenção, mais eventos) teria o maior retorno?</li>
+</ol>
+
+<div class="fim">Código e experimentos: <code>scripts/pdm_fisico/</code>, branch <code>exp/reducao-falsos-positivos</code>. Pacote de produção: <code>estrutura_pra_prod/Cabiunas/</code>. Cada experimento citado tem o pré-registro e o resultado versionados no próprio arquivo de código.</div>
+</body></html>
