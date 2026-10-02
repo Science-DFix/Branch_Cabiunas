@@ -36,7 +36,7 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <h1>Respostas à engenharia<br>Detector de trip do TC-33003A</h1>
 <p class="lead">Infraestrutura de treino, retreino e publicação do modelo em produção. Tempos, memória e tamanhos medidos executando os scripts do pacote de entrega.</p>
 
-<div class="box w"><b>O que mudou desde 30/09.</b> O pacote passou a aceitar o export do PI a <b>30 s</b> e a montar sozinho a grade de 2 min com que os modelos foram treinados (mediana de 2 min, faixa física, texto do PI como vazio). Essa é agora a entrada recomendada, e <b>muda os números de volume, tempo e memória</b> das perguntas 3, 6, 10, 11 e 13. As demais respostas não mudaram.</div>
+<div class="box w"><b>O que mudou desde 30/09.</b> O pacote (<code>estrutura_pra_prod/Cabiunas</code>) passou a aceitar o export do PI a <b>30 s</b> e a montar sozinho a grade de 2 min com que os modelos foram treinados (mediana de 2 min, faixa física, texto do PI como vazio). Essa é agora a entrada recomendada, e <b>muda os números de volume, tempo e memória</b> das perguntas 3, 6, 10, 11 e 13. As demais respostas não mudaram. A alteração está no código do pacote no repositório; <b>a pasta entregue no Drive precisa ser regenerada</b> (<code>monta_entrega_drive.py</code>) para recebê-la.</div>
 
 <h2>Resumo em uma página</h2>
 <div class="kpi">
@@ -64,7 +64,7 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 
 <div class="q"><h3><span>03</span>Qual é o tamanho atual da base em GB e em número de registros?</h3>
 <table><tr><th>O quê</th><th>Tamanho</th><th>Detalhe</th></tr>
-<tr><td><b>Entrada recomendada: export do PI a 30 s</b></td><td class="n">1,06 GB</td><td>2.450.520 registros, 01/2024 a 04/2026, um a cada 30 s (2.880 por dia). Cresce cerca de 450 MB por ano. O pacote reduz isso à grade de 2 min.</td></tr>
+<tr><td><b>Entrada recomendada: export do PI a 30 s</b></td><td class="n">~600 MB</td><td>Para o mesmo período do pacote (jan/2025 a abr/2026, 484 dias): ~1,39 milhão de registros, um a cada 30 s (2.880 por dia). Estimado por proporção a partir do export completo da pesquisa (1,06 GB, desde 01/2024), que não faz parte do pacote. Cresce cerca de 450 MB por ano. O pacote reduz isso à grade de 2 min.</td></tr>
 <tr><td>Entrada já em grade de 2 min</td><td class="n">134,7 MB</td><td>349.200 registros × 38 tags, jan/2025 a abr/2026 (484 dias), ~100 MB/ano. Ainda aceita, mas <b>só vale se a grade tiver sido montada pela mediana</b> de 2 min.</td></tr>
 <tr><td>Matéria-prima</td><td class="n">~1,6 GB</td><td>xlsx exportados do portal, de onde o CSV é montado; fica fora do pacote</td></tr>
 <tr><td>Modelos</td><td class="n">151 KB</td><td>16 bundles, ~9 KB por mês, só JSON</td></tr></table>
@@ -80,7 +80,7 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <p>Sim. O retreino e a inferência leem o arquivo de entrada inteiro; não há leitura em blocos. Por isso <b>o arquivo entregue deve ser só a janela necessária</b>, e não o histórico completo:</p>
 <ul><li><b>Inferência:</b> os últimos 90 dias. Com 30 s, são 154 MB de arquivo e 800 MB de RAM; com 2 min, 200 MB de RAM.</li>
 <li><b>Retreino:</b> os últimos ~240 dias bastam (o maior baseline do histórico precisou de 64 dias). Com 30 s, são 331 MB de arquivo e 2,0 GB de RAM.</li>
-<li>Entregar o export de 30 s inteiro (1,06 GB) ao retreino leva a 6,7 GB de RAM e 25 s.</li></ul></div>
+<li>Entregar um export de 30 s de 1,06 GB inteiro (o da pesquisa, desde 01/2024) ao retreino leva a 6,7 GB de RAM e 25 s. Para o período do pacote seria menor; não foi medido.</li></ul></div>
 
 <div class="q"><h3><span>07</span>Existe busca de hiperparâmetros?</h3>
 <p>Não no retreino. O retreino mensal só reajusta o PCA e a normalização sobre o baseline novo. Os parâmetros do detector (limiares, voto, bloqueio, duração e o tamanho do baseline, 20.000 pontos) são fixos.</p>
@@ -101,7 +101,7 @@ ul { margin: 3px 0 3px 18px; padding: 0; } li { margin: 2px 0; }
 <table><tr><th>Etapa</th><th>Entrada</th><th>Tempo</th><th>Pico de RAM</th></tr>
 <tr><td>Retreino (1 bundle)</td><td>CSV de 2 min, 484 dias</td><td class="n">4,0 s</td><td class="n">570 MB</td></tr>
 <tr><td>Retreino (1 bundle)</td><td>export de 30 s, últimos 240 dias</td><td class="n">7,8 s</td><td class="n">2,0 GB</td></tr>
-<tr><td>Retreino (1 bundle)</td><td>export de 30 s inteiro (1,06 GB)</td><td class="n">25 s</td><td class="n">6,7 GB</td></tr>
+<tr><td>Retreino (1 bundle)</td><td>export de 30 s inteiro, 1,06 GB (desde 01/2024)</td><td class="n">25 s</td><td class="n">6,7 GB</td></tr>
 <tr><td>Inferência</td><td>90 dias, grade de 2 min</td><td class="n">1,6 s</td><td class="n">200 MB</td></tr>
 <tr><td>Inferência</td><td>90 dias, export de 30 s</td><td class="n">4,0 s</td><td class="n">800 MB</td></tr></table>
 <p>Mediana de três execuções (a linha de 25 s é uma execução só). Os tempos incluem a leitura do CSV. A inferência a partir de 30 s e a partir de 2 min dá exatamente o mesmo alarme (conferido nos 90 dias medidos).</p></div>
