@@ -42,6 +42,36 @@ EXPECTATIVA REGISTRADA.
 RESSALVA: hipóteses a posteriori nos mesmos 8 eventos. Um GANHO aqui é candidato a
 validação em dado novo e a discussão com a engenharia, não decisão de produção.
 
+RESULTADO (01/10/2026) -- AS DUAS REPROVAM; H2 SÓ PELO NASCIMENTO.
+
+    braço            det  início banda  FP/mês  Δcarga [IC 97,5%]       ΔFP     carga cai em
+    referência       6,5   6,0   4,5   0,861   --
+    H1 troca         5,0   4,5   3,5   0,947  -23,0 [-55,1; +0,5]    +0,108   6/8   A, B1, B2, C
+    H2 sem PI_0319   6,5   5,0   4,0   0,646  -44,2 [-90,4; -7,5]    -0,194   7/8   A
+
+  · H1: expectativa (risco alto em A) confirmada e pior que o previsto. Perde
+    detecção em 6 das 8 composições e o FP SOBE com IC acima de zero [+0,016;
+    +0,206]. A memória que atravessa a troca carrega precursor de verdade, não só o
+    artefato do 09/12. Fechado.
+  · H2: a detecção é IDÊNTICA nas 8 composições, evento a evento. O corte de carga é
+    alarme que desligou, não reclassificação pela Regra C: em média, o alarme total
+    cai 45,8 h/mês e as horas de TP mudam -1,6 (a exceção é a composição 18, onde um
+    episódio de 670 h passa a encostar no trip e vira TP: 56 dos 99 h/mês do corte
+    ali). O p fica aceso de 3 a 13 pontos a menos em todas as composições.
+  · H2 reprova porque 3 dos 64 pares (composição x evento) perdem o nascimento dentro
+    da janela -- o trip segue detectado, mas por um episódio que já vinha de antes:
+    d1 27/02/25 (o nascimento da referência era a 1,6 h, fora da banda), d18
+    26/02/26 (20,2 h) e d25 17/03/25 (31,2 h). Saldo: início -3, banda -2.
+    Mediana de início 6 -> 5 e de banda 4,5 -> 4.
+  · O MECANISMO DOS 3 (a posteriori). Nos três, o PI_0319 sobe de -0,6 para 26-45
+    dentro de +-3 h do nascimento. Em d18 e d25, a força que fez o episódio nascer
+    (ou escalar) vinha dele: F 62,5 -> 16,7 e 27,0 -> 12,6 sem o PI_0319 (a escalada
+    pede 20). Mas a linha de gás de partida pressuriza em CICLO: 640 subidas em
+    operação, uma a cada ~7 h (55/mês). Nas janelas pré-trip são 73/mês contra
+    54/mês fora -- com eventos periódicos e 8 janelas, isso não se distingue de
+    acaso. Os nascimentos perdidos foram cronometrados por uma rotina da linha, não
+    por degradação. A regra não muda por isso: reprovado.
+
 Uso:  PYTHONPATH=. python troca_e_pi0319.py confere   # equivalência do laço de H2
       PYTHONPATH=. python troca_e_pi0319.py           # o teste
 """
