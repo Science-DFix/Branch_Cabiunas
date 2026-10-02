@@ -54,6 +54,37 @@ qualquer direção, porque o baseline e o recon_p99 mudam junto.
 RESSALVA: é outro detector nos mesmos 8 eventos de sempre, e a resposta vale para
 esta régua, não para qualquer detector a 30 s.
 
+EQUIVALÊNCIAS (02/10/2026, antes do teste): o mesmo código com a grade de 2 min e o
+fator 1 reproduz a referência nas 8 composições -- vb idêntico (diferença 0), t até
+1,1e-4, p até 1,2e-3 e sp até 7e-8 relativo (ponto flutuante), alarme bit a bit.
+
+RESULTADO (02/10/2026) -- REPROVADO (A, B1, B2, C). A 30 s NÃO HÁ GANHO.
+
+    braço        det  início banda  FP/mês  Δcarga [IC 95%]         ΔFP     carga cai em
+    referência   6,5   6,0   4,5   0,861   --
+    D30 (30 s)   7,0   4,0   2,5   0,947  -10,2 [-23,6; +1,7]    +0,183   6/8
+
+    por composição (det / banda / carga h/mês, referência -> D30):
+      d1  8->7 / 5->4 /  49->76     d11 5->6 / 3->2 / 163->154
+      d4  6->4 / 2->2 / 123->118    d15 7->7 / 4->2 / 185->168
+      d8  5->4 / 3->2 / 107->113    d18 6->7 / 5->3 / 180->177
+                                    d22 7->7 / 5->6 / 126->68    d25 7->7 / 5->4 / 135->111
+
+  · A detecção "de pé" sobe na mediana (6,5 -> 7,0), mas troca: 3 composições perdem,
+    2 ganham. O que a operação lê -- o NASCIMENTO na janela -- piora muito: início
+    6 -> 4, banda 4,5 -> 2,5. O FP sobe (+0,183): o total de episódios quase não muda
+    (198 contra 192 nas 8 composições), mas mais deles caem longe dos trips (91 FP
+    contra 74; 59 TP contra 65). A carga cai pouco, com IC cruzando o zero. A
+    composição publicada (dia 1) piora: 49 -> 76 h/mês.
+  · Expectativa: "sem ganho" confirmada. A direção da carga eu errei na média: previ
+    que subiria como na "amostra" de `paridade_entrada.py`, e ela cai um pouco (sobe
+    no dia 1). A diferença é que aqui o baseline também é de 30 s: o recon_p99
+    absorve o ruído extra (o p cru acima de 100x cai de 0,40% para 0,33% do tempo
+    vigiado). O que estraga a "amostra" é treinar num formato e servir noutro, não a
+    resolução em si.
+  · A escala degenerada do PCA de pressão (`escala_degenerada.py`) não depende da
+    resolução: o p continua bimodal a 30 s.
+
 Uso:  PYTHONPATH=. python trinta_segundos.py confere   # equivalências a 2 min
       PYTHONPATH=. python trinta_segundos.py           # o teste
 """
