@@ -21,15 +21,16 @@ cortados do export da pesquisa).
 
 Uso:  python mede_tempos_clearml.py --local     # monta numa pasta temporaria e mede aqui
       python mede_tempos_clearml.py --remote    # sobe o Dataset, enfileira em `default` e sai
+      python mede_tempos_clearml.py --remote --dataset ID    # reaproveita um Dataset ja subido
 """
 from __future__ import annotations
 import json, os, platform, resource, shutil, subprocess, sys, tempfile, time, warnings
 from pathlib import Path
 
-AQUI = Path(__file__).resolve().parent
-PKG = AQUI.parents[1] / "estrutura_pra_prod" / "Cabiunas"
-SRC30 = AQUI.parents[3] / "dados" / "sensores_full_2024_2026_30s.csv"
+# Os caminhos do repositorio so existem na maquina de quem monta o Dataset. No worker o script chega
+# como arquivo avulso (sem repositorio), entao nada aqui pode depender de `parents[N]` no import.
 PROJETO, FILA = "TesteMLCab", "default"
+IMAGEM = "python:3.12-slim"       # o contêiner padrao dos workers e Python 3.8: nao instala o numpy/pandas do pacote
 N_EXEC = 3
 CENARIOS = {                    # rotulo -> (tipo, arquivo, o que e)
     "inferência, 2 min, 90 d":  ("inf", "2min_90d.csv"),
@@ -48,6 +49,9 @@ def _cauda(src: Path, n: int, dest: Path) -> None:
 
 def monta(dest: Path) -> Path:
     """O pacote e os quatro CSV, numa pasta."""
+    aqui = Path(__file__).resolve().parent
+    PKG = aqui.parents[1] / "estrutura_pra_prod" / "Cabiunas"
+    src30 = aqui.parents[3] / "dados" / "sensores_full_2024_2026_30s.csv"
     dest.mkdir(parents=True, exist_ok=True)
     shutil.copytree(PKG / "scripts", dest / "scripts", ignore=shutil.ignore_patterns("_pdf", "__pycache__"))
     shutil.copytree(PKG / "modelos", dest / "modelos")
@@ -56,8 +60,8 @@ def monta(dest: Path) -> Path:
     csv2 = next((PKG / "dados" / "2025_2026").glob("data_*_raw.csv"))
     shutil.copy(csv2, d / "2min_484d.csv")
     _cauda(csv2, 64_800, d / "2min_90d.csv")           # 90 d x 720 por dia
-    _cauda(SRC30, 259_200, d / "30s_90d.csv")          # 90 d x 2.880 por dia
-    _cauda(SRC30, 691_200, d / "30s_240d.csv")         # 240 d x 2.880 por dia
+    _cauda(src30, 259_200, d / "30s_90d.csv")          # 90 d x 2.880 por dia
+    _cauda(src30, 691_200, d / "30s_240d.csv")         # 240 d x 2.880 por dia
     return dest
 
 
@@ -191,17 +195,20 @@ def main() -> None:
 
     remoto = "--remote" in sys.argv
     from clearml import Dataset, Task
-    ds_id = ""
-    if Task.running_locally() and remoto:
-        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=AQUI, capture_output=True,
+    ds_id = sys.argv[sys.argv.index("--dataset") + 1] if "--dataset" in sys.argv else ""
+    aqui = Path(__file__).resolve().parent
+    if Task.running_locally() and remoto and not ds_id:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=aqui, capture_output=True,
                                 text=True).stdout.strip()
-        suja = bool(subprocess.run(["git", "status", "--porcelain", "--", str(PKG)], cwd=AQUI,
-                                   capture_output=True, text=True).stdout.strip())
-        pasta = monta(Path(tempfile.mkdtemp(prefix="pacote_tempos_")))
+        suja = bool(subprocess.run(["git", "status", "--porcelain", "--", "../../estrutura_pra_prod/Cabiunas"],
+                                   cwd=aqui, capture_output=True, text=True).stdout.strip())
+        pasta = monta(Path(tempfile.mkdtemp(prefix="pacote_tempos_", dir=os.environ.get("TMPDIR"))))
         ds = Dataset.create(dataset_name=f"TC33003A_pacote_producao_tempos_{commit}", dataset_project=PROJETO)
         ds.add_files(str(pasta)); ds.upload(); ds.finalize()
         ds_id = ds.id
         print("dataset:", ds_id, "commit", commit, "(pacote com alteração não commitada)" if suja else "")
+    # o script vai INTEIRO dentro da tarefa, sem apontar para um commit: a branch nao esta no GitHub
+    Task.force_store_standalone_script(True)
     task = Task.init(project_name=PROJETO, task_name="pacote-producao::tempos_por_etapa",
                      task_type=Task.TaskTypes.testing, reuse_last_task_id=False, auto_connect_frameworks=False,
                      tags=["pacote-producao", "tempos"])
@@ -210,11 +217,12 @@ def main() -> None:
     if Task.running_locally() and remoto:
         # as versoes que o requirements.txt do pacote pede (o notebook de desenvolvimento nao as segue)
         task.set_packages(["numpy>=2.4,<3", "pandas>=3.0,<4", "scikit-learn>=1.8,<1.9", "clearml"])
+        task.set_base_docker(IMAGEM)
         task.execute_remotely(queue_name=FILA, exit_process=True)
         return
 
     if Task.running_locally():                       # --local: monta e mede aqui
-        raiz = monta(Path(tempfile.mkdtemp(prefix="pacote_tempos_")))
+        raiz = monta(Path(tempfile.mkdtemp(prefix="pacote_tempos_", dir=os.environ.get("TMPDIR"))))
     else:                                            # no worker
         raiz = Path(Dataset.get(dataset_id=cfg["dataset_id"]).get_local_copy())
     tab, tot, sis = mede(raiz)
