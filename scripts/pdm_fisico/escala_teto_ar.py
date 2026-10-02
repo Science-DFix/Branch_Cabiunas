@@ -57,6 +57,53 @@ RESSALVA: hipóteses nascidas de olhar estes dados (não os trips) e medidas nos
 8 eventos de sempre. O padrão de toda a pesquisa é a fronteira: corte de tempo aceso
 tem custado nascimento.
 
+EQUIVALÊNCIAS (02/10/2026, antes do teste): o laço do C1 com RobustScaler reproduz t e
+p da referência nas 8 composições (máx. 1,1e-4 em t e 1,2e-3 em p, relativo, ponto
+flutuante), e o C2 com teto infinito reproduz o alarme da referência bit a bit nas 8.
+
+RESULTADO (02/10/2026) -- NENHUM DÁ GANHO. C1 E C2 REPROVAM EM A; C3 É NEUTRO.
+
+    braço        det  início banda  FP/mês  Δcarga [IC 98,3%]       ΔFP     carga cai em
+    referência   6,5   6,0   4,5   0,861   --
+    C1 autoesc.  5,5   4,0   3,0   0,689  -34,3 [-98,1; +14,8]   -0,118   7/8   A, B2
+    C2 teto      5,5   4,0   3,5   0,646   -9,9 [-48,1; +21,1]   -0,194   5/8   A, B1, B2
+    C3 sem ar    6,5   6,0   4,5   0,775   -0,4  [-9,1;  +6,5]   -0,011   3/8   "seguro"
+    sem veredito: C1 só p  6,0 / 4,5 / 3,0, Δcarga -31,8;  C1 só t  6,0 / 5,0 / 4,0, -7,5
+
+  · C1: o mecanismo se corrige como previsto -- k do p fica em 7-10 em todos os
+    bundles (era 1 em 68%) e o p cru acima de 100x o limiar cai de 0,37% para 0,01%
+    do tempo vigiado. Mas a detecção cai em 5 das 8 composições, início 6 -> 4, banda
+    4,5 -> 3, e o IC da carga cruza o zero. A composição publicada (dia 1) PIORA:
+    49 -> 117 h/mês. O efeito é quase todo do p (só-p ~ C1). Expectativa (risco alto
+    em A) confirmada.
+  · C2: perde detecção em 6 das 8 e a carga cai em só 5. Expectativa errada QUANTO
+    AO EVENTO: o 26/02/2026 fica intacto (8/8); quem cai é o 04/11/2025 (8 -> 5), o
+    27/02/2025 (8 -> 6), o 17/03 e o 11/04 (a posteriori, `por evento` abaixo).
+  · C3: detecção e banda idênticas nas 8 composições; carga parada (-0,4,
+    cai em só 3/8); FP na mediana 0,861 -> 0,775, mas pareado -0,011. Como previsto,
+    não passa em B1 por efeito pequeno. A decisão de tirar uma tag de outra
+    unidade do canal fica com a engenharia, como higiene -- os números não pedem nem
+    proíbem.
+  · POR EVENTO (a posteriori, sem mudar veredito; em quantas das 8 composições há
+    detecção / nascimento na janela):
+        evento       ref     C1     C2
+        2025-02-27   8/8    7/7    6/6
+        2025-03-17   7/3    7/0    6/3
+        2025-04-07   7/6    8/7    7/6
+        2025-04-11   6/5    4/4    4/4
+        2025-04-29   1/0    1/1    1/0
+        2025-11-04   8/8    8/8    5/5
+        2025-12-09   6/5    6/4    7/3
+        2026-02-26   8/8    4/2    8/8
+    O C1 perde o 26/02/2026 (o evento sustentado pela memória longa do t, ver
+    `memoria_nas_comparacoes.py`); o C2 perde o 04/11/2025, o que nasce na abertura
+    da máscara -- coerente com o teto cortar também os resíduos gigantes da máquina
+    parada que a EWMA leva para dentro do blackout (`ewma_vigiado.py` perdia o mesmo
+    evento). Não verificado instante a instante.
+  · Leitura: a escala degenerada é defeito real e o C1 o corrige, mas parte das
+    detecções da referência vive do mesmo mecanismo que gera a carga -- de novo a
+    fronteira. Os vereditos ficam.
+
 Uso:  PYTHONPATH=. python escala_teto_ar.py confere   # equivalências
       PYTHONPATH=. python escala_teto_ar.py           # o teste
 """
