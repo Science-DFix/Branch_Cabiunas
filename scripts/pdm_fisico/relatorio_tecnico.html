@@ -35,6 +35,30 @@ ul { margin: 4px 0 4px 18px; padding: 0; } li { margin: 2px 0; }
 
 <div class="box"><b>Resumo.</b> O detector é não supervisionado e usa quatro sinais físicos (resíduo de PCA de temperatura, resíduo de PCA de pressão, spread de mancal e vibração). Ele marca como alarme os períodos que antecedem um trip de 2º estágio. O alvo são 8 trips (jan/2025 a abr/2026). No ponto publicado ele detecta 8 de 8 com 0,344 alarme falso por mês, mas esse é o melhor de oito composições de baseline: a mediana delas é 6,5 de 8 e 0,861 FP/mês. A validação é limitada pelos 8 eventos. Este documento descreve o detector com precisão, diz o que foi medido e o que não foi, e lista onde um olhar experiente ajudaria.</div>
 
+<h2>Estado: o que está pronto para deploy e o que é pesquisa</h2>
+<table>
+<tr><th style="width:50%">Pronto para deploy (pacote <code>estrutura_pra_prod/Cabiunas</code>)</th><th>Em pesquisa (branch <code>exp/reducao-falsos-positivos</code>)</th></tr>
+<tr><td>
+<ul>
+<li><b>O detector descrito nas seções 2 e 4, sem nenhuma alteração desde a publicação.</b> Nada da pesquisa abaixo entrou nele.</li>
+<li>Inferência, retreino mensal (<code>constroi_bundle.py</code>), 16 bundles até 29/03/2026, diagnóstico de entrada (para na entrada cega) e monitor de drift.</li>
+<li><b>Paridade da entrada:</b> o pacote monta sozinho a grade de 2 min do treino a partir do export de 30 s. Provado: grade idêntica, alarme idêntico, 0,344 FP/mês e 21 episódios; bundle com o mesmo hash. Falta revisão e envio do commit.</li>
+<li>Código de saída (<code>0</code> ok, <code>2</code> bundle vencido, <code>3</code> entrada cega) e contrato JSON do dashboard.</li>
+</ul>
+<p><b>Pendências antes de ir ao ar:</b> conversor do <code>.xlsx</code> do portal para o CSV (não existe); bundles dos meses depois de 03/2026 quando houver dado; agendamento e destino da saída (engenharia); atualização do registro de trips a cada trip (operação); documentos de integração ainda dizem "grade de 2 min" em vez de "export de 30 s".</p>
+<p><b>Defeitos conhecidos, não corrigidos:</b> o monitor de drift calcula o spread do mancal com a média dos irmãos, e o bundle usa a mediana (viés de cerca de 0,6σ; não muda o alarme); o monitor acusa o PI_0319 como "travado" em 13% dos dias, o que é falso (o sensor opera em ciclo).</p>
+</td><td>
+<ul>
+<li><b>Objetivo:</b> reduzir o falso positivo sem perder detecção, medido nas 8 composições com regra pré-registrada.</li>
+<li><b>Resultado até agora: nenhuma alteração do detector passou na regra.</b> Os testes da seção 5 (F1, R1, R3, F3, DPCA, H1, H2, C1, C2, C3, D30) estão fechados e não vão para o pacote.</li>
+<li><b>Candidato a discutir com a engenharia (não é deploy):</b> tirar o PI_0319 do canal p (H2). Corta 44 h/mês de carga com a mesma detecção, mas perde 3 nascimentos de 64; o argumento é físico (sensor de estado), e a confirmação exige dado novo.</li>
+<li><b>Higiene possível:</b> tirar o PI_5134001 (ar de outra unidade) do canal p. Efeito medido nulo.</li>
+<li><b>Sem avaliar ainda:</b> as perguntas da seção 9 (modelo condicionado ao estado da linha de gás, outra formulação do CUSUM).</li>
+<li><b>Bloqueio:</b> dado novo e mais eventos. Com 8 trips, nada se prova.</li>
+</ul>
+</td></tr>
+</table>
+
 <h2>1. Problema e dados</h2>
 <ul>
 <li><b>Alvo:</b> trip de 2º estágio do turbocompressor. Alarmes com a máquina parada ficam fora do denominador.</li>
