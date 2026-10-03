@@ -45,7 +45,34 @@ EXPECTATIVA REGISTRADA.
   · O padrão da pesquisa é a fronteira: cortar episódio tem custado nascimento.
 RESSALVA: é uma hipótese a posteriori nos mesmos 8 eventos e nos mesmos dias dos 25 FP que a inspiraram.
 
+RESULTADO DO P1 (03/10/2026) -- REPROVA NOS DOIS CRITÉRIOS; O MECANISMO MOSTRA O PORQUÊ.
+    braço         det  início banda  FP/mês  Δcarga [IC 97,5%]    ΔFP [IC 97,5%]       carga cai em
+    referência    6,5   6,0   4,5   0,861
+    P1 θ=2,0      7,0   5,5   3,5   0,775   -2,8 [-13,7; +8,0]   -0,011 [-0,17; +0,12]   4/8   A, B1, B2
+    θ=1,5 (sens.) 6,5   5,5   3,5   0,818   +1,9 [-3,1; +8,5]    -0,011                  5/8
+    θ=3,0 (sens.) 6,0   4,5   3,0   0,818   -7,3 [-37; +36]      +0,000                  6/8
+  · A composição 1 perde uma detecção (8 -> 7); início 6,0 -> 5,5 e banda 4,5 -> 3,5. Secundário: detecção,
+    início e banda não ok, e o FP NÃO cai (-0,011), ao contrário do que a curva estática dos 54 episódios
+    distintos prometia (11 de 25 FP removidos).
+  · MECANISMO: somem só 11 FP nas 8 composições, mas APARECEM 17 episódios FP/NEUTRO novos (1.191 h, 419 só na
+    composição 1) contra 1.019 h que somem. Um episódio fraco removido deixa de abrir o refratário de 72 h, e
+    os votos seguintes, que ele bloqueava, viram episódios. A conta por episódio ignorava o acoplamento.
+
+PRÉ-REGISTRO DO P1b (03/10/2026), ANTES DE RODAR -- o portão DEPOIS do refratário.
+  DE ONDE VEM: da falha do P1 acima. Mesmo θ = 2,0 (NÃO reajustado), mesma força, mesma ideia; muda ONDE se
+  aplica. Os episódios do alarme final (pós escalada, refratário e duração mínima) são tratados como acima:
+  sem F >= θ, o episódio inteiro deixa de ser anunciado; senão o início é aparado até F >= θ, e o que sobra
+  só vale se ainda cumprir a duração mínima (120 min; 60 se F > 20). O episódio fraco CONTINUA bloqueando o
+  refratário como hoje; só deixa de ser anunciado. Logo o conjunto de alarmes é SUBCONJUNTO da referência:
+  não nascem episódios novos (verificado por assert), e a contagem por episódio deixa de ser enganosa.
+  DECISÃO: a mesma, em dois critérios, com IC de 98,75% (a família agora tem 4 comparações: P1 e P1b, cada
+  um com dois critérios). θ = 1,5 e 3,0 só como sensibilidade. θ = 0 reproduz a referência bit a bit.
+  EXPECTATIVA: o FP cai de verdade (a curva estática passa a valer): ~0,86 -> ~0,5-0,6. O risco é o de
+  sempre, a detecção estrita: o TP de força 1,2 pode ser o único alarme de um trip em alguma composição
+  (a composição 1 já perdeu uma detecção no P1). Chance de passar o primário ~15%; o secundário, ~25%.
+
 Uso:  PYTHONPATH=. python portao_de_forca.py confere   # θ = 0 reproduz a referência
+      PYTHONPATH=. python portao_de_forca.py pos       # o P1b (portão depois do refratário)
       PYTHONPATH=. python portao_de_forca.py           # o teste
 """
 from __future__ import annotations
@@ -93,20 +120,49 @@ def com_portao(d: int, theta: float) -> pd.Series:
     return R._pos(aparar(o["voto"], o["F"], theta), o["F"])
 
 
+def aparar_pos(fin: pd.Series, F: pd.Series, theta: float) -> pd.Series:
+    """P1b: o mesmo portão, sobre o alarme FINAL (depois do refratário); o refratário não muda."""
+    if theta <= 0:
+        return fin
+    v = fin.to_numpy().copy()
+    f = np.nan_to_num(F.to_numpy(), nan=0.0)
+    idx = fin.index
+    for a, b in AV.episodios(fin):
+        i0, i1 = idx.get_loc(a), idx.get_loc(b) + 1
+        ok = v[i0:i1] & (f[i0:i1] >= theta)
+        if not ok.any():
+            v[i0:i1] = False
+            continue
+        j = i0 + int(np.argmax(ok))
+        forte = f[i0:i1].max() > R.DB.ESC_ABS
+        if (i1 - j) * 2 < (R.DB.ESC_DUR if forte else R.DB.DUR_MIN):
+            v[i0:i1] = False
+        else:
+            v[i0:j] = False
+    return pd.Series(v, index=idx)
+
+
+def com_portao_pos(d: int, theta: float) -> pd.Series:
+    o = saida(d)
+    return aparar_pos(o["fin"], o["F"], theta)
+
+
 def confere() -> None:
     for d in R.DIAS:
         ok = bool((com_portao(d, 0.0) == saida(d)["fin"]).all())
-        print(f"  composição {d:2d}: θ = 0 reproduz a referência bit a bit: {ok}", flush=True)
-        assert ok
+        sub = not bool((com_portao_pos(d, THETA) & ~saida(d)["fin"]).any())
+        print(f"  composição {d:2d}: θ = 0 reproduz a referência bit a bit: {ok} | P1b é subconjunto da referência: {sub}", flush=True)
+        assert ok and bool((com_portao_pos(d, 0.0) == saida(d)["fin"]).all()) and sub
 
 
-def mecanismo(theta: float) -> None:
+def mecanismo(theta: float, fn=None) -> None:
+    fn = fn or com_portao
     """Quem some, quem nasce tarde, e se um FP curto virou NEUTRO longo."""
     cab = ["dia", "somem FP", "somem TP", "FP atrasados", "TP atrasados", "atraso TP (h, med)",
            "h FP+NEUTRO que somem", "episódios NEUTRO/FP novos", "h dos novos"]
     L = []
     for d in R.DIAS:
-        ref = R.mede(saida(d)["fin"])["cls"]; var = R.mede(com_portao(d, theta))["cls"]
+        ref = R.mede(saida(d)["fin"])["cls"]; var = R.mede(fn(d, theta))["cls"]
         so = lambda ep, k: [(a, b) for a, b, kk, _ in ep if kk == k]
         r = dict(dia=d)
         somem = {k: 0 for k in ("FP", "TP")}; atrasados = {k: 0 for k in ("FP", "TP")}; atraso_tp = []; h_somem = 0.0
@@ -127,33 +183,34 @@ def mecanismo(theta: float) -> None:
     print(pd.DataFrame(L, columns=cab).to_string(index=False), flush=True)
 
 
-def main():
+def main(pos: bool = False):
+    fn, nome, nivel = (com_portao_pos, "P1b", 0.9875) if pos else (com_portao, "P1", NIVEL)
     ref = BR.braco("referência", lambda d: saida(d)["fin"], R.DIAS)
     t = ref.tabela
     print(f"referência     det {t.det.median()} início {t.inicio.median()} banda {t.banda.median()}"
           f" FP {t.fp_mes.median():.3f} carga {t.carga_mes.mean():.1f}", flush=True)
-    br = BR.braco(f"P1 θ={THETA}", lambda d: com_portao(d, THETA), R.DIAS)
-    x = BR.decide(ref, br, pareado=True, nivel=NIVEL)
-    TP.linha(f"P1 θ={THETA}", x, ref, br, NIVEL)
+    br = BR.braco(f"{nome} θ={THETA}", lambda d: fn(d, THETA), R.DIAS)
+    x = BR.decide(ref, br, pareado=True, nivel=nivel)
+    TP.linha(f"{nome} θ={THETA}", x, ref, br, nivel)
     v, r = br.tabela, ref.tabela
     det_ok = bool((v.det.values >= r.det.values).all() and v.inicio.median() >= r.inicio.median()
                   and v.banda.median() >= r.banda.median())
     sec = bool(det_ok and x["fp_hi"] < 0 and v.carga_mes.mean() <= r.carga_mes.mean())
-    print(f"\nPRIMÁRIO (regra de sempre): {x['veredito']}")
+    print(f"\n{nome} -- PRIMÁRIO (regra de sempre): {x['veredito']}")
     print(f"SECUNDÁRIO (contagem): detecção/início/banda {'ok' if det_ok else 'NÃO ok'} | ΔFP {x['d_fp']:+.3f} "
           f"[{x['fp_lo']:+.3f}; {x['fp_hi']:+.3f}] | carga {r.carga_mes.mean():.1f} -> {v.carga_mes.mean():.1f} "
           f"=> {'GANHO-CONTAGEM' if sec else 'reprovado'}", flush=True)
     print(f"\nMECANISMO (θ = {THETA}):", flush=True)
-    mecanismo(THETA)
+    mecanismo(THETA, fn)
     print("\nSENSIBILIDADE, sem veredito:", flush=True)
     for th in SENSIB:
-        b2 = BR.braco(f"θ={th}", lambda d, th=th: com_portao(d, th), R.DIAS)
-        TP.linha(f"θ={th}", BR.decide(ref, b2, pareado=True, nivel=NIVEL), ref, b2, NIVEL)
-    pd.DataFrame([dict(theta=THETA, **x, secundario=sec)]).to_csv(R.CACHE / "portao_de_forca.csv", index=False)
+        b2 = BR.braco(f"θ={th}", lambda d, th=th: fn(d, th), R.DIAS)
+        TP.linha(f"θ={th}", BR.decide(ref, b2, pareado=True, nivel=nivel), ref, b2, nivel)
+    pd.DataFrame([dict(theta=THETA, **x, secundario=sec)]).to_csv(R.CACHE / f"portao_de_forca_{nome}.csv", index=False)
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "confere":
         confere()
     else:
-        main()
+        main(pos=len(sys.argv) > 1 and sys.argv[1] == "pos")
