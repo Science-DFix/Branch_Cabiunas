@@ -530,7 +530,14 @@ def preprocessar(modelos, df: pd.DataFrame, trips=None) -> pd.DataFrame:
 
     out = pd.DataFrame(index=g.index)
     for c, hl in det["halflife"].items():
-        out[c] = cru[c].ewm(halflife=pd.Timedelta(hl), times=g.index).mean()
+        # O EWMA do pandas CARREGA o último valor por cima de um buraco: com uma tag fora por
+        # 24 h, o `t` ficava congelado no último valor e o canal aceso (e o CUSUM somando) sem
+        # leitura nenhuma. Onde o sinal cru não existe, o EWMA também não. O estado interno do
+        # filtro NÃO muda -- ele segue carregado, como na validação, que atravessa parada e
+        # blackout -- só o VALOR exposto nos instantes sem medição. No histórico isso toca 0,1 h
+        # vigiada: o alarme de 2024-11 a 2026-04 é idêntico (`paridade_pacote.py`).
+        out[c] = (cru[c].ewm(halflife=pd.Timedelta(hl), times=g.index).mean()
+                  .where(cru[c].notna()))
     out["mask"] = mask
     out["reset"] = (~mask) | partida
     out["operando"] = op
@@ -811,6 +818,15 @@ MANUTENCAO_MIN_H = 24.0       # HSX_6240001A ligado por pelo menos isso = manute
 TRAVADO_FRACAO = 0.10         # IQR semanal abaixo desta fração do típico do PRÓPRIO sensor
 TRAVADO_SEMANAS = 3           # ... por tantas semanas seguidas
 TRAVADO_REF_MIN = 4           # semanas anteriores com dado para saber o "típico"
+# Sensores cuja dispersão semanal tem mais de um modo POR NATUREZA: não são avaliados para
+# "travado". O PI_0319 (gás do motor de partida) é pressurizado em ciclo de ~7 h em operação,
+# e semanas com a linha despressurizada têm IQR ~0,006 contra ~0,3 a ~45 nas demais. A regra
+# relativa o acusava em 8 das 10 semanas em que acionou no histórico (57 semanas, abr/2025 a
+# abr/2026) -- todas falsas. O PDI_0301, parado em -0,401 desde nov/2025, é o único caso real e
+# continua sendo acusado (12/23 e 12/30). Uma variante estatística (excluir quem já teve semanas
+# baixas na referência) mata o falso e o verdadeiro juntos, e há um só caso real para calibrar:
+# por isso a exceção é uma lista explícita, com o motivo físico, e não um parâmetro ajustado.
+SENSORES_DE_ESTADO = ("954005_624_PI_0319",)
 
 
 def _manutencoes(g: pd.DataFrame) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
@@ -861,7 +877,7 @@ def _sensores_travados(g: pd.DataFrame, mask: pd.Series, cols: list[str]) -> lis
     tip = pd.concat(ref, axis=1).median(axis=1)
     out = []
     for c in cols:
-        if not np.isfinite(tip[c]) or tip[c] <= 0:
+        if c in SENSORES_DE_ESTADO or not np.isfinite(tip[c]) or tip[c] <= 0:
             continue
         r = [float(x[c] / tip[c]) for x in rec]
         if all(v < TRAVADO_FRACAO for v in r):
@@ -936,7 +952,9 @@ def monitor_drift(modelos: list[dict], df: pd.DataFrame) -> dict:
             desvio[c] = (float(d0), float(d1))
     sp = m["spread_mancal"]
     if all(c in g for c in [sp["tag_alvo"], *sp["tags_irmaos"]]):
-        b = g[sp["tag_alvo"]] - g[sp["tags_irmaos"]].mean(axis=1)
+        # MEDIANA dos irmãos, como no bundle (`spread_mancal`) e na inferência; com a média o
+        # desvio saía viesado em ~0,6 sigma na mediana (a média dos irmãos fica ~0,8 °C acima)
+        b = g[sp["tag_alvo"]] - g[sp["tags_irmaos"]].median(axis=1)
         d1 = (b[w1].median() - sp["mediana"]) / sp["mad_robusto"]
         d0 = ((b[w0].median() - sp["mediana"]) / sp["mad_robusto"]) if w0.sum() >= 720 else np.nan
         desvio["spread_mancal"] = (float(d0), float(d1))

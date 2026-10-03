@@ -40,7 +40,7 @@ RESULTADO (02/10/2026) -- PARIDADE OK NOS QUATRO.
 Uso:  PYTHONPATH=. python paridade_pacote.py
 """
 from __future__ import annotations
-import io, contextlib, hashlib, importlib.util, subprocess, sys, tempfile
+import io, contextlib, hashlib, importlib.util, json, subprocess, sys, tempfile
 from pathlib import Path
 import numpy as np, pandas as pd
 
@@ -79,8 +79,19 @@ def regua(fin: pd.Series) -> dict:
     return m
 
 
+CAMPOS_NOVOS = ("baseline_span_dias", "baseline_folga_dias", "alertas")   # portoes do baseline (02/10/2026)
+
+
 def sha_json(d: Path) -> dict:
-    return {f.name: hashlib.sha256(f.read_bytes()).hexdigest()[:16] for f in sorted(d.glob("*.json"))}
+    """sha256 de cada JSON; no `modelo.json` ignora so os campos que os portoes acrescentaram."""
+    out = {}
+    for f in sorted(d.glob("*.json")):
+        if f.name == "modelo.json":
+            j = {k: v for k, v in json.loads(f.read_text(encoding="utf-8")).items() if k not in CAMPOS_NOVOS}
+            out[f.name] = hashlib.sha256(json.dumps(j, sort_keys=True).encode()).hexdigest()[:16]
+        else:
+            out[f.name] = hashlib.sha256(f.read_bytes()).hexdigest()[:16]
+    return out
 
 
 def bundle(script: Path, historico: Path, saida: Path) -> Path:
@@ -116,9 +127,13 @@ def main():
     mon_n, mon_v = CI.monitor_drift(modelos, df2), ci_antes.monitor_drift(modelos, df2)
     dia_n, dia_v = CI.diagnostico_entrada(modelos, df2), ci_antes.diagnostico_entrada(modelos, df2)
     iguais = bool(novo.equals(velho))
-    print(f"   alarme idêntico: {iguais} ({int(novo.sum())} instantes em alarme) | monitor de drift "
-          f"idêntico: {mon_n == mon_v} | diagnóstico de entrada idêntico: {dia_n == dia_v}", flush=True)
-    assert iguais and mon_n == mon_v and dia_n == dia_v
+    # O monitor MUDOU de propósito em 02/10/2026 (mediana dos irmãos, como o bundle; PI_0319 fora
+    # de "sensor travado"): aqui só se lista a diferença. Alarme e diagnóstico seguem exigidos iguais.
+    dif_mon = sorted(k for k in set(mon_n) | set(mon_v) if mon_n.get(k) != mon_v.get(k))
+    print(f"   alarme idêntico: {iguais} ({int(novo.sum())} instantes em alarme) | diagnóstico de entrada "
+          f"idêntico: {dia_n == dia_v} | monitor de drift: veredito {mon_v['veredito']} -> {mon_n['veredito']}, "
+          f"campos diferentes: {dif_mon or 'nenhum'}", flush=True)
+    assert iguais and dia_n == dia_v
 
     print("\n3) INFERÊNCIA: o pacote sobre o export de 30 s, 2024-11-01 a 2026-04-30", flush=True)
     j = (bruto.index >= PE.INI) & (bruto.index < PE.FIM + pd.Timedelta("2min"))
