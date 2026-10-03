@@ -71,6 +71,24 @@ PRÉ-REGISTRO DO P1b (03/10/2026), ANTES DE RODAR -- o portão DEPOIS do refrat�
   sempre, a detecção estrita: o TP de força 1,2 pode ser o único alarme de um trip em alguma composição
   (a composição 1 já perdeu uma detecção no P1). Chance de passar o primário ~15%; o secundário, ~25%.
 
+RESULTADO DO P1b (03/10/2026) -- REPROVA SÓ EM A, PELA COMPOSIÇÃO 1; O FP E A CARGA CAEM DE VERDADE.
+    braço          det  início banda  FP/mês  Δcarga [IC 98,75%]    ΔFP [IC 98,75%]         carga cai em
+    referência     6,5   6,0   4,5   0,861
+    P1b θ=2,0      6,5   6,0   4,5   0,732   -6,2 [-14,0; -0,9]   -0,108 [-0,259; -0,019]   7/8   reprovado (A)
+    θ=1,5 (sens.)  6,5   6,0   4,5   0,775   -3,4 [-8,2; -0,2]    -0,086                    7/8   (passaria em tudo)
+    θ=3,0 (sens.)  6,0   5,0   4,0   0,732   -23,3 [-40,8; -7,4]  -0,118                    8/8   reprovado (A)
+  · O θ = 2 perde UMA detecção, só na composição 1 (8 -> 7), a do ponto publicado; medianas de detecção,
+    início e banda ficam iguais. Não nascem episódios novos (subconjunto da referência, conferido).
+  · DOSE-RESPOSTA coerente: mais corte, mais perda (θ 1,5 -> 2 -> 3: ΔFP -0,086 -> -0,108 -> -0,118; a
+    detecção intacta, perde 1 na composição 1, perde em 4 composições).
+  · MECANISMO (θ = 1,5): remove só 8 episódios nas 8 composições (6 FP curtos de 2 a 44 h, 1 NEUTRO), atrasa
+    2 TP e não elimina TP nenhum. A queda de 44% da curva estática não existe: lá a força era a das 2
+    primeiras horas; aqui vale em QUALQUER ponto do episódio (apara a cabeça), e quase todo FP longo
+    acaba passando de θ. O efeito real é pequeno: corta o episódio que NUNCA chega a θ x o limiar B.
+  · O θ = 1,5 foi o melhor de três valores impressos como sensibilidade: o pré-registro NÃO o escolhe. Não
+    é adotado. Vira HIPÓTESE PROSPECTIVA no modo sombra (`sombra.py` registra o instante em que a força
+    chega a 1,5, 2 e 3 em cada episódio, e o portão se avalia depois em dado novo).
+
 Uso:  PYTHONPATH=. python portao_de_forca.py confere   # θ = 0 reproduz a referência
       PYTHONPATH=. python portao_de_forca.py pos       # o P1b (portão depois do refratário)
       PYTHONPATH=. python portao_de_forca.py           # o teste

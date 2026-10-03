@@ -36,6 +36,15 @@ detecção se a verdade for 0,81); 12 meses, ~6 (69%); ~16 meses, ~8 (82%). Para
 dão 4 a 10 episódios: distingue "abaixo de ~1,2" de "acima", mas não 0,34 de 0,6. Detecção só
 se decide em ~16 meses. O FP é BRUTO (sem a Regra C, que precisa das paradas reais do PI).
 
+HIPÓTESE PROSPECTIVA P1b (03/10/2026). Em `portao_de_forca.py` o portão de força sobre o alarme final
+(apara o início do episódio até a força F chegar a θ; sem F >= θ, descarta; o que sobra tem de cumprir a
+duração mínima) reprovou no pré-registro (θ = 2: perde uma detecção na composição 1) e passou, como
+sensibilidade, com θ = 1,5. Aqui o instante em que F chega a 1,5, 2 e 3 em cada episódio vai para o ledger
+(`t_f15`, `t_f20`, `t_f30`), e `avalia` imprime o resultado COM θ = 1,5, escolhido agora, antes de haver dado.
+CRITÉRIO, fixado agora, avaliado quando houver >= 12 meses ou >= 8 trips: o portão é confirmado se NENHUM
+trip do período prospectivo perde a detecção E o FP bruto com o portão é menor que sem ele. Um trip
+perdido o reprova, sem reescolher θ. Os outros θ ficam registrados, sem decisão.
+
 Uso:  python sombra.py registra --csv ARQ --ledger PASTA [--refreza]
       python sombra.py avalia   --ledger PASTA [--trips registro_trips.csv]
 """
@@ -111,8 +120,12 @@ def registra(a) -> int:
     eps = ci.resumo_episodios(res)
     linhas = []
     for e in eps.itertuples():
+        w = res.loc[e.inicio:e.fim]
+        ok_al, fr = w["is_anomaly"].to_numpy(), w["forca"].fillna(0.0).to_numpy()
+        t_f = {n: (str(w.index[int(np.argmax(ok_al & (fr >= th)))]) if (ok_al & (fr >= th)).any() else "")
+               for n, th in (("t_f15", 1.5), ("t_f20", 2.0), ("t_f30", 3.0))}
         linhas.append(dict(id=f"TC-33003A:{e.inicio:%Y%m%dT%H%M%SZ}", inicio=str(e.inicio), fim=str(e.fim),
-                           horas=float(e.horas), forca_max=float(e.forca_max), canais_max=int(e.canais_max),
+                           horas=float(e.horas), forca_max=float(e.forca_max), canais_max=int(e.canais_max), **t_f,
                            notificavel_em=str(e.inicio + LAT), em_curso=bool(e.fim >= res.index[-1] - pd.Timedelta("2min")),
                            last_seen_at=str(agora)))
     novo = pd.DataFrame(linhas)
@@ -147,25 +160,36 @@ def poisson_ic(k: int, meses: float, nivel=0.95) -> tuple[float, float]:
 def avalia(a) -> int:
     led = Path(a.ledger); fr = json.loads((led / "congelado.json").read_text(encoding="utf-8"))
     desde = pd.Timestamp(fr["desde"])
-    epi = pd.read_csv(led / "episodios.csv", parse_dates=["inicio", "fim", "notificavel_em"])
+    epi = pd.read_csv(led / "episodios.csv", parse_dates=["inicio", "fim", "notificavel_em", "t_f15", "t_f20", "t_f30"])
     ser = pd.read_csv(led / "serie.csv.gz", parse_dates=["ts"])
     ser = ser[ser.ts >= desde]; epi = epi[epi.inicio >= desde]
     alvo = [t for t in ci.carregar_trips(a.trips or PKG / "registro_trips.csv") if t >= desde]
     h_vig = float(ser.vigiado.sum()) * 2 / 60; meses = h_vig / 730
     print(f"período prospectivo: desde {desde:%Y-%m-%d} (commit {fr['configuracao']['commit']}) | "
           f"{h_vig:.0f} h vigiadas = {meses:.2f} meses de operação | {len(epi)} episódios | {len(alvo)} trips")
-    det = ini = ban = ban_n = 0
-    for T in alvo:
-        na_jan = epi[(epi.inicio <= T) & (epi.fim >= T - JAN)]
-        det += len(na_jan) > 0
-        nasc = epi[(epi.inicio >= T - JAN) & (epi.inicio <= T)]
-        ini += len(nasc) > 0
-        ban += int(((nasc.inicio <= T - TMIN)).any())
-        ban_n += int(((nasc.notificavel_em <= T - TMIN)).any())
+    def metricas(e):
+        det = ini = ban = ban_n = 0
+        for T in alvo:
+            det += len(e[(e.inicio <= T) & (e.fim >= T - JAN)]) > 0
+            nasc = e[(e.inicio >= T - JAN) & (e.inicio <= T)]
+            ini += len(nasc) > 0
+            ban += int(((nasc.inicio <= T - TMIN)).any())
+            ban_n += int(((nasc.notificavel_em <= T - TMIN)).any())
+        jan = [(T - JAN, T) for T in alvo]
+        return det, ini, ban, ban_n, int(sum(1 for _, r in e.iterrows() if not any(r.inicio <= t1 and r.fim >= t0 for t0, t1 in jan)))
+
+    det, ini, ban, ban_n, fp = metricas(epi)
     print(f"detecção {det}/{len(alvo)} | início {ini}/{len(alvo)} | banda {ban}/{len(alvo)} | "
           f"banda NOTIFICÁVEL (início + 2 h) {ban_n}/{len(alvo)}")
-    jan = [(T - JAN, T) for T in alvo]
-    fp = int(sum(1 for _, r in epi.iterrows() if not any(r.inicio <= t1 and r.fim >= t0 for t0, t1 in jan)))
+    # P1b, hipótese prospectiva: portão de força depois do refratário (ver o docstring)
+    g = epi.dropna(subset=["t_f15"]).copy()
+    dur = (g.fim - g.t_f15).dt.total_seconds() / 60 + 2
+    g = g[dur >= np.where(g.forca_max > 20, 60, 120)]
+    g["inicio"] = g.t_f15; g["notificavel_em"] = g.t_f15 + LAT
+    gdet, gini, gban, gban_n, gfp = metricas(g)
+    print(f"COM O PORTÃO P1b (θ = 1,5, hipótese prospectiva): detecção {gdet}/{len(alvo)} | início {gini}/{len(alvo)} | "
+          f"banda {gban}/{len(alvo)} | notificável {gban_n}/{len(alvo)} | FP bruto {gfp} (sem o portão: {fp}) | "
+          f"episódios {len(g)} de {len(epi)}")
     if meses > 0:
         lo, hi = poisson_ic(fp, meses)
         print(f"FP bruto: {fp} em {meses:.2f} meses = {fp / meses:.2f}/mês, IC95% [{lo:.2f}; {hi:.2f}] "
