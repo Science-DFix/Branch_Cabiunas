@@ -35,6 +35,25 @@ EXPECTATIVA REGISTRADA. R0 reproduz os números de 29/09. R1 recupera o 17/03/20
 perto do trip, ao custo de reanúncios em episódios FP longos. Chance de passar (a), (b) e (c): ~40%.
 RESSALVA: nada aqui reduz o número de FP (as notificações falsas seguem ~0,86/mês); só as horas.
 
+RESULTADO (03/10/2026) -- R1 PASSA NOS TRÊS CRITÉRIOS; RECUPERA METADE DO QUE O R0 PERDE.
+    (mediana das 8)   carga ativa     notificações falsas/mês   pares composição x trip sem alarme ativo
+    atual             130,5 h/mês           1,38                     --
+    R0 (24 h)          24,5  (-81%)         1,38  (1,00x)            6 de 64
+    R1 (24 h, K=3)     26,2  (-80%)         1,46  (1,06x)            3 de 64
+  (a) -80% (critério >= 60%): OK. (b) R1 perde 3 pares contra 6 do R0: OK. (c) 1,06x (<= 1,25x): OK.
+  · R0 reproduz `gestao_alarme.py` (24,5 h/mês, -81%). O R1 recupera o 17/03/2025 em 3 das 4 composições em
+    que o R0 o perdia. Perde ainda 3 pares (12/09, 17/03 e 07/04, um em cada composição): condição conhecida
+    que não piorou 3x até o trip.
+  · Reanúncios: mediana de 1 por composição, todos em episódios FP/NEUTRO (nenhum em TP): +0,08 notificação
+    falsa/mês. As notificações falsas de verdade ficam em ~1,4/mês: NADA AQUI REDUZ O FP, só as horas.
+  · SENSIBILIDADE, sem escolha (N x K; pares perdidos de 64 / queda da carga ativa):
+        N = 12 h:  R0 7 / -89%   K=2 5 / -88%   K=3 4 / -89%   K=5 5 / -89%
+        N = 24 h:  R0 6 / -81%   K=2 3 / -80%   K=3 3 / -80%   K=5 5 / -80%
+        N = 48 h:  R0 6 / -67%   K=2 4 / -65%   K=3 3 / -65%   K=5 6 / -65%
+    K = 3 não é um pico isolado (K = 2 dá o mesmo a N = 24); K = 5 quase não ajuda. N é a troca de projeto:
+    12 h corta mais horas e perde mais trips ativos; 48 h, o contrário.
+  · LIMITE: N, K e F_MIN são decisão de projeto da integração, não resultado do detector. Mesmos 8 eventos.
+
 Uso:  PYTHONPATH=. python gestao_alarme_reanuncio.py
 """
 from __future__ import annotations
