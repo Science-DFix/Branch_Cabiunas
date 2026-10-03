@@ -32,6 +32,18 @@ RESULTADO (03/10/2026) -- A TAG É COERENTE; A MÁSCARA É, NA PRÁTICA, O T5 > 
   · Em partidas típicas o T5 já passa de 300 °C quando a RUNNING_A sobe (a mediana do intervalo é 0): a tag liga
     quando a turbina atinge a velocidade, depois da ignição.
 
+4. VOTAÇÃO DE SINAIS INDEPENDENTES (a pergunta do usuário: "certeza que é coerente?"). O T5 sozinho é um só
+   sinal e não separa "ligada" de "girando fria". Com quatro sinais que separam ligada de desligada com AUC > 0,97
+   (T5 0,997; ΔP do gás combustível PDI_0317 0,995; vibração máxima 0,995; pressão do gás de selagem PI_0307 0,980),
+   a maioria concorda com a RUNNING_A em 99,48% de 20.072 h.
+     · RUNNING_A ligada e a maioria diz parada: 103 h em 39 trechos, quase tudo em 19 a 24/08/2025 (22,4, 21,1, 15,6,
+       8,8 h...): a tag marca "ligada" com a máquina sem combustão. Nesses instantes o T5 < 300 °C da máscara protege.
+     · RUNNING_A desligada e a maioria diz em marcha: 3 h em 75 trechos de até 0,1 h (bordas de parada).
+     · RUNNING_A ausente (NaN): 239 h, e em nenhuma a maioria diz em marcha: tratar NaN como parada, como a máscara
+       faz, está certo no histórico.
+   LIMITE: os quatro sinais dizem "a máquina está em marcha", não a regra de velocidade da tag; e podem errar juntos
+   numa indisponibilidade comum. Os limiares sobre NGP_A/NPT_A seguem não verificados.
+
 Uso:  PYTHONPATH=. python running_a_coerencia.py
 """
 from __future__ import annotations
@@ -47,6 +59,24 @@ M = 2 / 60
 def corridas(m: pd.Series) -> np.ndarray:
     a = m.fillna(False).to_numpy().astype(int); d = np.diff(np.concatenate(([0], a, [0])))
     return (np.flatnonzero(d == -1) - np.flatnonzero(d == 1)) * M
+
+
+def votacao(g: pd.DataFrame) -> None:
+    """4. Maioria de sinais independentes contra a RUNNING_A."""
+    from sklearn.metrics import roc_auc_score
+    ix, r = g.index, g["RUNNING_A"]; on = r > 0.5; known = r.notna()
+    V = g[[c for c in g.columns if c.startswith("TV_")]].max(axis=1)
+    S = {"T5": g["T5_AVG_A"], "PDI_0317": g["954005_624_PDI_0317"], "vibração máx.": V, "PI_0307": g["954005_624_PI_0307"]}
+    ok = {}
+    for n, s in S.items():
+        m = known & s.notna(); a = roc_auc_score(on[m], s[m]); a = max(a, 1 - a)
+        mo, mf = s[m & on].median(), s[m & ~on].median(); print(f"  AUC {n:14s} {a:.3f} (ligada {mo:.2f} | desligada {mf:.2f})")
+        if a > 0.97: ok[n] = (s, (mo + mf) / 2, 1 if mo > mf else -1)
+    votos = pd.DataFrame({n: ((s - lim) * sg > 0) for n, (s, lim, sg) in ok.items()}); nv = pd.DataFrame({n: s.notna() for n, (s, _, _) in ok.items()}).sum(axis=1)
+    mai = votos.sum(axis=1) > nv / 2; m = known & (nv >= 2)
+    d_on, d_off = m & on & ~mai, m & ~on & mai
+    print(f"  votação em {m.sum() * M:.0f} h: concordam {100 * (1 - (d_on | d_off).sum() / m.sum()):.2f}% | ligada e maioria diz parada {d_on.sum() * M:.0f} h | "
+          f"desligada e maioria diz em marcha {d_off.sum() * M:.0f} h | RUNNING_A ausente {(~known).sum() * M:.0f} h, dos quais em marcha {((~known) & mai & (nv >= 2)).sum() * M:.0f} h")
 
 
 def main():
@@ -78,6 +108,7 @@ def main():
     n_borda = sum(1 for a, *_ in cls if ((abre - pd.Timedelta(minutes=6) <= a) & (a <= abre + pd.Timedelta(minutes=6))).any())
     tipos = [D.tipo[((abre - pd.Timedelta(minutes=6) <= a) & (a <= abre + pd.Timedelta(minutes=6))).to_numpy()].iloc[0] for a, *_ in cls
              if ((abre - pd.Timedelta(minutes=6) <= a) & (a <= abre + pd.Timedelta(minutes=6))).any()]
+    votacao(g)
     print(f"\ncomposição 1: {len(cls)} episódios, {n_borda} nascem na borda do blackout; tipos de partida: {pd.Series(tipos).value_counts().to_dict()}")
 
 
