@@ -328,6 +328,11 @@ def preparar_grade(df: pd.DataFrame) -> pd.DataFrame:
          (média). A mediana de 4 leituras descarta a leitura isolada ruim; uma
          leitura só ou a média, não. Em float32, como o treino.
 
+    IDEMPOTENTE: aplicada a uma grade já preparada devolve o mesmo dado e custa pouco
+    (0,02 s em 90 dias de 2 min, contra ~1,1 s para reduzir o export de 30 s). Quem
+    chama `diagnostico_entrada`, `monitor_drift` e `preprocessar` em seguida deve preparar
+    UMA vez e passar o resultado às três.
+
     Entrada JÁ em 2 min passa pelos passos 1 e 2 e segue como veio: o pacote não
     tem como saber se ela foi montada pela mediana. Por isso o export de 30 s é a
     entrada preferida -- com ele a grade sai daqui, igual à do treino. Entrada mais
