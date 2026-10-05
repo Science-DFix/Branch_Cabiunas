@@ -17,6 +17,8 @@ CEN = [("inferência, 2 min, 90 d", "inf", "2min_90d"), ("inferência, 30 s, 90 
 def mede(raiz: Path) -> tuple[list[dict], dict]:
     log = Path(tempfile.mkdtemp()) / "t.jsonl"; out = []
     for rot, tipo, c in CEN:
+        if not (raiz / f"dados/{c}.csv").exists():
+            continue
         for i in range(N):
             saida = Path(tempfile.mkdtemp())
             if tipo == "inf":
@@ -38,13 +40,19 @@ def main():
     from clearml import Dataset, Task
     ds_id = sys.argv[sys.argv.index("--dataset") + 1] if "--dataset" in sys.argv else ""
     remoto = "--remote" in sys.argv
+    pacote = sys.argv[sys.argv.index("--pacote") + 1] if "--pacote" in sys.argv else ""   # pasta pronta (ex.: a do Drive)
+    nome = "pacote-producao::telemetria_de_recursos" + ("_drive" if pacote else "")
     if Task.running_locally() and remoto:
-        pai = Dataset.get(dataset_id=ds_id)
-        f = Dataset.create(dataset_name="TC33003A_pacote_producao_telemetria", dataset_project=PROJETO, parent_datasets=[pai.id])
+        if pacote:
+            f = Dataset.create(dataset_name="TC33003A_pacote_drive_telemetria", dataset_project=PROJETO)
+            f.add_files(pacote)
+        else:
+            pai = Dataset.get(dataset_id=ds_id)
+            f = Dataset.create(dataset_name="TC33003A_pacote_producao_telemetria", dataset_project=PROJETO, parent_datasets=[pai.id])
         f.add_files(str(Path(__file__).resolve().parent / "telemetria_execucao.py")); f.upload(); f.finalize()
         ds_id = f.id; print("dataset filho:", ds_id)
     Task.force_store_standalone_script(True)
-    task = Task.init(project_name=PROJETO, task_name="pacote-producao::telemetria_de_recursos", task_type=Task.TaskTypes.testing,
+    task = Task.init(project_name=PROJETO, task_name=nome, task_type=Task.TaskTypes.testing,
                      reuse_last_task_id=False, auto_connect_frameworks=False, tags=["pacote-producao", "telemetria"])
     cfg = task.connect(dict(dataset_id=ds_id, n_execucoes=N))
     if Task.running_locally() and remoto:
