@@ -44,6 +44,21 @@ EXPECTATIVA REGISTRADA. pt fica acima de 1 em ~19% do tempo vigiado (C-PORTAL, c
 atuais no limiar baixo. Com >= 3 de 5 o nível A fica mais fácil: espero MAIS episódios e FP/mês subindo, o que
 reprova os dois critérios. Chance de passar o primário: ~5%; o secundário: ~20%.
 
+RESULTADO (06/10/2026, task 7f36f43e, commit a43b6d9) -- REPROVA NO PRIMÁRIO E NO SECUNDÁRIO, como esperado: o
+canal no voto não antecipa e sobe o FP. Os três controles passaram.
+    braço        det  início banda  FP/mês  carga   Δcarga [IC 97,5%]     ΔFP/mês [IC 97,5%]      perde/ganha det
+    referência   4,0   3,0   2,0   0,972   112,8
+    θ = 1,0      4,0   3,0   2,0   1,180   130,1   +17,3 [-35,8; +68,6]  +0,295 [-0,039; +0,769]   0 / 1
+    θ = 0,8      4,0   3,0   2,0   1,249   151,4   (sensibilidade)                                 1 / 3
+    θ = 1,2      4,0   3,5   2,5   1,111   134,0   (sensibilidade)                                 0 / 1
+  · Detecção, início e banda iguais na mediana; FP/mês +21% e carga +15%. Primário: reprovado (B1, B2, C).
+    Secundário: não (início e banda não sobem; FP sobe).
+  · MECANISMO (θ = 1): 1 a 7 FP novos por composição contra 0 a 3 perdidos; os TP trocam de lugar (novos ~ perdidos):
+    o canal muda QUANDO o voto acende, não SE acerta. Leads: 07/04 nasce 6,6 h antes em todas as composições com pt
+    (na referência, 32,1 h no dia 1 e nada no dia 4); 11/04 ganha em umas e perde em outras; 17/03 e 27/02 iguais.
+  · Com o C-PORTAL: nem como veto nem como voto o canal do Portal fura o teto nestes 5 eventos. O ponto de parada é
+    aqui -- um terceiro desenho sobre os mesmos eventos seria ajuste. O próximo passo é dado novo (2025-11 em diante).
+
 Uso:  python voto_portal.py --dados PASTA      # local (ver confirmacao_portal.py)
       python voto_portal.py --remote           # enfileira no Cica; o worker clona esta branch
 """
