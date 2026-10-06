@@ -48,6 +48,21 @@ anormal (partida, carga), onde vibração e temperatura de mancal sobem por moti
 apague mais NEUTRO do que FP, e que algum TP fraco seja apagado em pelo menos uma composição.
 Chance de passar o primário: baixa (~20%); o secundário: ~30%.
 
+RESULTADO (05/10/2026, task a7ebb645, commit 48adb96) -- REPROVA NO PRIMÁRIO E NO SECUNDÁRIO: o veto corta FP, mas
+corta TP junto. Os quatro controles passaram.
+    braço        det  início banda  FP/mês  carga   Δcarga [IC 97,5%]     ΔFP/mês [IC 97,5%]      carga cai  perde det
+    referência   4,0   3,0   2,0   0,972   112,8
+    θ = 1,0      2,5   1,5   1,0   0,416    97,5   -15,3 [-34,2; -2,5]   -0,469 [-0,870; -0,150]   8/8       4 de 8
+    θ = 0,8      3,0   1,5   1,0   0,416    98,0   (sensibilidade)
+    θ = 1,2      2,5   1,5   1,0   0,416    94,2   (sensibilidade)
+  · O FP cai de verdade (IC inteiro abaixo de zero) e a carga cai nas 8 composições -- mas 4 das 8 perdem detecção,
+    e início e banda caem pela metade. Primário: reprovado (A). Secundário: não (exige detecção intacta).
+  · MECANISMO (θ = 1): por composição somem 0 a 5 FP e 1 a 4 TP; nas composições 18, 22 e 25 somem 4 TP (320 a
+    335 h). A expectativa errou na direção: apagou mais FP do que NEUTRO. Acertou no risco: TP também morrem.
+  · LEITURA: no nível do EPISÓDIO, o canal novo não separa TP de FP -- o mesmo padrão da pesquisa (cortar episódio
+    custa nascimento). O sinal de 48 h antes do trip da triagem não basta para confirmar o episódio inteiro.
+  · NÃO SE AJUSTA θ NEM A REGRA NESTES 5 EVENTOS: a sensibilidade mostra o mesmo resultado de 0,8 a 1,2.
+
 Uso:  python confirmacao_portal.py --dados PASTA     # local; PASTA tem grade2min.parquet, grade2min_portal.parquet,
                                                      #   falhas.csv e piso_fisico_cache.npz (Dataset 341cecbd);
                                                      #   são ligados em scripts/pdm_fisico, onde a régua os lê
