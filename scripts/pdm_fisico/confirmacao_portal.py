@@ -167,6 +167,7 @@ def roda(log=print):
         import bootstrap_regua as BR
     BR.MESES = pd.date_range("2024-02-01", "2025-11-01", freq="MS", tz="UTC")
     BR.OP = BR._horas_op()
+    BR.W_BOOT = BR.pesos()            # os pesos são por mês: refeitos para os 21 blocos da janela
     cob = np.mean([np.isfinite(Cs[d][R.mask].to_numpy()).mean() for d in R.DIAS])
     log(f"janela {INI} .. {FIM}: eventos {[t.strftime('%d/%m') for t in R.alvo]}  |  "
         f"controle 4, cobertura de C nos instantes vigiados: {cob:.1%}")
