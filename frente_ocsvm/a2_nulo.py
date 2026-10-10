@@ -27,6 +27,22 @@ EXPECTATIVA REGISTRADA.
   Se N1 passar e N2 e N3 confirmarem a expectativa, a leitura é: a pipeline detecta "algo antes de
   parar", e o 8/8 específico de trips não está demonstrado.
 
+RESULTADO (10/10/2026) -- A PIPELINE ESTÁ ACIMA DO ACASO NOS TRÊS; DUAS EXPECTATIVAS ESTAVAM ERRADAS.
+  N1  q = 0,303 (esperado 2,4 de 8). 8/8: p = 7e-5. Dentro (q 0,358) 5/5: p = 0,006. Fora (q 0,257) 3/3:
+      p = 0,017. Como esperado.
+  N2  67 paradas reais não-trip: 28 "detectadas" (41,8%; 41,9% dentro, 41,7% fora). Trips: 8/8. Fisher
+      unilateral p = 0,0018 (só fora da amostra: 3/3 x 10/24, p = 0,098). A expectativa ("antecipa
+      paradas, não trips") NÃO se confirmou: a pipeline separa trip de parada comum -- com a ressalva de
+      que fora da amostra são só 3 trips.
+  N3  canal 4 deslocado: detecções mediana 4/8 (faixa 1-7), 8/8 em 0 de 40, >= 7 em 2. FP/mês quase igual
+      (mediana 2,92). A expectativa (mediana 5-7, "o alinhamento importa pouco") estava ERRADA: o
+      alinhamento do canal 4 com os trips importa -- deslocado, metade das detecções some.
+      Canal 4 sempre ligado: 8/8 a 4,67 FP/mês. Ou seja: a informação do canal 4 não é de DETECÇÃO (os
+      OCSVM sozinhos, em OU, já pegam 8/8), é de CUSTO -- ele é o filtro que corta 4,67 -> 2,88 sem perder
+      os trips, e só funciona alinhado.
+  RESSALVA QUE NENHUM NULO RESOLVE: as 5 tags e a janela de 24 h do canal 4 foram escolhidas olhando os 8
+  trips. N3 mostra que o alinhamento importa, não que ele sobreviveria a uma escolha cega (é o A3).
+
 Uso:  python frente_ocsvm/a2_nulo.py
 """
 from __future__ import annotations

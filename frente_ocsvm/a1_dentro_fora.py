@@ -15,6 +15,17 @@ EXPECTATIVA REGISTRADA. Detecção 5/5 dentro e 3/3 fora (já se sabe da tabela 
 fora MAIOR que dentro (modelo e limiar envelhecem fora da amostra), da ordem de 3 a 4 contra 2 a 2,5.
 Duty dos canais OCSVM maior fora que dentro.
 
+RESULTADO (10/10/2026) -- A EXPECTATIVA SOBRE O FP ESTAVA ERRADA.
+    período  trips det banda lead_med  FP inconcl dias_op FP/mês  duty: temp   vib   óleo  alarme
+    dentro     5    5    5    33,8 h   19    16    199,8  2,894         2,6%  6,4%  0,7%  60,1%
+    fora       3    3    2     8,4 h   23     9    243,3  2,877         2,1% 14,0%  0,4%  36,0%
+    total      8    8    7    25,5 h   42    25    443,2  2,885         2,3% 10,5%  0,6%  46,9%
+  · O FP/mês NÃO sobe fora da amostra (2,89 x 2,88). Mas a composição muda: a vibração DOBRA o duty fora
+    (6,4% -> 14,0%), e o canal 4 cai de 60% para 36% -- o voto >= 2 se equilibra entre os dois.
+  · A antecedência cai muito fora: mediana 33,8 h dentro, 8,4 h fora (13,7 · 8,4 · 3,8 h). A banda fora é 2/3.
+  · Leitura: o custo é estável no tempo, mas o que o sustenta muda (menos alarme de processo, mais
+    vibração), e as detecções fora da amostra são tardias.
+
 Uso:  python frente_ocsvm/a1_dentro_fora.py
 """
 from __future__ import annotations

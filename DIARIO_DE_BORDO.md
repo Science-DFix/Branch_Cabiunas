@@ -106,8 +106,8 @@ modelos (C).
 | # | Abordagem | Pergunta | Precisa treinar? | Estado |
 |---|---|---|---|---|
 | **A0** | Reprodução local | os artefatos em cache reproduzem 8/8 e 2,88? | não | **feito 10/10: passou** |
-| **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | a fazer |
-| **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | a fazer |
+| **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | **feito 10/10** |
+| **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | a fazer |
 | **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | a fazer |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | a fazer |
@@ -130,6 +130,27 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 10/10/2026 — A2, nulos de acaso — ACIMA DO ACASO NOS TRÊS
+- **Script:** `frente_ocsvm/a2_nulo.py` · pré-registro `f6a656b`.
+- **N1, instantes sorteados:** chance de "detectar" um instante qualquer q = 0,30. 8/8 p = 7×10⁻⁵;
+  fora da amostra 3/3 p = 0,017.
+- **N2, paradas comuns como trip:** 28 de 67 (41,8%) contra 8/8 nos trips, p = 0,0018. A pipeline
+  separa trip de parada comum (fora da amostra só 3 trips: p = 0,098).
+- **N3, canal 4 deslocado:** mediana 4/8, nunca 8/8 em 40 deslocamentos; FP/mês igual (~2,9). Canal 4
+  sempre ligado: 8/8 a 4,67 FP/mês.
+- **Leitura:** o canal 4 não acrescenta detecção (os OCSVM em OU já pegam 8/8); ele é o **filtro de
+  custo** que leva 4,67 → 2,88 FP/mês sem perder trip, e só funciona **alinhado** com os trips.
+  Expectativas erradas: N2 (achei que antecipava paradas em geral) e N3 (achei que o alinhamento importava
+  pouco).
+- **Ressalva aberta:** as 5 tags e a janela de 24 h foram escolhidas vendo os 8 trips → é o A3.
+
+### 10/10/2026 — A1, dentro × fora da amostra
+- **Script:** `frente_ocsvm/a1_dentro_fora.py` · pré-registro `f6a656b`.
+- **Resultado:** dentro 5/5 (banda 5/5), fora 3/3 (banda 2/3). FP/mês **igual**: 2,89 dentro, 2,88 fora
+  (expectativa de subir fora: errada). Mas a composição muda: duty da vibração 6,4% → 14,0%, do canal 4
+  60% → 36%. Antecedência mediana 33,8 h dentro, **8,4 h fora**.
+- **Leitura:** custo estável no tempo; detecções fora da amostra são tardias.
 
 ### 10/10/2026 — A0, reprodução local — PASSOU
 - **Script:** `frente_ocsvm/a0_reproducao.py` · pré-registro `9880cfb`.
