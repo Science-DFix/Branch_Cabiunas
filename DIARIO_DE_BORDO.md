@@ -29,6 +29,23 @@ agosto e setembro continua onde está e serve de consulta, não de plano:
 
 **Resultado de referência:** 8/8 trips, **2,88 FP/mês**, 25 inconclusivos, antecedência média 23,8 h.
 
+**Por trip** (tabela 7 do relatório operacional; régua rigorosa: episódio nasce até 48 h antes):
+
+| Trip | 1ª detecção | Antecedência | Período | Banda [T−48 h, T−4 h] |
+|---|---|---|---|---|
+| 27/02/2025 08:38 | 25/02/2025 22:51 | 33,8 h | dentro da amostra | sim |
+| 17/03/2025 18:16 | 16/03/2025 11:04 | 31,2 h | dentro da amostra | sim |
+| 07/04/2025 21:18 | 06/04/2025 02:05 | 43,2 h | dentro da amostra | sim |
+| 11/04/2025 17:02 | 10/04/2025 21:15 | 19,8 h | dentro da amostra | sim |
+| 29/04/2025 03:04 | 27/04/2025 14:22 | 36,7 h | dentro da amostra | sim |
+| 04/11/2025 06:22 | 03/11/2025 16:40 | 13,7 h | **fora** da amostra | sim |
+| 09/12/2025 08:36 | 09/12/2025 00:15 | 8,4 h | **fora** da amostra | sim |
+| 26/02/2026 15:34 | 26/02/2026 11:48 | 3,8 h | **fora** da amostra | **não** (< 4 h) |
+
+Leitura: **8/8 no total = 5/5 dentro da amostra + 3/3 fora**; na banda acionável de 4 h, **7/8** (fora da
+amostra, 2/3). Os 8 horários de trip são também a referência para reconstruir o
+`alarmes_francisco_falhas.csv` (não versionado), se a cópia não aparecer.
+
 **O que sabemos que o número esconde:**
 - **5 dos 8 trips estão no período de ajuste e calibração** (27/02, 17/03, 07/04, 11/04 e 29/04/2025,
   todos antes do split). Fora da amostra só há 3: 04/11/2025, 09/12/2025 e 26/02/2026.
