@@ -105,7 +105,7 @@ modelos (C).
 
 | # | Abordagem | Pergunta | Precisa treinar? | Estado |
 |---|---|---|---|---|
-| **A0** | Reprodução local | os artefatos em cache reproduzem 8/8 e 2,88? | não | a fazer |
+| **A0** | Reprodução local | os artefatos em cache reproduzem 8/8 e 2,88? | não | **feito 10/10: passou** |
 | **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | a fazer |
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | a fazer |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | a fazer |
@@ -117,9 +117,12 @@ modelos (C).
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
 
-**Pendências de dado:** `dataset_francisco_lara/alarmes_francisco_falhas.csv` (os 8 trips curados) não
-está versionado; os `point_anomalies_all.csv` de produção estão no cache local do ClearML com nome por
-hash — identificar pelo conteúdo.
+**Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
+`point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
+(`~/REPO_CABIUNAS/cabiunas-models`, mesmo commit `52d705a`) e para o catálogo de alarmes no cache do
+ClearML (Dataset `a97ba56b`). Código comum em `frente_ocsvm/comum.py`, que chama as funções de produção
+de `src/cnn1d_ae/scoring.py`. Os 76 scripts e fontes que só existiam no clone antigo foram versionados
+em `de18d60`.
 
 ---
 
@@ -128,4 +131,12 @@ hash — identificar pelo conteúdo.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
-*(vazio)*
+### 10/10/2026 — A0, reprodução local — PASSOU
+- **Script:** `frente_ocsvm/a0_reproducao.py` · pré-registro `9880cfb`.
+- **Resultado:** canal 4 recalculado do catálogo em cache idêntico à tabela (0 de 1.895.041 instantes
+  diferentes); decisão recalculada idêntica (0 diferentes); 8/8, 42 FP, 25 inconclusivos, 2,8847 FP/mês;
+  as 8 antecedências iguais à tabela 7. Roda em ~13 s, sem ClearML.
+- **Achado de passagem:** o canal 4 fica aceso **46,8% do tempo em operação**.
+- **Correção registrada:** a 1ª rodada "falhou" por comparar a 1ª detecção com a tabela 7 ao minuto (a
+  tabela arredonda; a grade é de 30 s). A conferência passou a tolerar 1 min e exigir as antecedências.
+- **Decisão:** a base local vale para A1, A2, A3 e B1–B3.

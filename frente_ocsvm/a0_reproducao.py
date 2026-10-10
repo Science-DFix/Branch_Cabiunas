@@ -14,6 +14,20 @@ TRÊS CONFERÊNCIAS, todas têm de passar:
 
 EXPECTATIVA. Passa nas três (o mesmo código, os mesmos artefatos).
 
+CORREÇÃO DA CONFERÊNCIA 3, DEPOIS DE RODAR (10/10/2026). A 1ª rodada comparou a 1ª detecção com a
+tabela 7 por igualdade de string ao minuto e "falhou": a tabela arredonda ao minuto e a grade é de 30 s
+(02:04:30 virou 02:05). A conferência passou a aceitar diferença <= 1 min E exigir as 8 antecedências
+iguais à tabela ao décimo de hora. Afrouxar depois de ver é o que fabricaria acerto; aqui é correção de
+arredondamento da referência, e fica registrado.
+
+RESULTADO (10/10/2026) -- PASSOU.
+  1. canal 4 recalculado do catálogo em cache: 0 instantes diferentes em 1.895.041. Duty 46,5% do total
+     (46,8% do tempo 'on').
+  2. decisão recalculada: 0 instantes diferentes.
+  3. 8/8, 42 FP, 25 inconclusivos, 2,8847 FP/mês; 1ª detecção a <= 30 s da tabela 7 e as 8
+     antecedências idênticas (33,8 · 31,2 · 43,2 · 19,8 · 36,7 · 13,7 · 8,4 · 3,8 h).
+  A reconstrução local É a pipeline de referência. Roda em ~13 s, sem ClearML.
+
 Uso:  python frente_ocsvm/a0_reproducao.py
 """
 from __future__ import annotations
@@ -24,6 +38,7 @@ REF_METRICAS = dict(falhas_detectadas=8, n_episodios_falso_positivo=42, n_episod
                     falso_positivo_por_mes=2.8847252290052112)
 REF_DETECCAO = ["2025-02-25 22:51", "2025-03-16 11:04", "2025-04-06 02:05", "2025-04-10 21:15",
                 "2025-04-27 14:22", "2025-11-03 16:40", "2025-12-09 00:15", "2026-02-26 11:48"]
+REF_LEAD = [33.8, 31.2, 43.2, 19.8, 36.7, 13.7, 8.4, 3.8]
 
 
 def main():
@@ -48,8 +63,9 @@ def main():
     print(f"3. régua: {m['falhas_detectadas']}/{m['n_falhas_catalogadas']} trips, {m['n_episodios_falso_positivo']} FP, "
           f"{m['n_episodios_inconclusivo']} inconclusivos, {m['falso_positivo_por_mes']:.4f} FP/mês  -> {'OK' if ok3 else 'FALHA'}")
     P = C.por_trip(cls, ft)
-    det = P.deteccao.dt.strftime("%Y-%m-%d %H:%M").tolist()
-    ok4 = det == REF_DETECCAO
+    dif = (P.deteccao - pd.to_datetime(REF_DETECCAO)).abs().max()      # a tabela 7 arredonda ao minuto
+    ok4 = bool(dif <= pd.Timedelta(minutes=1)) and P.lead_h.tolist() == REF_LEAD
+    print(f"   maior diferença de 1ª detecção x tabela 7: {dif}")
     print(f"   1ª detecção por trip x tabela 7: {'OK' if ok4 else 'FALHA'}")
     print(P.to_string(index=False))
     print(f"\nA0: {'PASSOU' if d1 == 0 and d2 == 0 and ok3 and ok4 else 'NÃO PASSOU'}")
