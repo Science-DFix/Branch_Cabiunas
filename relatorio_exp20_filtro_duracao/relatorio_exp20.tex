@@ -1,0 +1,396 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Pacotes ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+% ---------- Cores ----------
+\definecolor{corAzul}{HTML}{2A78D6}
+\definecolor{corAzulEscuro}{HTML}{184F95}
+\definecolor{corLaranja}{HTML}{EB6834}
+\definecolor{corVermelho}{HTML}{D03B3B}
+\definecolor{corCinza}{HTML}{898781}
+\definecolor{corVerde}{HTML}{0CA30C}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=corAzul,
+  citecolor=corAzul,
+  urlcolor=corAzul,
+  pdftitle={EXP20 -- Filtro de Duracao Minima},
+  pdfauthor={Projeto Cabiunas}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small EXP20 --- Filtro de Duração Mínima}
+\lhead{\small Projeto Cabiunas}
+\rfoot{\small\thepage}
+\setlength{\headheight}{14pt}
+
+\title{\textbf{EXP20: Filtro de Duração Mínima}\\[4pt]
+  \large Detecção de Anomalias em Vibração de Mancal --- Turbina A\\
+  \large Grupo \texttt{TC382\_T5\_vibracao\_mancais\_multiescala}}
+\author{Projeto Cabiunas}
+\date{30 de agosto de 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+
+% ======================================================================
+\section{Introdução e objetivo}
+\label{sec:intro}
+
+Este relatório documenta o EXP20: a adição de um \textbf{filtro de
+duração mínima} à pipeline de detecção de anomalias não supervisionada
+do grupo de sensores \texttt{TC382\_T5\_vibracao\_mancais\_multiescala}
+(temperatura de mancal + 10 canais de vibração). O ponto de partida é o
+EXP10c, a referência do projeto até então: 92,5\% de detecção
+(37 de 40 alarmes reais) com 0,348\% de taxa de falso alerta.
+
+A pergunta que motivou o EXP20: os pontos falsos positivos residuais
+persistem pelo mesmo tempo que os precursores reais, ou existe uma
+assinatura temporal que os distingue? A resposta, detalhada na
+Seção~\ref{sec:metodologia}, é que sim --- e essa assinatura pode ser
+usada como um filtro adicional, reduzindo falso alerta sem custar
+(quase) nenhuma detecção real.
+
+\textbf{Resultado final (corte de 4,5 minutos):} 90,0\% de detecção
+(36 de 40 alarmes) com 0,247\% de falso alerta --- uma redução de
+29,1\% no falso alerta, ao custo de 2 detecções a menos que a
+referência.
+
+% ======================================================================
+\section{Arquitetura da pipeline}
+\label{sec:pipeline}
+
+A pipeline opera em camadas sequenciais, cada uma responsável por um
+mecanismo de supressão de ruído diferente. A Figura~\ref{fig:arquitetura}
+resume o fluxo; as subseções abaixo detalham cada etapa.
+
+\begin{figure}[H]
+\centering
+\fbox{\begin{minipage}{0.92\textwidth}
+\centering
+\vspace{4pt}
+\textbf{1. Pré-processamento} --- limpeza, features derivadas, clipping de outlier \\
+$\downarrow$ \\
+\textbf{2. Modelo (OCSVM)} --- score contínuo de anomalia por ponto \\
+$\downarrow$ \\
+\textbf{3. Limiar (percentil do treino)} --- score $\rightarrow$ sinalização binária \\
+$\downarrow$ \\
+\textbf{4. Máscara operacional} --- ignora períodos desligados/transientes \\
+$\downarrow$ \\
+\textbf{5. Filtro de duração mínima (NOVO, EXP20)} --- exige persistência $\geq$ 4,5\,min \\
+$\downarrow$ \\
+\textbf{6. Portão de rampa de carga} --- ignora manobra de carga legítima \\
+$\downarrow$ \\
+\textbf{7. Portão de volatilidade} --- ignora vibração instável por manobra \\
+$\downarrow$ \\
+\textbf{Alarme reportado}
+\vspace{4pt}
+\end{minipage}}
+\caption{Camadas sequenciais da pipeline de detecção. Cada camada só
+\emph{remove} sinalizações, nunca adiciona -- o filtro de duração
+(camada 5, novo neste experimento) atua sobre o score já reduzido pela
+máscara operacional, antes dos portões de rampa/volatilidade.}
+\label{fig:arquitetura}
+\end{figure}
+
+\subsection{Pré-processamento}
+Os 12 sensores do grupo (temperatura de mancal \texttt{TC382\_03\_A},
+proxy de carga \texttt{T5\_AVG\_A} e 10 canais de vibração
+\texttt{TV\_35\{1..5\}\{X,Y\}\_A}) são reamostrados a 30 segundos,
+interpolados em pequenos buracos (limite de 3 amostras) e enriquecidos
+com features derivadas por janela móvel (mediana, desvio-padrão,
+tendência, curtose/assimetria/crista) em 4 escalas temporais: 6\,min,
+1\,h, 4\,h e 24\,h. Valores fora dos quantis 0,1\%/99,9\% são
+truncados (\emph{clipping}) para reduzir sensibilidade a outliers de
+instrumento.
+
+\subsection{Modelo: One-Class SVM}
+Um \emph{One-Class SVM} (kernel RBF, $\nu=0{,}05$, $\gamma=$
+\texttt{scale}) é treinado apenas sobre dados rotulados como
+``normais'' -- períodos sem alarme (excluídos numa janela de
+$\pm 24$\,h ao redor de cada evento) e com a máquina ligada. O corte de
+validação \emph{out-of-sample} é 1º de julho de 2025: o modelo só
+enxerga dados anteriores a essa data; toda a avaliação de desempenho
+usa exclusivamente os 40 alarmes reais ocorridos depois dela.
+
+\subsection{Limiar}
+O score contínuo do modelo é comparado ao percentil 99,9 do próprio
+erro de treino -- ou seja, o limiar se autocalibra à escala de erro
+daquele modelo específico, não é um valor absoluto fixo.
+
+\subsection{Máscara operacional}
+Períodos com a máquina desligada, partindo ou parando são identificados
+via o sensor de referência \texttt{RUNNING\_A} (mais um piso físico de
+150\textdegree{}C na própria temperatura-alvo, para capturar
+desligamentos que \texttt{RUNNING\_A} sozinho não pega) e excluídos
+tanto do treino quanto da avaliação.
+
+\subsection{Filtro de duração mínima (novo, EXP20)}
+\label{sec:filtro-duracao}
+Detalhado na Seção~\ref{sec:metodologia}.
+
+\subsection{Portões de rampa e volatilidade}
+Dois mecanismos adicionais, herdados do EXP10b/EXP10c, suprimem
+sinalizações durante manobras de carga legítimas: o \emph{portão de
+rampa} bloqueia quando a taxa de variação do proxy de carga
+(\texttt{T5\_AVG\_A}, suavizado com meia-vida de 15\,min) excede
+100\textdegree{}C/h numa janela de 30\,min; o \emph{portão de
+volatilidade} bloqueia quando o desvio-padrão móvel (janela de 60\,min)
+médio dos 10 canais de vibração excede 0,39.
+
+% ======================================================================
+\section{Metodologia: o filtro de duração mínima}
+\label{sec:metodologia}
+
+\subsection{Hipótese}
+Um precursor real de falha tende a produzir um desvio \emph{sustentado}
+no score do modelo -- a condição física que o originou (desgaste,
+desalinhamento, início de folga) não desaparece em segundos. Ruído
+residual (flutuação de instrumento, transiente não totalmente
+capturado pelos outros portões) tende a ser \emph{transiente}: um ou
+poucos pontos cruzam o limiar e o score volta a cair.
+
+\subsection{Evidência}
+Medindo, para os 37 alarmes já detectados pela referência (EXP10c), a
+duração contínua do episódio de score acima do limiar responsável pela
+detecção, e comparando com a duração dos episódios de falso positivo
+residual (que sobrevivem aos portões hoje):
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+& mediana & p25 & p75 \\
+\midrule
+Precursor real (TP) & 49,5\,min & 8,0\,min & 62,0\,min \\
+Falso positivo residual (FP) & 2,5\,min & 1,0\,min & 5,0\,min \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Uma separação de quase 20$\times$ na mediana -- mas com sobreposição
+nas caudas (o TP mais curto observado foi um único ponto de 30\,s; o FP
+mais longo chegou a 4\,h), então o filtro não separa 100\% dos casos,
+apenas a maioria.
+
+\subsection{Mecanismo}
+O filtro de duração mínima agrupa o score binarizado (score $>$
+limiar, já restrito a período operacional) em episódios contínuos e
+descarta qualquer episódio com duração menor que o corte
+(\texttt{MIN\_DURATION\_FILTER\_MINUTES} $= 4{,}5$\,min). A
+Figura~\ref{fig:diagrama} ilustra o mecanismo com um exemplo sintético.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{diagrama_filtro_duracao.png}
+\caption{Exemplo ilustrativo (dados sintéticos, não são dados reais do
+projeto) do filtro de duração mínima: um episódio curto de ruído
+(esquerda, sombreado laranja, $\sim$2\,min) fica abaixo do corte de
+4,5\,min e é removido; um episódio sustentado (direita, sombreado
+verde, $\sim$14\,min) ultrapassa o corte e é mantido como alarme.}
+\label{fig:diagrama}
+\end{figure}
+
+\textbf{Ordem de aplicação importa.} O filtro é aplicado logo após a
+máscara operacional, \emph{antes} dos portões de rampa e volatilidade
+(Figura~\ref{fig:arquitetura}, camada 5). Aplicá-lo depois desses
+portões mediria a duração de episódios já fragmentados por eles -- um
+precursor real longo pode ser cortado em vários pedaços curtos por uma
+manobra de carga sobreposta, e cada pedaço individualmente falharia o
+teste de duração mesmo sem ser ruído. Um teste preliminar com a ordem
+invertida derrubou a detecção de 90\% para 47,5\% -- confirma que a
+ordem das camadas não é um detalhe cosmético.
+
+\subsection{Calibração do corte}
+Uma varredura fina (reconstruindo a série e reavaliando a cada valor
+candidato, sem aproximação) mostrou dois pontos de operação válidos:
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Corte & Detecção & Falso alerta & Redução \\
+\midrule
+4,5\,min (escolhido) & 90,0\% (36/40) & 0,247\% & 29,1\% \\
+6,0\,min & 85,0\% (34/40) & 0,189\% & 45,7\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A transição de 36 para 34 detecções acontece de forma abrupta entre
+4,5 e 5,0 minutos -- não há corte intermediário que recupere as 2
+detecções mantendo a redução de 45,7\%. Optou-se por 4,5\,min,
+priorizando detecção sobre a redução adicional de falso alerta.
+
+% ======================================================================
+\section{Resultados}
+\label{sec:resultados}
+
+\subsection{Resumo comparativo}
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Configuração & Detecção (hit rate) & Falso alerta & $\Delta$ falso alerta \\
+\midrule
+EXP10c (referência) & 92,5\% (37/40) & 0,348\% & --- \\
+\textbf{EXP20 (filtro 4,5\,min)} & \textbf{90,0\% (36/40)} & \textbf{0,247\%} & \textbf{$-$29,1\%} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Série temporal completa: anomalias reais vs. falso positivo disperso}
+
+A Figura~\ref{fig:serie-completa} mostra a série bruta completa do
+sensor-alvo (\texttt{TC382\_03\_A}, temperatura de mancal) para todo o
+período de dados disponível (julho/2024 a abril/2026), com os pontos
+marcados como anomalia pela pipeline (após todos os filtros, incluindo
+o de duração) sobrepostos. Para responder diretamente à pergunta ``os
+pontos dispersos na série são falso positivo ou alarme genuíno?'', cada
+ponto anômalo é classificado em duas cores, cruzando-o com o histórico
+\emph{completo} de alarmes reais dos 2 sensores avaliados (não só os 40
+do período de teste): \textbf{verde} se cai a menos de 24h de algum
+alarme real (candidato a precursor genuíno, ainda que o alarme em
+questão possa estar fora do período de avaliação); \textbf{vermelho} se
+não há nenhum alarme por perto (falso positivo disperso, é isso que
+compõe a taxa de falso alerta reportada). O painel inferior mostra, à
+parte, quais dos 40 alarmes do período de avaliação (a partir de
+julho/2025) foram acertados ou perdidos, e os alarmes anteriores ao
+corte OOS (não avaliados, só contexto).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{serie_completa_tp_vs_fp.png}
+\caption{Série bruta completa de \texttt{TC382\_03\_A}. Pontos verdes:
+anomalia a menos de 24h de um alarme real (4297 de 6406, 67,1\%).
+Pontos vermelhos: anomalia isolada, sem alarme por perto (2109 de
+6406, 32,9\%) -- falso positivo disperso. Linhas cinza finas marcam
+cada um dos 363 alarmes históricos dos 2 sensores avaliados. Painel
+inferior: alarmes do período de avaliação (acertado/perdido) e alarmes
+anteriores ao corte OOS (contexto, não avaliados). Os saltos abruptos a
+valores baixos correspondem a períodos com a máquina desligada.}
+\label{fig:serie-completa}
+\end{figure}
+
+\textbf{Os pontos isolados (vermelhos) não são, em sua maioria, cauda
+de um evento real cortada pela janela de 24h.} Alargar a janela de
+associação praticamente não muda a proporção -- de 67,1\% (24h) para
+apenas 71,2\% (48h), 74,1\% (72h) e 80,9\% (uma semana inteira). Entre
+os pontos que permanecem isolados mesmo numa janela de 24h, a distância
+mediana até o alarme real mais próximo é de \textbf{235 horas
+($\sim$10 dias)} -- genuinamente distante, não apenas alguns pontos fora
+do corte. Uma fração minoritária (25\% dos isolados, a $\sim$3,5 dias
+do alarme mais próximo) é compatível com cauda estendida de um evento
+real; a maioria, no entanto, é ruído independente disperso pela série.
+
+\subsection{Antecedência das detecções}
+
+Para cada alarme acertado, a Tabela~\ref{tab:antecedencia} mostra a
+\emph{antecedência}: quanto tempo antes do alarme real o primeiro ponto
+anômalo daquele episódio foi sinalizado. Quando o único ponto anômalo
+dentro da janela de $\pm$24h cai \emph{depois} do instante do alarme,
+isso é marcado como ``pós-alarme'' -- ainda conta como detecção
+(dentro da janela de avaliação), mas não representa aviso antecipado.
+
+Das 36 detecções, 29 (80,6\%) tiveram antecedência real, com mediana de
+4,8\,horas (média 5,6\,h, variando de poucos minutos a 21\,horas).
+
+\begin{longtable}{p{3.3cm}p{2.3cm}p{2.0cm}p{2.6cm}}
+\caption{Antecedência por alarme (período de avaliação, a partir de
+2025-07-01). ``h'' = horas antes do alarme; ``pós'' = detectado depois
+do alarme (dentro de $\pm$24h); ``---'' = alarme perdido.}
+\label{tab:antecedencia}\\
+\toprule
+Alarme & Tag & Status & Antecedência \\
+\midrule
+\endfirsthead
+\toprule
+Alarme & Tag & Status & Antecedência \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+2025-07-24 16:14 & T5\_AVG\_A & Detectado & 1.0\,h (pós) \\
+2025-07-24 16:14 & TC382\_03\_A & Detectado & 1.0\,h (pós) \\
+2025-08-08 15:31 & T5\_AVG\_A & Perdido & --- \\
+2025-08-08 15:31 & TC382\_03\_A & Perdido & --- \\
+2025-10-20 16:18 & TC382\_03\_A & Detectado & 6.9\,h (pós) \\
+2025-10-20 16:20 & TC382\_03\_A & Detectado & 6.9\,h (pós) \\
+2025-11-29 07:52 & TC382\_03\_A & Perdido & --- \\
+2026-01-14 16:18 & T5\_AVG\_A & Detectado & 20.6\,h (pós) \\
+2026-01-14 16:18 & TC382\_03\_A & Detectado & 20.6\,h (pós) \\
+2026-01-17 00:59 & T5\_AVG\_A & Perdido & --- \\
+2026-01-29 12:56 & TC382\_03\_A & Detectado & 0.4\,h \\
+2026-01-29 13:01 & TC382\_03\_A & Detectado & 0.4\,h \\
+2026-01-29 15:13 & TC382\_03\_A & Detectado & 0.6\,h \\
+2026-02-10 13:50 & TC382\_03\_A & Detectado & 8.5\,h \\
+2026-02-10 13:50 & TC382\_03\_A & Detectado & 8.5\,h \\
+2026-02-11 08:13 & TC382\_03\_A & Detectado & 12.4\,h \\
+2026-02-11 11:18 & TC382\_03\_A & Detectado & 15.5\,h \\
+2026-02-11 16:45 & TC382\_03\_A & Detectado & 21.0\,h \\
+2026-02-24 11:01 & TC382\_03\_A & Detectado & 0.0\,h \\
+2026-02-24 11:01 & TC382\_03\_A & Detectado & 0.0\,h \\
+2026-02-25 20:45 & TC382\_03\_A & Detectado & 0.7\,h \\
+2026-02-25 20:45 & TC382\_03\_A & Detectado & 0.7\,h \\
+2026-03-13 10:33 & TC382\_03\_A & Detectado & 14.6\,h \\
+2026-03-13 10:38 & TC382\_03\_A & Detectado & 0.0\,h \\
+2026-03-16 10:02 & TC382\_03\_A & Detectado & 6.7\,h \\
+2026-03-16 10:02 & TC382\_03\_A & Detectado & 6.7\,h \\
+2026-03-16 15:00 & TC382\_03\_A & Detectado & 11.6\,h \\
+2026-03-25 10:45 & TC382\_03\_A & Detectado & 8.3\,h (pós) \\
+2026-04-08 13:21 & TC382\_03\_A & Detectado & 0.0\,h \\
+2026-04-08 21:29 & TC382\_03\_A & Detectado & 6.3\,h \\
+2026-04-08 21:29 & TC382\_03\_A & Detectado & 6.3\,h \\
+2026-04-08 21:53 & TC382\_03\_A & Detectado & 0.2\,h \\
+2026-04-08 21:53 & TC382\_03\_A & Detectado & 0.2\,h \\
+2026-04-14 00:12 & TC382\_03\_A & Detectado & 1.8\,h \\
+2026-04-14 10:07 & TC382\_03\_A & Detectado & 11.7\,h \\
+2026-04-14 12:01 & TC382\_03\_A & Detectado & 13.6\,h \\
+2026-04-15 14:41 & TC382\_03\_A & Detectado & 0.0\,h \\
+2026-04-15 14:42 & T5\_AVG\_A & Detectado & 0.1\,h \\
+2026-04-15 23:34 & TC382\_03\_A & Detectado & 4.8\,h \\
+2026-04-16 02:37 & TC382\_03\_A & Detectado & 7.9\,h \\
+\end{longtable}
+
+% ======================================================================
+\section{Conclusão}
+\label{sec:conclusao}
+
+O filtro de duração mínima confirma, com evidência direta sobre a
+persistência temporal do score, uma intuição física simples: sinal real
+dura, ruído não. Aplicado corretamente (antes dos portões de
+rampa/volatilidade, com o corte calibrado por reconstrução literal da
+série, não por aproximação), o filtro de 4,5 minutos entrega uma
+redução de 29,1\% no falso alerta ao custo de 2 detecções -- um
+mecanismo simples, interpretável e agora parte permanente da pipeline
+(config \texttt{test\_grupo\_exp20\_filtro\_duracao.json}, campo
+\texttt{ENABLE\_MIN\_DURATION\_FILTER}).
+
+Uma tentativa de combinar este filtro com retreino mensal
+(\emph{walk-forward}) --- outro mecanismo validado independentemente
+--- foi testada e refutada: a duração de um episódio depende da
+fronteira de decisão do modelo específico que o gerou, e essa
+fronteira muda a cada retreino. As duas melhorias não são
+combináveis sem uma recalibração completa do corte a cada período, o
+que não se mostrou vantajoso nos testes realizados.
+
+\end{document}

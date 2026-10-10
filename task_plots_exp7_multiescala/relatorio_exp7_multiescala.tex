@@ -1,0 +1,277 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{enumitem}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\title{Detecção de Anomalias em Cabiúnas via AutoML\\
+\large Experimento EXP7 --- Features multi-escala e de textura\\
+como preditores de alarmes de TC382\_03\_A e T5\_AVG\_A}
+\author{Pipeline \texttt{cnn1d\_ae} / AutoML --- projeto \texttt{TesteMLCab}}
+\date{Agosto de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este relatório documenta o EXP7, a segunda rodada de melhoria do detector
+de anomalias baseado em vibração de mancais para os sensores
+\texttt{TC382\_03\_A} e \texttt{T5\_AVG\_A} (ver EXP6,
+\texttt{docs/analise\_automl\_exp6.md}). Partindo dos dois pontos fracos do
+EXP6 -- 4 alarmes detectados só depois do fato e 10 sem detecção alguma --
+testamos duas mudanças de engenharia de features, ambas fundamentadas em
+pesquisa do estado da arte em manutenção preditiva
+(\texttt{docs/analise\_automl\_exp7\_planejamento.md}): features derivadas
+em múltiplas escalas de tempo (item 1) e features de textura do sinal de
+vibração -- kurtosis, skewness, crest factor (item 2). O resultado final
+\textbf{melhora em todas as três métricas ao mesmo tempo}: antecedência real
+sobe de 26 para 29 alarmes (65\%$\to$72,5\% dos 40), casos sem detecção
+caem de 10 para 3, e o falso alerta do candidato combinado (1,94\%) fica
+\emph{abaixo} do candidato só-multiescala (2,21\%) -- ainda acima do
+extremo conservador do EXP6 (0,06\%), mas a troca vale a pena dado o ganho
+em cobertura. Documentamos também um achado metodológico: um candidato que
+parecia melhor pelos números agregados (\texttt{hit\_rate}/FP) se revelou
+pior no que realmente importa (antecedência real) ao abrir o detalhe por
+alarme -- reforça que scores agregados sozinhos enganam.
+\end{abstract}
+
+\tableofcontents
+
+% =====================================================================
+\section{Objetivo e contexto}
+% =====================================================================
+
+\textbf{A ideia central continua a mesma do EXP6: usar vibração de mancal
+como preditor antecipado de falha térmica em \texttt{TC382\_03\_A} e
+\texttt{T5\_AVG\_A}.} O EXP6 já validou essa ideia (65\% de antecedência
+real, FP de 0,06\%), mas deixou dois pontos fracos claros:
+
+\begin{itemize}
+  \item \textbf{4 alarmes} detectados só \emph{depois} do próprio alarme
+        (reação, não previsão);
+  \item \textbf{10 alarmes} sem nenhuma detecção dentro de $\pm$24h.
+\end{itemize}
+
+Investigamos o estado da arte em manutenção preditiva para esses dois
+problemas especificamente (resumo completo em
+\texttt{docs/analise\_automl\_exp7\_planejamento.md}) e chegamos a duas
+mudanças de baixo risco para testar primeiro, antes de partir para algo
+mais custoso (detecção de mudança de regime, reformulação supervisionada):
+
+\begin{enumerate}
+  \item \textbf{Features multi-escala}: as features derivadas do EXP6 só
+        olhavam uma janela de 6 minutos -- curta demais para um precursor
+        que se desenvolve ao longo de horas.
+  \item \textbf{Features de textura do sinal}: kurtosis, skewness e crest
+        factor capturam mudança de \emph{forma} do sinal de vibração (ficando
+        mais ``impulsivo''), não só nível ou tendência -- padrão em condition
+        monitoring de mancal.
+\end{enumerate}
+
+% =====================================================================
+\section{O que mudou -- passo a passo}
+\label{sec:mudancas}
+% =====================================================================
+
+Mesma base de dados, mesmo grupo de sensores e mesma janela temporal do
+EXP6 (\texttt{sensores\_full\_2024\_2026\_30s.csv}, fit jul/2024--jun/2025,
+avaliação OOS jul/2025--abr/2026, 40 alarmes reais de
+\texttt{TC382\_03\_A}/\texttt{T5\_AVG\_A} no período OOS). O que muda é
+exclusivamente a engenharia de features:
+
+\subsection{Item 1 -- Múltiplas janelas de tempo}
+
+Antes (EXP6): uma única janela de 12 amostras (6 min). Agora
+(\texttt{DERIVED\_ROLLING\_WINDOWS=[12, 120, 480, 2880]}): quatro janelas
+-- 6 min, 1h, 4h e 24h. Para cada sensor e cada janela: média móvel, desvio
+móvel e \texttt{trend\_w} (valor atual menos o valor de \texttt{w} passos
+atrás -- a inclinação da série ao longo daquela janela específica).
+48 $\to$ 168 features de entrada.
+
+\subsection{Item 2 -- Textura do sinal (kurtosis, skewness, crest factor)}
+
+Para as janelas $\geq$ 1h (a de 6 min não tem amostra suficiente para
+esses estimadores serem estáveis), três features adicionais por sensor:
+kurtosis móvel, skewness móvel e crest factor móvel
+(pico $\div$ RMS dentro da janela). 168 $\to$ 276 features de entrada.
+
+Ambos os itens reusam a mesma infraestrutura do EXP6
+(\texttt{ENABLE\_DERIVED\_FEATURES}), sem mudança no resto do pipeline
+(máscaras, split OOS, grid de threshold/debounce, \texttt{eval\_sensors}
+restrito a \texttt{TC382\_03\_A}/\texttt{T5\_AVG\_A}).
+
+% =====================================================================
+\section{Comparação: EXP6 $\to$ item 1 $\to$ item 1+2}
+% =====================================================================
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+\textbf{Etapa} & \textbf{Modelo vencedor} & \textbf{hit\_rate} & \textbf{FP} & \textbf{Preditivo} & \textbf{Reativo} & \textbf{Sem detecção} & \textbf{Mediana antecedência} \\
+\midrule
+EXP6 (janela única) & iforest p99.9/db6 & 75,0\% (30/40) & 0,06\% & 26 & 4 & 10 & 12,4h \\
+EXP7 item 1 (multi-escala) & ocsvm p99.5/db6 & 87,5\% (35/40) & 2,21\% & 28 & 7 & 5 & 15,0h \\
+\textbf{EXP7 item 1+2 (+ textura)} & \textbf{ocsvm p99.9/db1} & \textbf{92,5\% (37/40)} & \textbf{1,94\%} & \textbf{29} & 8 & \textbf{3} & 14,7h \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Evolução completa das três etapas. As colunas
+``Preditivo''/``Reativo''/``Sem detecção'' somam sempre 40 (total de
+alarmes OOS avaliados).}
+\label{tab:evolucao}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{01_evolucao_categorias.png}
+\caption{Evolução do número de alarmes em cada categoria, etapa por etapa.
+Sem detecção cai de 10 para 3; preditivo sobe de 26 para 29.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{02_metricas_por_etapa.png}
+\caption{\texttt{hit\_rate}, falso alerta e mediana de antecedência por
+etapa. Nota sobre o painel central: o FP do EXP6 (0,06\%) é
+proporcionalmente muito menor que os do EXP7 -- a troca de mais cobertura
+por mais falso alerta é real e está sendo mostrada, não escondida.}
+\end{figure}
+
+\subsection{O item 2 foi ganho limpo; o item 1 foi troca}
+
+O item 1 (multi-escala) trocou robustez por cobertura: menos alarmes
+perdidos, mas 37$\times$ mais falso alerta que o EXP6. Já o item 2
+(textura) melhorou \textbf{ao mesmo tempo} \texttt{hit\_rate}
+(87,5\%$\to$92,5\%), FP (2,21\%$\to$1,94\%, uma leve queda) e a divisão
+preditivo/sem-detecção -- indício de que kurtosis/skewness/crest factor
+capturam sinal genuíno de degradação (o sinal de vibração ``ficando mais
+irregular''), não apenas reclassificam detecções reativas como preditivas
+ao acaso.
+
+\subsection{Achado metodológico: cuidado com scores agregados}
+\label{sec:licao}
+
+Durante a etapa 1, um trial de \texttt{iforest} com FP muito baixo
+(p99.0/debounce=12: 70\% hit\_rate, 0,38\% FP) parecia, pelos números
+agregados, um candidato mais conservador e atraente que o \texttt{ocsvm}
+vencedor. Isolamos esse trial numa run dedicada para conferir o
+detalhamento preditivo/reativo:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Candidato} & \textbf{hit\_rate / FP} & \textbf{Preditivo} & \textbf{Reativo} \\
+\midrule
+ocsvm multi-escala (escolhido) & 87,5\% / 2,21\% & \textbf{28} & 7 \\
+iforest ``baixo FP'' (mesma etapa) & 70,0\% / 0,38\% & \textbf{13} & 15 \\
+\bottomrule
+\end{tabular}
+\caption{O candidato de FP mais baixo tinha só 13 detecções realmente
+preditivas -- a maioria das suas 28 detecções totais era reação tardia
+(\texttt{debounce=12}, o dobro do padrão, atrasa o primeiro ponto que
+``conta'' como detecção o suficiente para empurrar previsões para dentro da
+janela reativa).}
+\end{table}
+
+\textbf{Lição:} \texttt{hit\_rate} e \texttt{normal\_alert\_rate} agregados
+não bastam para escolher um candidato de detecção precoce -- é preciso
+sempre abrir o detalhamento preditivo/reativo/sem-detecção por alarme antes
+de decidir, porque dois candidatos com métricas agregadas parecidas (ou até
+um pior nas agregadas) podem ter qualidade de antecedência real muito
+diferente.
+
+% =====================================================================
+\section{Candidato final: visão completa dos 40 alarmes}
+\label{sec:paineis}
+% =====================================================================
+
+Candidato: \texttt{ocsvm} (percentil 99,9, debounce=1) sobre o grupo
+\texttt{TC382\_T5\_vibracao\_mancais\_multiescala}, com features
+multi-escala + textura (276 features de entrada). As Figuras
+\ref{fig:pred}--\ref{fig:miss} mostram \textbf{todos os 40 alarmes} do
+período de avaliação, agrupados pela categoria da Tabela~\ref{tab:evolucao}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{03_painel_preditivos.png}
+\caption{Os 29 casos com antecedência real, ordenados da maior para a
+menor antecedência (23,3h $\to$ minutos). Mediana de 14,7h, média de
+12,6h (puxada para baixo por alguns casos de poucos minutos), mínimo de
+0,002h ($\sim$8s, praticamente simultâneo) e máximo de 23,3h.}
+\label{fig:pred}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{04_painel_reativos.png}
+\caption{Os 8 casos em que a detecção só veio depois (ou praticamente
+junto) do alarme.}
+\label{fig:react}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{05_painel_perdidos.png}
+\caption{Os 3 alarmes restantes sem detecção dentro de $\pm$24h -- caíram
+de 10 (EXP6) para 3. Os dois primeiros (T5\_AVG\_A e TC382\_03\_A,
+08/08/2025, mesmo evento visto pelos dois sensores) mostram uma leve
+inflexão de tendência antes do alarme, mas dentro da faixa de ruído normal
+do sinal; o terceiro (29/11/2025) é um pico isolado de curtíssima duração,
+sem relação aparente com o alarme que vem $\sim$13h depois.}
+\label{fig:miss}
+\end{figure}
+
+% =====================================================================
+\section{Limitações}
+% =====================================================================
+
+\begin{itemize}
+  \item \textbf{Variância de semente} do candidato \texttt{ocsvm} do EXP7
+        ainda não foi checada (feita no EXP5 via
+        \texttt{AUTOML\_SEED\_SWEEP\_N}) -- pendente antes de considerar
+        definitivo.
+  \item \textbf{Amostra de 40 alarmes} continua pequena; frações como
+        72,5\%/92,5\% têm incerteza estatística não desprezível.
+  \item \textbf{Falso alerta subiu} em relação ao extremo conservador do
+        EXP6 (0,06\%$\to$1,94\%) -- aceitável dado o ganho em cobertura,
+        mas precisa ser validado operacionalmente (1,94\% de FP em quantos
+        alertas/dia na prática?) antes de qualquer promoção.
+  \item \textbf{276 features de entrada} sobre só 40 eventos rotulados --
+        risco de overfitting não eliminado, só mitigado pela validação OOS.
+\end{itemize}
+
+% =====================================================================
+\section{Próximo passo: item 3}
+% =====================================================================
+
+Dos 5 itens do plano (\texttt{docs/analise\_automl\_exp7\_planejamento.md}),
+restam 3 alarmes sem nenhuma detecção. O item 3 -- detecção de mudança de
+regime (PELT/CUSUM) como complemento ao threshold por percentil global --
+foi escolhido especificamente para atacar esses casos residuais: em vez de
+exigir que o valor cruze um limiar histórico fixo, detectar quando o
+trecho já é estatisticamente diferente da sua linha de base \emph{local}
+recente. Os dois casos de 08/08/2025 (Figura~\ref{fig:miss}) -- com
+inflexão sutil mas dentro do ruído normal -- são o alvo mais direto dessa
+técnica.
+
+\end{document}

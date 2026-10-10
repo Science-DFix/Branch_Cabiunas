@@ -1,0 +1,71 @@
+{
+  "group": "oleo_pressao_isolada",
+  "sensors": [
+    "954005_624_PI_0308",
+    "954005_624_PDIT_0305"
+  ],
+  "eval_sensors": [
+    "PALL_6240309"
+  ],
+  "target_sensor": "954005_624_PI_0308",
+  "n_sensors": 2,
+  "best_model": "ocsvm",
+  "threshold": 29.674667358398438,
+  "threshold_percentile": 99.9,
+  "debounce": 12,
+  "n_trials": 27,
+  "anomaly_rate_points_per_day": 9.901023890784982,
+  "operational_mask_enabled": true,
+  "operational_ref_sensor": "RUNNING_A",
+  "oos_split_date": "2025-07-01",
+  "oos_validated": true,
+  "n_normal_points_used_for_fit": 574951,
+  "n_alarms": 2,
+  "alarms_with_detected_anomaly_in_window": 2,
+  "hit_rate": 1.0,
+  "composite_score": 0.99999512680985,
+  "balanced_score": 0.9999853804295503,
+  "detection_rate": 1.0,
+  "normal_alert_rate": 0.0027036614478969925,
+  "operational_state_counts": {
+    "on": 1275330,
+    "off_longo": 581496,
+    "transiente": 25844,
+    "off_curto": 12371
+  },
+  "seed_sweep": {
+    "runs": [
+      {
+        "seed": 42,
+        "hit_rate": 1.0,
+        "normal_alert_rate": 0.0027036614478969925
+      },
+      {
+        "seed": 43,
+        "hit_rate": 0.5,
+        "normal_alert_rate": 0.002715166390228469
+      },
+      {
+        "seed": 44,
+        "hit_rate": 0.5,
+        "normal_alert_rate": 0.002715166390228469
+      },
+      {
+        "seed": 45,
+        "hit_rate": 0.5,
+        "normal_alert_rate": 0.0026825690536226186
+      },
+      {
+        "seed": 46,
+        "hit_rate": 0.5,
+        "normal_alert_rate": 0.0028206283616003373
+      }
+    ],
+    "hit_rate_mean": 0.6,
+    "hit_rate_std": 0.20000000000000004,
+    "hit_rate_min": 0.5,
+    "hit_rate_max": 1.0,
+    "normal_alert_rate_mean": 0.0027274383287153774,
+    "normal_alert_rate_std": 4.809194337174195e-05
+  }
+}

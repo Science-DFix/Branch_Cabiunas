@@ -1,0 +1,28 @@
+{
+  "group": "T5_temperatura",
+  "sensors": [
+    "T5_AVG_A",
+    "TC382_03_A"
+  ],
+  "target_sensor": "T5_AVG_A",
+  "n_sensors": 2,
+  "threshold": 0.002480331575497985,
+  "THRESH_MODE": "mean_std",
+  "TIME_STEPS": 180,
+  "TARGET_ANOMALY_RATE": 0.003,
+  "THRESH_STD_K": 4.0,
+  "POINT_RULE": "k_of_window",
+  "POINT_WINDOW": 180,
+  "POINT_MIN_COUNT": 15,
+  "anomaly_rate_points_per_day": 28.095426826830714,
+  "operational_mask_enabled": true,
+  "n_alarms": 120,
+  "alarms_with_detected_anomaly_in_window": 46,
+  "hit_rate": 0.38333333333333336,
+  "operational_state_counts": {
+    "on": 666502,
+    "off_longo": 190211,
+    "transiente": 16211,
+    "off_curto": 2596
+  }
+}

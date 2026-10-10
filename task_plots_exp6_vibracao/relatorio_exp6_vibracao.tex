@@ -1,0 +1,524 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{enumitem}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\title{Detecção de Anomalias em Cabiúnas via AutoML\\
+\large Experimento EXP6 --- Vibração de mancais como preditor\\
+de alarmes de TC382\_03\_A e T5\_AVG\_A}
+\author{Pipeline \texttt{cnn1d\_ae} / AutoML --- projeto \texttt{TesteMLCab}}
+\date{Agosto de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este relatório documenta o EXP6: a extensão do pipeline AutoML de detecção
+de anomalias do Cabiúnas para incorporar sinais de \textbf{vibração de
+mancais} (10 canais, 5 mancais $\times$ radial X/Y) como preditores dos
+alarmes de \texttt{TC382\_03\_A} e \texttt{T5\_AVG\_A}, usando uma nova
+fonte de dados com 2,5 anos de histórico (2024--2026). Documentamos passo a
+passo a metodologia (máscaras, split temporal, grid search), um bug real
+encontrado e corrigido durante o experimento (estado operacional não
+excluía o próprio treino), e o resultado final: um \texttt{IsolationForest}
+multivariado que detecta \textbf{65\% dos alarmes reais com antecedência
+mediana de 12,4 horas}, com falso alerta de apenas \textbf{0,06\%}
+(3 anomalias/dia) -- uma melhoria de duas ordens de grandeza em falso
+positivo sobre o candidato ``vencedor'' automático do próprio grid search,
+que sofre de um desequilíbrio na função de score.
+\end{abstract}
+
+\tableofcontents
+
+% =====================================================================
+\section{Objetivo}
+% =====================================================================
+
+\textbf{A ideia central deste experimento é usar os sinais de vibração dos
+5 mancais da turbina como preditores antecipados de falha dos sensores de
+temperatura \texttt{TC382\_03\_A} e \texttt{T5\_AVG\_A}.} A hipótese física
+é que uma degradação mecânica no mancal (vibração anormal) pode preceder,
+em horas, a manifestação térmica que hoje dispara o alarme -- ou seja, a
+vibração funcionaria como um sinal de alerta precoce, antes que a
+temperatura em si saia da faixa normal.
+
+Concretamente, o experimento treina um único modelo multivariado que
+recebe \texttt{TC382\_03\_A} + \texttt{T5\_AVG\_A} + os 10 canais de
+vibração como entrada, mas é avaliado \emph{apenas} pela sua capacidade de
+antecipar os alarmes reais desses dois sensores de temperatura (a vibração
+entra só como informação de contexto/apoio -- ver \texttt{eval\_sensors} na
+Seção~\ref{sec:metodologia}). Comparamos o resultado com o EXP5 (ver
+\texttt{docs/analise\_automl\_exp5.md}), que usava só
+\texttt{TC382\_03\_A} isolado, sem vibração.
+
+% =====================================================================
+\section{Dados e série temporal utilizada}
+\label{sec:dados}
+% =====================================================================
+
+\subsection{Nova fonte}
+
+Dataset ClearML \textbf{\texttt{Cabiunas full 2024-2026 30s}}
+(\texttt{TesteMLCab}, ID \texttt{a97ba56ba14840fbb1125c2a82f883c9}):
+
+\begin{itemize}
+  \item \texttt{sensores\_full\_2024\_2026\_30s.csv}: \textbf{2024-01-01 a
+        2026-04-30}, resolução de 30s ($\sim$2,45 milhões de linhas), 39
+        colunas de sensor, completude de 99,5--100\%.
+  \item \texttt{alarmes\_selecionados\_turbina\_a.csv}: 2022-01-04 a
+        2026-04-18, 6.851 linhas (pares onset/clear \texttt{ACT}/\texttt{INACT}),
+        47 tags, sem duplicação de linha (diferente do arquivo usado no
+        EXP1--EXP5).
+\end{itemize}
+
+\subsection{Vibração disponível}
+
+10 canais \texttt{TV\_35[1-5][X|Y]\_A}, confirmados pela descrição dos
+próprios alarmes do arquivo (ex.: \texttt{TV\_351X\_A} = ``Vibração X
+Mancal 1''):
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Mancal & Radial X & Radial Y \\
+\midrule
+1 & \texttt{TV\_351X\_A} & \texttt{TV\_351Y\_A} \\
+2 & \texttt{TV\_352X\_A} & \texttt{TV\_352Y\_A} \\
+3 & \texttt{TV\_353X\_A} & \texttt{TV\_353Y\_A} \\
+4 & \texttt{TV\_354X\_A} & \texttt{TV\_354Y\_A} \\
+5 & \texttt{TV\_355X\_A} & \texttt{TV\_355Y\_A} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Janela usada neste experimento}
+
+Do período total disponível, o EXP6 usa \textbf{2024-07-01 em diante}
+(\texttt{DATA\_START\_DATE}), dividido em:
+
+\begin{itemize}
+  \item \textbf{Treino/fit}: 2024-07-01 a 2025-06-30 (12 meses)
+  \item \textbf{Avaliação out-of-sample (OOS)}: 2025-07-01 a 2026-04-30
+        ($\sim$10 meses) -- alarmes e pontos que o modelo nunca viu
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{00_overview_TC382_03_A.png}
+\caption{Série bruta de \texttt{TC382\_03\_A}, jul/2024 a abr/2026. Sombra
+cinza = \texttt{off\_longo} (parada prolongada); linha preta vertical =
+início do período de avaliação OOS; linhas verdes tracejadas = alarmes
+reais no período OOS; pontos vermelhos = anomalias detectadas pelo modelo
+final (\texttt{iforest}, ver Seção~\ref{sec:resultado}).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{00_overview_T5_AVG_A.png}
+\caption{Mesma visualização para \texttt{T5\_AVG\_A}.}
+\end{figure}
+
+% =====================================================================
+\section{Metodologia -- passo a passo}
+\label{sec:metodologia}
+% =====================================================================
+
+A pipeline AutoML (\texttt{src/cnn1d\_ae/automl\_pipeline.py}) opera
+\textbf{ponto a ponto}: cada instante de tempo é uma amostra independente,
+sem janelamento temporal (diferente do CNN-1D sequencial usado no resto do
+projeto). Para o EXP6, o processamento de cada grupo de sensores segue
+estes passos, nesta ordem:
+
+\begin{enumerate}[leftmargin=*]
+
+\item \textbf{Recorte temporal da série} (\texttt{DATA\_START\_DATE}):
+  a série completa (jan/2024--abr/2026) é cortada para começar em
+  01/07/2024, antes de qualquer outro processamento. Campo novo, criado
+  para este experimento -- antes só existia corte de \emph{fim} de treino
+  via \texttt{AUTOML\_OOS\_SPLIT\_DATE}.
+
+\item \textbf{Normalização de schema do arquivo de alarmes}: o arquivo
+  novo usa colunas diferentes do antigo (\texttt{"Tag Alarme"} em vez de
+  \texttt{"Tag"}) e traz pares onset/clear (\texttt{Status} =
+  \texttt{ACT/UNACK} ou \texttt{INACT/UNACK}) para o mesmo evento. Mantemos
+  só as linhas \texttt{ACT} (onset) -- o clear não é algo que faça sentido
+  ``prever com antecedência''.
+
+\item \textbf{Construção do dataframe do grupo multivariado}: as colunas
+  dos sensores do grupo (\texttt{TC382\_03\_A}, \texttt{T5\_AVG\_A} + 10
+  canais \texttt{TV\_}) são unidas num único dataframe alinhado por
+  timestamp, com interpolação de gaps curtos ($\leq$ 3 amostras) e
+  \texttt{ffill}/\texttt{bfill} nas bordas.
+
+\item \textbf{Features derivadas} (\texttt{ENABLE\_DERIVED\_FEATURES=true}):
+  para cada um dos 12 sensores, são adicionadas 3 colunas -- média móvel
+  (\texttt{roll\_med}), desvio padrão móvel (\texttt{roll\_std}) e a
+  diferença ponto a ponto (\texttt{delta\_1}), janela de 12 amostras
+  (6 minutos). Total: $12 \times 4 = 48$ features de entrada para o modelo.
+  \textbf{Implementado neste experimento} -- antes só existia para grupos
+  de um sensor só.
+
+\item \textbf{Estado operacional} (\texttt{RUNNING\_A}): o sensor
+  \texttt{NGP\_A}, usado como referência operacional em todos os
+  experimentos anteriores, não existe no arquivo novo. Passamos a usar
+  \texttt{RUNNING\_A} (flag 0/1), após confirmar que a limpeza padrão já
+  existente no pipeline (\texttt{to\_numeric} + interpolação) resolve os
+  valores sujos do historiador (1,49\% de strings tipo
+  \texttt{\{'Name': 'No Data', ...\}}). O limiar de ``desligado''
+  (\texttt{OFF\_ABS\_THRESHOLD}) foi ajustado de \texttt{5.0} (fazia
+  sentido para \texttt{NGP\_A}, sensor de rotação contínuo) para
+  \texttt{0.5} (limiar binário correto para um flag 0/1).
+
+\item \textbf{Exclusão do conjunto de treino} -- um ponto é excluído do
+  treino se \emph{qualquer} uma destas condições for verdadeira:
+  \begin{itemize}
+    \item está dentro de $\pm$24h (\texttt{EXCLUDE\_MINUTES\_AROUND\_ALARM=1440})
+          de um alarme real de \texttt{TC382\_03\_A} ou \texttt{T5\_AVG\_A};
+    \item está num gap longo (mais que \texttt{INTERPOLATE\_LIMIT} amostras
+          consecutivas faltando);
+    \item o estado operacional \textbf{não} é \texttt{"on"} -- ver achado
+          na Seção~\ref{sec:bug}.
+  \end{itemize}
+
+\item \textbf{Clip de outliers}: cada coluna é limitada ao intervalo entre
+  seus percentis 0,1\% e 99,9\% (\texttt{OUTLIER\_MODE=quantile}).
+
+\item \textbf{Split temporal out-of-sample}: das amostras que sobraram após
+  os filtros acima, só as anteriores a \texttt{AUTOML\_OOS\_SPLIT\_DATE}
+  (2025-07-01) entram no ajuste do modelo e no cálculo do percentil de
+  threshold.
+
+\item \textbf{Normalização z-score}: média e desvio padrão calculados
+  \emph{apenas} sobre o conjunto de treino (pré-split), aplicados a toda a
+  série -- evita vazamento de informação do período de avaliação.
+
+\item \textbf{Ajuste do modelo}: para cada um dos 3 tipos
+  (\texttt{dense}/\texttt{ocsvm}/\texttt{iforest}), o modelo é treinado
+  \emph{uma vez} sobre o conjunto normal de treino; o erro de reconstrução
+  (ou score de anomalia) é calculado tanto no treino quanto em toda a
+  série.
+
+\item \textbf{Grid de threshold/debounce}: para cada modelo já treinado,
+  varremos 7 percentis de threshold ($\{90, 93, 95, 97, 99, 99.5, 99.9\}$)
+  $\times$ 6 valores de debounce ($\{1, 2, 3, 6, 12, 24\}$ pontos
+  consecutivos exigidos) = 42 combinações por modelo, 126 no total.
+
+\item \textbf{Avaliação por trial}: cada combinação gera um
+  \texttt{hit\_rate} (fração de alarmes OOS com pelo menos um ponto anômalo
+  dentro de $\pm$24h), um \texttt{normal\_alert\_rate} (fração de pontos
+  "normais" -- em operação, longe de qualquer alarme -- marcados como
+  anômalos) e um \texttt{composite\_score}:
+  \[
+  \text{balanced\_score} = \text{hit\_rate} - \text{fp\_penalty} \cdot \text{normal\_alert\_rate}^2
+  \]
+  com \texttt{fp\_penalty=2.0} neste experimento.
+
+\item \textbf{Escolha do sensor-alvo da avaliação} (\texttt{eval\_sensors},
+  campo novo criado para este experimento): os 10 canais de vibração
+  entram no modelo só como \emph{feature} -- seus próprios alarmes não
+  contam no \texttt{hit\_rate}/\texttt{composite\_score}, que fica restrito
+  a \texttt{["TC382\_03\_A", "T5\_AVG\_A"]}.
+
+\end{enumerate}
+
+% =====================================================================
+\section{Configuração do experimento}
+% =====================================================================
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parâmetro} & \textbf{Valor} \\
+\midrule
+Grupo & \texttt{TC382\_T5\_vibracao\_mancais} \\
+Sensores (features) & \texttt{TC382\_03\_A}, \texttt{T5\_AVG\_A} + 10 canais \texttt{TV\_} \\
+\texttt{eval\_sensors} & \texttt{TC382\_03\_A}, \texttt{T5\_AVG\_A} \\
+Janela de fit & 2024-07-01 a 2025-06-30 \\
+Janela de avaliação OOS & 2025-07-01 a 2026-04-30 \\
+\texttt{OPERATIONAL\_REF\_SENSOR} & \texttt{RUNNING\_A} (\texttt{OFF\_ABS\_THRESHOLD=0.5}) \\
+\texttt{ENABLE\_DERIVED\_FEATURES} & \texttt{true} (janela 12 = 6 min) \\
+Grid & 7 percentis $\times$ 6 debounces $\times$ 3 modelos = 126 trials \\
+\texttt{AUTOML\_DENSE\_LAYERS} & [256, 128], dropout 0.1, 100 epochs, patience 15 \\
+\texttt{AUTOML\_IFOREST\_N\_ESTIMATORS} & 200, \texttt{contamination}=0.05 \\
+\texttt{AUTOML\_OCSVM\_MAX\_TRAIN\_SAMPLES} & 50.000 (subamostra -- RBF-SVM não escala p/ 380k+ pontos) \\
+\texttt{AUTOML\_FP\_PENALTY} & 2.0 \\
+\bottomrule
+\end{tabular}
+\caption{Configuração completa (\texttt{test\_grupo\_exp6\_vibracao.json}).}
+\end{table}
+
+% =====================================================================
+\section{Achado pré-resultado: máscara operacional não cobria o treino}
+\label{sec:bug}
+% =====================================================================
+
+Antes de aceitar qualquer resultado, verificamos se as máscaras cobriam de
+fato o \emph{treino} e não só a \emph{avaliação}. Encontramos um problema
+real: o estado operacional (\texttt{RUNNING\_A}) só zerava anomalias na
+hora de \textbf{pontuar} -- nunca excluía os períodos desligados do próprio
+\textbf{conjunto de treino}. O modelo estava sendo ajustado numa mistura de
+dois regimes muito diferentes (turbina operando, $\sim$500--800°C, vs.
+parada/fria, $\sim$25--40°C).
+
+\textbf{Antes da correção} (task \texttt{bd84fa6c...}):
+\texttt{hit\_rate}=97,5\% mas \texttt{normal\_alert\_rate}=10,3\% -- o
+modelo aprendia sobretudo a detectar a própria transição liga/desliga, não
+anomalias sutis em operação. A correção também resolveu de graça outro
+problema: 99,9\% do platô de sensor ``morto'' em $-40{,}51^{\circ}$C de
+\texttt{TC382\_03\_A} (5092 de 5098 pontos) coincide com
+\texttt{RUNNING\_A==0}, então excluir ``não-on'' do treino remove esse
+artefato sem precisar mexer no threshold de outlier separadamente.
+
+\textbf{Correção}: o cálculo do estado operacional foi movido para
+\emph{antes} da construção do conjunto de treino, e \texttt{state != "on"}
+passou a ser mais um critério de exclusão (junto com proximidade de alarme
+e gaps longos). Todos os resultados deste relatório já refletem essa
+correção.
+
+% =====================================================================
+\section{Ranking de modelos e falsos positivos}
+\label{sec:ranking}
+% =====================================================================
+
+\subsection{Vencedor pelo \texttt{composite\_score} não é o melhor candidato prático}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Modelo} & \textbf{Percentil / debounce} & \textbf{hit\_rate} & \textbf{normal\_alert\_rate} & \textbf{anomalias/dia} & \textbf{composite\_score} \\
+\midrule
+ocsvm (vencedor oficial) & 97,0 / 1 & 97,5\% (39/40) & \textbf{26,15\%} & 730,6 & 0,946 \\
+dense & 99,5 / 3 & 82,5\% (33/40) & 12,92\% & 376,4 & 0,931 \\
+\textbf{iforest} & \textbf{99,9 / 6} & \textbf{75,0\% (30/40)} & \textbf{0,06\%} & \textbf{3,2} & 0,917 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Melhor trial de cada modelo, dos 126 do grid completo (task
+\texttt{2c3c7f92e93441dc976acf7d0aeb906d}).}
+\end{table}
+
+O \texttt{composite\_score} do \texttt{ocsvm} vencedor (0,946) supera o do
+\texttt{iforest} (0,917) mesmo com uma taxa de falso alerta \textbf{436
+vezes maior} -- sinal de que \texttt{AUTOML\_FP\_PENALTY=2.0} não penaliza
+falso positivo o suficiente para impedir essa escolha quando o
+\texttt{hit\_rate} sobe muito. Confirmamos visualmente
+(Figura~\ref{fig:tradeoff}): o \texttt{ocsvm} marca quase toda a faixa
+operacional como anômala, sem discriminar nada.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{03_tradeoff_scatter.png}
+\caption{Trade-off detecção $\times$ falso alerta para os 126 trials do
+grid. O \texttt{iforest} escolhido (estrela preta) está no canto
+superior-esquerdo ideal (alta detecção, baixíssimo falso alerta); o
+\texttt{ocsvm} vencedor pelo score (X vermelho) está bem à direita, com
+falso alerta muito mais alto para um ganho marginal de detecção.}
+\label{fig:tradeoff}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{02_fp_por_modelo.png}
+\caption{Esquerda: falso alerta do melhor trial de cada modelo -- o
+\texttt{iforest} é ordens de grandeza melhor. Direita: distribuição de
+falso alerta considerando todos os 42 trials de cada modelo no grid --
+mostra que o \texttt{iforest} tem mais configurações de baixo FP
+disponíveis, não só o ponto ótimo isolado.}
+\end{figure}
+
+% =====================================================================
+\section{Resultado final: Isolation Forest}
+\label{sec:resultado}
+% =====================================================================
+
+\subsection{Configuração e métricas de calibração}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parâmetro} & \textbf{Valor} \\
+\midrule
+Modelo & \texttt{IsolationForest} (scikit-learn) \\
+\texttt{contamination} & 0,05 \\
+\texttt{n\_estimators} & 200 \\
+\texttt{threshold\_percentile} & 99,9 \\
+\texttt{threshold} (erro de reconstrução) & 0,652 \\
+\texttt{debounce} & 6 pontos consecutivos \\
+\midrule
+\texttt{hit\_rate} (OOS) & 75,0\% (30/40) \\
+\texttt{normal\_alert\_rate} & 0,06\% \\
+\texttt{anomaly\_rate\_points\_per\_day} & 3,2 \\
+\texttt{composite\_score} & 0,917 \\
+\bottomrule
+\end{tabular}
+\caption{Candidato final. Reproduzido de forma independente numa segunda
+run (\texttt{AUTOML\_MODELS=["iforest"]} apenas, task
+\texttt{d79fbb7ce31d45298a0a01761eab8c50}) -- métricas e hiperparâmetros
+idênticos aos do grid completo, confirmando reprodutibilidade.}
+\end{table}
+
+\subsection{Antecedência real: previsão vs. reação}
+
+Como já formalizado na análise do EXP5, o \texttt{hit\_rate} usa uma janela
+\emph{simétrica} de $\pm$24h -- não distingue detecção \emph{antes} do
+alarme (previsão real) de detecção \emph{depois} (reação tardia).
+Separando os 30 casos detectados:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Categoria} & \textbf{Qtd.} & \textbf{\% dos 40 alarmes} \\
+\midrule
+Detectados dentro de $\pm$24h & 30 & 75,0\% \\
+\quad -- com \textbf{antecedência real} (antes do alarme) & \textbf{26} & \textbf{65,0\%} \\
+\quad -- só depois/simultâneo (reação) & 4 & 10,0\% \\
+Sem detecção & 10 & 25,0\% \\
+\bottomrule
+\end{tabular}
+\caption{Categorias de detecção dos 40 alarmes OOS.}
+\label{tab:categorias}
+\end{table}
+
+\textbf{Antecedência dos 26 casos preditivos:} mediana de \textbf{12,4h},
+média de 12,4h, mínimo de 1,3h, máximo de 23,5h (sem bater no teto de 24h
+da janela -- diferente do EXP5, onde quase metade dos casos preditivos
+saturava o limite).
+
+\subsection{Visão completa: os 40 alarmes, um por um}
+\label{sec:paineis}
+
+Em vez de mostrar só 1--2 exemplos escolhidos a dedo, as Figuras
+\ref{fig:painel-pred}--\ref{fig:painel-miss} trazem \textbf{todos os 40
+alarmes} do período de avaliação, agrupados pela categoria da
+Tabela~\ref{tab:categorias} -- cada miniatura mostra $\pm$30h/6h ao redor
+do alarme (linha verde tracejada), com os pontos vermelhos marcando onde o
+modelo sinalizou anomalia. O sensor plotado em cada miniatura é o mesmo que
+gerou aquele alarme específico (\texttt{TC382\_03\_A} ou
+\texttt{T5\_AVG\_A}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{04_painel_preditivos.png}
+\caption{Os 26 casos com antecedência real, ordenados da maior para a
+menor antecedência (23,5h $\to$ poucos minutos). Vários mostram um padrão
+em ``escada'' -- quedas ou subidas sucessivas de temperatura, cada uma já
+sinalizada como anomalia, horas antes do instante do alarme.}
+\label{fig:painel-pred}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{05_painel_reativos.png}
+\caption{Os 4 casos em que a detecção só veio depois (ou praticamente
+junto) do alarme -- o modelo reage ao mesmo evento, sem antecipar.}
+\label{fig:painel-react}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{06_painel_perdidos.png}
+\caption{Os 10 alarmes sem nenhuma detecção dentro de $\pm$24h. Note que a
+maioria não mostra excursão visível na própria série de temperatura
+plotada -- são alarmes cuja causa aparentemente não se manifesta (ao menos
+não de forma óbvia) nem no sensor de temperatura alarmado, nem nos 30 min
+antes/depois mostrados aqui.}
+\label{fig:painel-miss}
+\end{figure}
+
+\subsection{Dois exemplos em destaque (ampliados)}
+
+Para leitura mais detalhada, as Figuras~\ref{fig:zoom1}--\ref{fig:zoom2}
+ampliam dois casos da Figura~\ref{fig:painel-pred}, mostrando
+\texttt{TC382\_03\_A} e \texttt{T5\_AVG\_A} lado a lado (os dois sensores
+se movem de forma muito correlacionada).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pred_01_20260225_2045.png}
+\caption{Exemplo de detecção com antecedência de 23,5h antes do alarme de
+25/02/2026. Padrão em ``escada'' -- quedas sucessivas de temperatura, cada
+uma sinalizada como anomalia, culminando no alarme.}
+\label{fig:zoom1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{pred_03_20260408_2153.png}
+\caption{Segundo exemplo de detecção com antecedência, em abril de 2026.}
+\label{fig:zoom2}
+\end{figure}
+
+% =====================================================================
+\section{Comparação com o EXP5}
+% =====================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Métrica} & \textbf{EXP5} (\texttt{TC382\_03\_A} só) & \textbf{EXP6} (+ vibração) \\
+\midrule
+\texttt{hit\_rate} & 65,0\% (26/40) & 75,0\% (30/40) \\
+Antecedência real & 45,0\% (9/20) & 65,0\% (26/40) \\
+\texttt{normal\_alert\_rate} & 2,43\% & \textbf{0,06\%} ($\sim$40x menor) \\
+Mediana de antecedência & 13,4h & 12,4h \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Ressalva:} as bases de alarme são diferentes (EXP5 usava o arquivo
+antigo, com linhas duplicadas, deduplicadas manualmente para 20 alarmes
+OOS; EXP6 usa o arquivo novo, onset-only, 40 alarmes OOS) -- não é uma
+comparação perfeitamente equivalente. Ainda assim, a melhoria de $\sim$40x
+em falso alerta é grande o suficiente para ser um sinal real de que
+vibração + features derivadas + correção da máscara de treino ajudam.
+
+% =====================================================================
+\section{Limitações e próximos passos}
+% =====================================================================
+
+\begin{itemize}
+  \item \textbf{\texttt{AUTOML\_FP\_PENALTY}} precisa subir (ex.: 2,0
+        $\to$ 8--10) para o \texttt{composite\_score} parar de escolher
+        candidatos de FP alto por padrão -- hoje só chegamos ao
+        \texttt{iforest} inspecionando o ranking manualmente.
+  \item \textbf{Variância de semente} do \texttt{iforest} vencedor ainda
+        não foi checada neste experimento (foi no EXP5,
+        \texttt{AUTOML\_SEED\_SWEEP\_N}) -- pendente antes de considerar
+        definitivo.
+  \item \textbf{Contribuição real da vibração} não isolada: o ganho pode
+        vir da vibração em si, do \texttt{ENABLE\_DERIVED\_FEATURES}, ou da
+        correção da máscara de treino (Seção~\ref{sec:bug}) -- os três
+        mudaram juntos. Um grupo de controle (só TC382+T5, mesmos ajustes,
+        sem vibração) isolaria o efeito.
+  \item \textbf{Comparação com EXP5 não é perfeitamente equivalente}
+        (bases de alarme diferentes -- ver Seção anterior).
+  \item Amostra de 40 alarmes ainda é pequena; frações como 65\%/75\% têm
+        incerteza estatística não desprezível.
+\end{itemize}
+
+\end{document}

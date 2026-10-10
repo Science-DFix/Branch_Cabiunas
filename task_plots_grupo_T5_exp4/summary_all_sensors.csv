@@ -1,0 +1,2 @@
+group,sensors,output_dir,model_path,threshold,THRESH_MODE,TIME_STEPS,n_alarms,alarms_with_detected_anomaly_in_window,hit_rate,skipped
+T5_temperatura,"['T5_AVG_A', 'TC382_03_A']",runs_test_grupo_T5_NGP_exp4/OUTPUT_CNN1D_AE_T5_temperatura,runs_test_grupo_T5_NGP_exp4/OUTPUT_CNN1D_AE_T5_temperatura/best_model/model.keras,0.002480331575497985,mean_std,180,120,46,0.38333333333333336,False

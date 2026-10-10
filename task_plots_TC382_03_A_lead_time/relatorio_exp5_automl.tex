@@ -1,0 +1,438 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{float}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\title{Detecção de Anomalias em Cabiúnas via AutoML\\
+\large Experimento EXP5 --- Grupo TC382\_03\_A: histórico, modelo final,\\
+antecedência de detecção e falsos positivos}
+\author{Pipeline \texttt{cnn1d\_ae} / AutoML --- projeto \texttt{TesteMLCab}}
+\date{Agosto de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este relatório documenta a série de experimentos AutoML (\texttt{EXP5}) realizada
+sobre o sensor \texttt{TC382\_03\_A} do equipamento Cabiúnas, incluindo o processo
+de busca de modelo (\texttt{dense}/\texttt{ocsvm}/\texttt{iforest}), a validação
+out-of-sample, a checagem de variância de semente, e uma análise detalhada de
+\emph{antecedência de detecção} (quanto tempo antes do alarme real o modelo
+sinaliza anomalia) e de \emph{falsos positivos}. O candidato final validado é um
+\texttt{IsolationForest} univariado sobre \texttt{TC382\_03\_A}, com taxa de
+acerto de 65\% sobre alarmes reais fora da amostra, dos quais 45\% detectados
+com antecedência real (mediana de 13,4h antes do alarme), variância de semente
+nula, e aproximadamente 1 episódio de falso alerta a cada 3 dias.
+\end{abstract}
+
+\tableofcontents
+
+% =====================================================================
+\section{Objetivo}
+% =====================================================================
+
+Avaliar, dentro da pipeline própria de AutoML (\texttt{src/cnn1d\_ae/automl\_pipeline.py},
+adaptada da pipeline \texttt{transpetro\_modelos} da Lara), qual combinação de
+modelo/sensor(es)/hiperparâmetros melhor detecta os alarmes reais do
+Cabiúnas para o sensor \texttt{TC382\_03\_A} (temperatura), e caracterizar
+com que antecedência essa detecção acontece e a que custo em falsos positivos.
+
+% =====================================================================
+\section{Dados}
+\label{sec:dados}
+% =====================================================================
+
+\begin{itemize}
+  \item \textbf{Fonte:} \texttt{serie\_consolidada\_2025\_interpolated\_antigo.csv}
+        (dataset ClearML \texttt{Cabiunas 2025}, versão \texttt{424e5b58...}),
+        resolução de 30s.
+  \item \textbf{Período disponível:} 2025-01-01 a 2025-10-31 (10 meses,
+        $\sim$875 mil pontos).
+  \item \textbf{Sensor analisado:} \texttt{TC382\_03\_A} (univariado nesta
+        etapa final; o histórico também cobre um grupo combinado com
+        \texttt{T5\_AVG\_A}).
+  \item \textbf{Sensor de referência operacional:} \texttt{NGP\_A}, usado para
+        derivar o estado operacional (\texttt{on} / \texttt{off\_longo} /
+        \texttt{off\_curto} / \texttt{transiente}).
+  \item \textbf{Alarmes:} \texttt{alarmes\_record\_2025\_tags\_modelo.csv}.
+
+  \textbf{Achado de qualidade de dado:} o arquivo de alarmes tem
+  \emph{cada linha duplicada exatamente 2×} (562 linhas $\to$ 281 alarmes
+  reais únicos). Isso não altera nenhuma taxa (\texttt{hit\_rate},
+  \texttt{composite\_score}) reportada nas seções~\ref{sec:historico}--\ref{sec:modelo},
+  pois a duplicação é uniforme e se cancela na razão -- mas os contadores
+  absolutos de \texttt{n\_alarms} gerados pela pipeline até este relatório
+  estavam em dobro do real. A análise de antecedência da
+  Seção~\ref{sec:antecedencia} já usa os valores deduplicados.
+\end{itemize}
+
+% =====================================================================
+\section{Metodologia}
+% =====================================================================
+
+\subsection{Pipeline AutoML}
+
+Diferente do autoencoder CNN-1D sequencial (janelado) usado no restante do
+projeto, a pipeline AutoML opera \textbf{ponto a ponto}: cada instante de
+tempo é uma amostra de treino independente, sem janelamento temporal
+(\texttt{seq\_len}). Três famílias de modelo são testadas:
+
+\begin{itemize}
+  \item \textbf{dense}: autoencoder denso (Keras), reconstrói o vetor de
+        features do instante; erro = MSE de reconstrução.
+  \item \textbf{ocsvm}: One-Class SVM (kernel RBF); erro = $-$decision\_function.
+  \item \textbf{iforest}: Isolation Forest; erro = $-$score\_samples (quanto
+        mais isolado, mais anômalo).
+\end{itemize}
+
+Para cada modelo, um \emph{grid search} varre percentis de threshold
+($\{95, 97, 99, 99.5\}$, calculados sobre o erro de reconstrução do
+conjunto de treino) e \texttt{debounce} ($\{1, 3, 6, 12\}$ pontos
+consecutivos exigidos), rankeando todos os \emph{trials} por
+\texttt{composite\_score}.
+
+\subsection{Métrica de avaliação}
+
+O \texttt{composite\_score} balanceia detecção de alarme real contra falso
+alerta:
+\[
+\text{balanced\_score} = \text{detection\_rate} - \text{fp\_penalty} \cdot \text{normal\_alert\_rate}^2
+\]
+com penalidade adicional se \texttt{detection\_rate} cair abaixo de um piso
+mínimo (\texttt{AUTOML\_MIN\_DETECTION\_RATE}). O \texttt{hit\_rate}
+(equivalente ao \texttt{detection\_rate}) considera um alarme "detectado" se
+existe ao menos um ponto anômalo dentro de uma janela de $\pm 1440$\,min
+(24h) ao redor do horário do alarme -- \textbf{essa janela é simétrica},
+o que será importante na Seção~\ref{sec:antecedencia}.
+
+\subsection{Validação out-of-sample (OOS)}
+
+Quando \texttt{AUTOML\_OOS\_SPLIT\_DATE} é definido, o ajuste do modelo
+(treino, estatísticas de normalização e percentil de threshold) usa
+\emph{apenas} dados anteriores a essa data; \texttt{hit\_rate},
+\texttt{normal\_alert\_rate} e \texttt{composite\_score} são calculados
+somente no período posterior -- alarmes e pontos que o modelo nunca viu.
+
+% =====================================================================
+\section{Histórico de experimentos}
+\label{sec:historico}
+% =====================================================================
+
+A tabela~\ref{tab:historico} resume a sequência de execuções que levou ao
+modelo final. Os números de \texttt{n\_alarms} nesta tabela refletem o que
+a pipeline reportou originalmente (\emph{não} deduplicado -- ver ressalva
+na Seção~\ref{sec:dados}).
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}p{2.1cm}p{2.6cm}p{2.3cm}p{1.6cm}p{1.6cm}p{2.3cm}@{}}
+\toprule
+\textbf{Etapa} & \textbf{Config.} & \textbf{Melhor modelo} & \textbf{Hit rate} & \textbf{Composite} & \textbf{Observação} \\
+\midrule
+EXP5 (baseline) & split OOS 2025-05-01, grupo combinado & iforest & 57,1\% (40/70) & 0,857 & Ponto de partida \\
+EXP5-v2 & split empurrado p/ 2025-07-01 & -- & -- & -- & \textbf{Achado negativo}: 92\% dos alarmes ficam antes de julho; \texttt{n\_alarms} colapsou p/ 8/4, scores viraram não comparáveis \\
+EXP5-v3 & sem split OOS (in-sample), 3 grupos, dense[256,128] & dense & 78,3\%/81,6\% & 0,927/0,938 & Threshold do dense caiu p/ $\sim10^{-9}$ -- sinal de memorização, não generalização \\
+EXP5-v4 & OOS restaurado (2025-05-01), mesmos 3 grupos & \textbf{iforest} (TC382) & \textbf{65,0\% (26/40)} & \textbf{0,883} & Vantagem do dense \emph{evaporou} OOS; TC382+iforest foi o único candidato estável nos dois regimes \\
+Seed-sweep & TC382\_03\_A + iforest, 5 seeds & iforest & 65,0\% (todas) & -- & Variância de semente \textbf{zero} em \texttt{hit\_rate} \\
+\bottomrule
+\end{tabular}
+\caption{Histórico resumido dos experimentos EXP5. Ver \texttt{docs/analise\_automl\_exp5.md} para o detalhamento completo de cada etapa.}
+\label{tab:historico}
+\end{table}
+
+\subsection{Por que o dense com capacidade maior foi descartado}
+
+Na tentativa de reproduzir o resultado da Lara (autoencoder denso
+\texttt{[256, 128]}, ver \texttt{analise\_automl\_lara.md}), o \texttt{dense}
+venceu com folga quando avaliado \emph{in-sample} (sem holdout OOS): até
+78--82\% de \texttt{hit\_rate}. Porém o \texttt{threshold} vencedor ficou na
+ordem de $10^{-9}$ -- praticamente zero -- compatível com um autoencoder de
+grande capacidade memorizando quase perfeitamente um vetor de 1--2 features
+contínuas sobre $\sim$720 mil pontos de treino, em vez de aprender um padrão
+generalizável. Ao restaurar o split OOS, o \texttt{dense} e o \texttt{iforest}
+empataram tecnicamente no grupo combinado (mesmo \texttt{hit\_rate}), e no
+grupo \texttt{TC382\_03\_A} isolado o \texttt{iforest} superou o
+\texttt{dense} de forma consistente -- confirmando que o ganho do dense era,
+em grande parte, artefato de \emph{overfitting}.
+
+% =====================================================================
+\section{Modelo final selecionado}
+\label{sec:modelo}
+% =====================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parâmetro} & \textbf{Valor} \\
+\midrule
+Grupo / sensor & \texttt{TC382\_03\_A\_univariado} (só \texttt{TC382\_03\_A}) \\
+Modelo & \texttt{IsolationForest} (scikit-learn) \\
+\texttt{contamination} & 0,05 \\
+\texttt{n\_estimators} & 100 \\
+\texttt{random\_state} & 42 (estável entre seeds, ver \S\ref{sec:seed}) \\
+\texttt{threshold\_percentile} & 95,0 \\
+\texttt{threshold} (erro de reconstrução) & 0,656 \\
+\texttt{debounce} (pontos consecutivos) & 1 \\
+Split OOS & 2025-05-01 (treino: jan--abr; avaliação: mai--out) \\
+Máscara operacional & habilitada (\texttt{NGP\_A} como referência) \\
+Normalização & \texttt{zscore}, estatísticas só do período de treino \\
+\bottomrule
+\end{tabular}
+\caption{Configuração completa do modelo final.}
+\end{table}
+
+\subsection{Resultado de calibração (OOS, período mai--out/2025)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+\texttt{hit\_rate} & 65,0\% (26/40 -- valor da pipeline, não deduplicado) \\
+\texttt{composite\_score} & 0,883 \\
+\texttt{normal\_alert\_rate} & 2,43\% \\
+\texttt{anomaly\_rate\_points\_per\_day} & 109,2 pontos/dia \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Variância de semente}
+\label{sec:seed}
+
+Foi implementada uma checagem de variância (\texttt{AUTOML\_SEED\_SWEEP\_N},
+adicionada em \texttt{automl\_pipeline.py} especificamente para este
+experimento): o mesmo \texttt{iforest} vencedor foi re-treinado com 4 seeds
+extras, mantendo \texttt{threshold\_percentile}/\texttt{debounce} fixos.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{Seed} & \textbf{hit\_rate} & \textbf{normal\_alert\_rate} & \\
+\midrule
+42 (original) & 65,0\% & 2,43\% & \\
+43 & 65,0\% & 2,47\% & \\
+44 & 65,0\% & 2,03\% & \\
+45 & 65,0\% & 1,90\% & \\
+46 & 65,0\% & 1,86\% & \\
+\midrule
+\textbf{média / desvio} & \textbf{65,0\% / std=0} & 2,14\% / std=0,26pp & \\
+\bottomrule
+\end{tabular}
+\caption{Variância de semente do candidato final. \texttt{hit\_rate} idêntico
+(26/40) nos 5 seeds -- resultado estável, diferente do $\sim\pm27$pp de
+ruído de semente observado no dense da pipeline da Lara.}
+\end{table}
+
+% =====================================================================
+\section{Antecedência de detecção e falsos positivos}
+\label{sec:antecedencia}
+% =====================================================================
+
+A métrica \texttt{hit\_rate} original usa uma janela \emph{simétrica} de
+$\pm$24h ao redor do alarme -- ou seja, conta como "detectado" tanto uma
+anomalia que precedeu o alarme (previsão real) quanto uma que só apareceu
+\emph{depois} (o modelo reagiu ao mesmo evento, sem antecipar nada). Esta
+seção separa os dois casos usando os alarmes já deduplicados
+(20 alarmes reais no período OOS, ao invés de 40).
+
+\subsection{Detecção: previsão vs.\ reação}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Categoria} & \textbf{Qtd.} & \textbf{\% dos 20 alarmes} \\
+\midrule
+Alarmes avaliados (OOS, deduplicados) & 20 & 100\% \\
+Detectados dentro de $\pm$24h & 13 & 65,0\% \\
+\quad -- com \textbf{antecedência real} (anomalia antes do alarme) & \textbf{9} & \textbf{45,0\%} \\
+\quad -- só depois/simultâneo (reação, não previsão) & 4 & 20,0\% \\
+Sem detecção & 7 & 35,0\% \\
+\bottomrule
+\end{tabular}
+\caption{O \texttt{hit\_rate} de 65\% reportado pela pipeline mistura
+previsão e reação. A taxa de previsão de fato é 45\% (9/20).}
+\end{table}
+
+\subsection{Tempo de antecedência (dos 9 casos preditivos)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Estatística} & \textbf{Valor} \\
+\midrule
+Mediana & 13,4h antes do alarme \\
+Média & 15,9h \\
+Mínimo & 0,7 min (praticamente simultâneo) \\
+Máximo observado & 24,0h (censurado -- ver nota) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Nota sobre censura:} 4 dos 9 casos preditivos bateram exatamente no
+limite da janela de avaliação (23,99--24,00h). Como a janela de matching é
+fixa em $\pm$24h, a antecedência real desses casos pode ser
+\emph{maior} que 24h -- não é possível medir além do limite da janela com a
+metodologia atual.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{pred_01_20250526_2129.png}
+\caption{Exemplo de detecção com antecedência de $\sim$13,3h antes do alarme
+de 26/05/2025. Linha verde tracejada = horário do alarme; linha vermelha
+pontilhada = primeira anomalia detectada; pontos vermelhos = todos os pontos
+sinalizados como anômalos na janela.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{pred_05_20250531_0612.png}
+\caption{Exemplo de detecção com antecedência de $\sim$10,2h antes do alarme
+de 31/05/2025.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{pred_09_20250617_1649.png}
+\caption{Caso-limite: antecedência de apenas 0,7 min (43 segundos) --
+detecção praticamente simultânea ao alarme de 17/06/2025, não uma
+previsão real.}
+\end{figure}
+
+\subsection{Falsos positivos}
+\label{sec:fp}
+
+Falso positivo aqui é definido como ponto anômalo em operação
+(\texttt{operational\_state == "on"}), fora de qualquer janela de
+$\pm$24h ao redor de \emph{qualquer} alarme real de \texttt{TC382\_03\_A}
+(considerando os 38 alarmes reais do ano todo, não só os 20 do período OOS).
+Pontos anômalos contíguos (gap $\le$ 5min) foram agrupados em episódios.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+Episódios de falso positivo (período OOS, $\sim$183 dias) & 63 \\
+Taxa & $\approx$0,34 episódios/dia (1 a cada $\sim$3 dias) \\
+Duração mediana do episódio & 2,5 min \\
+Duração no 75º percentil & 16 min \\
+Duração máxima observada & 2416 min ($\sim$40,3h) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A distribuição de duração é fortemente assimétrica: a maioria dos episódios
+é um pico isolado de poucos minutos (ruído do sensor ou transição breve não
+capturada pela máscara operacional), mas um pequeno número de episódios
+sustentados por horas a dias concentra a maior parte dos pontos marcados
+como falso positivo.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{01_fp_duration_histogram.png}
+\caption{Distribuição de duração dos 63 episódios de falso positivo (escala log).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{fp_01_20250817_1740.png}
+\caption{Maior episódio de falso positivo do período: $\sim$40h contínuas
+entre 17 e 19/08/2025, sem alarme real correspondente registrado. Vale
+investigar operacionalmente o que ocorreu nesse intervalo.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{fp_03_20250527_2131.png}
+\caption{Episódio de falso positivo de $\sim$9,5h em 27--28/05/2025.}
+\end{figure}
+
+\subsection{Visão geral do período}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{00_overview.png}
+\caption{Série bruta de \texttt{TC382\_03\_A} no período OOS completo
+(mai--out/2025). Sombra cinza = \texttt{off\_longo} (parada prolongada real);
+traços laranja no rodapé = \texttt{off\_curto}/\texttt{transiente}
+(episódios curtos de $\sim$1h, marcados como referência pois são curtos
+demais para sombrear nessa escala de tempo sem distorcer a leitura visual);
+linhas verdes tracejadas = alarmes reais; pontos vermelhos = anomalias
+detectadas pelo modelo.}
+\end{figure}
+
+% =====================================================================
+\section{Limitações}
+% =====================================================================
+
+\begin{itemize}
+  \item \textbf{Amostra pequena de alarmes:} apenas 20 alarmes reais no
+        período de avaliação OOS. Frações como 65\%, 45\% têm incerteza
+        estatística considerável ($\pm$1 alarme já move o resultado em 5pp).
+  \item \textbf{Janela de matching simétrica:} a métrica original
+        (\texttt{hit\_rate}) não distingue previsão de reação -- corrigido
+        nesta análise, mas a pipeline de produção ainda reporta o número
+        combinado por padrão.
+  \item \textbf{Censura em 24h:} antecedências acima de 24h não são
+        mensuráveis com a janela atual; quase metade dos casos preditivos
+        bateu nesse teto.
+  \item \textbf{Deduplicação de alarmes:} feita manualmente nesta análise;
+        ainda não incorporada ao carregamento de dados da pipeline
+        (\texttt{src/cnn1d\_ae/io.py}) -- os \texttt{n\_alarms} reportados
+        em \texttt{calibration\_report.json} continuam em dobro do real até
+        essa correção ser aplicada.
+  \item \textbf{Univariado:} o modelo usa somente \texttt{TC382\_03\_A};
+        alarmes de outros sensores do equipamento estão fora do escopo
+        desta análise.
+\end{itemize}
+
+% =====================================================================
+\section{Conclusão e próximos passos}
+% =====================================================================
+
+O candidato \texttt{TC382\_03\_A} + \texttt{IsolationForest}, com a
+configuração da Tabela~2, é até o momento o único resultado desta série de
+experimentos validado tanto in-sample quanto out-of-sample, robusto contra
+as alternativas testadas (\texttt{dense}, \texttt{ocsvm}) e estável entre
+sementes aleatórias. Sua taxa de detecção real com antecedência (45\%,
+mediana de 13,4h) é o número mais relevante para uso operacional -- não o
+\texttt{hit\_rate} agregado de 65\%, que inclui reações tardias.
+
+\textbf{Próximos passos sugeridos:}
+\begin{enumerate}
+  \item Corrigir a deduplicação de alarmes na pipeline (\texttt{io.py}),
+        para que \texttt{n\_alarms} reflita a contagem real por padrão.
+  \item Investigar operacionalmente o episódio de $\sim$40h de falso alerta
+        (17--19/08/2025) -- não corresponde a nenhum alarme real registrado.
+  \item Repetir a análise de antecedência/falsos-positivos com janela de
+        matching assimétrica nativa na pipeline (só "antes"), em vez de
+        pós-processamento manual como feito aqui.
+  \item Avaliar se o mesmo candidato (\texttt{iforest} univariado) se
+        sustenta em outros sensores/equipamentos do Cabiúnas.
+\end{enumerate}
+
+\end{document}

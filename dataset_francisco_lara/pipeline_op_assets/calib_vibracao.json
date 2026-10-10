@@ -1,0 +1,80 @@
+{
+  "group": "mancal_vibracao_isolada",
+  "sensors": [
+    "TV_351X_A",
+    "TV_351Y_A",
+    "TV_352X_A",
+    "TV_352Y_A",
+    "TV_353X_A",
+    "TV_353Y_A",
+    "TV_354X_A",
+    "TV_354Y_A",
+    "TV_355X_A",
+    "TV_355Y_A"
+  ],
+  "eval_sensors": [
+    "TC382_03_A",
+    "T5_AVG_A"
+  ],
+  "target_sensor": "TV_351X_A",
+  "n_sensors": 10,
+  "best_model": "ocsvm",
+  "threshold": 0.17573027312755585,
+  "threshold_percentile": 95.0,
+  "debounce": 4,
+  "n_trials": 27,
+  "anomaly_rate_points_per_day": 361.19453924914677,
+  "operational_mask_enabled": true,
+  "operational_ref_sensor": "RUNNING_A",
+  "oos_split_date": "2025-07-01",
+  "oos_validated": true,
+  "n_normal_points_used_for_fit": 386492,
+  "n_alarms": 40,
+  "alarms_with_detected_anomaly_in_window": 35,
+  "hit_rate": 0.875,
+  "composite_score": 0.9515839739517572,
+  "balanced_score": 0.8547519218552714,
+  "detection_rate": 0.875,
+  "normal_alert_rate": 0.10061828398638237,
+  "operational_state_counts": {
+    "on": 1285117,
+    "off_longo": 580867,
+    "transiente": 25077,
+    "off_curto": 3980
+  },
+  "seed_sweep": {
+    "runs": [
+      {
+        "seed": 42,
+        "hit_rate": 0.875,
+        "normal_alert_rate": 0.10061828398638237
+      },
+      {
+        "seed": 43,
+        "hit_rate": 0.875,
+        "normal_alert_rate": 0.09688944716302691
+      },
+      {
+        "seed": 44,
+        "hit_rate": 0.875,
+        "normal_alert_rate": 0.09549815221889707
+      },
+      {
+        "seed": 45,
+        "hit_rate": 0.875,
+        "normal_alert_rate": 0.09809149272013759
+      },
+      {
+        "seed": 46,
+        "hit_rate": 0.875,
+        "normal_alert_rate": 0.09540664702077792
+      }
+    ],
+    "hit_rate_mean": 0.875,
+    "hit_rate_std": 0.0,
+    "hit_rate_min": 0.875,
+    "hit_rate_max": 0.875,
+    "normal_alert_rate_mean": 0.09730080462184439,
+    "normal_alert_rate_std": 0.0019306714202770097
+  }
+}

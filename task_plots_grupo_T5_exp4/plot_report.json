@@ -1,0 +1,31 @@
+{
+  "task_id": "6f7418c0ccbb43c292b1ad9f9e78bf88",
+  "task_name": "cnn1d-ae::test_grupo_T5_NGP_exp4",
+  "status": "completed",
+  "sensor": "T5_AVG_A",
+  "output_dir": "task_plots_grupo_T5_exp4",
+  "threshold": 0.002480331575497985,
+  "summary": [
+    {
+      "group": "T5_temperatura",
+      "sensors": "['T5_AVG_A', 'TC382_03_A']",
+      "output_dir": "runs_test_grupo_T5_NGP_exp4/OUTPUT_CNN1D_AE_T5_temperatura",
+      "model_path": "runs_test_grupo_T5_NGP_exp4/OUTPUT_CNN1D_AE_T5_temperatura/best_model/model.keras",
+      "threshold": 0.0024803315754979,
+      "THRESH_MODE": "mean_std",
+      "TIME_STEPS": 180,
+      "n_alarms": 120,
+      "alarms_with_detected_anomaly_in_window": 46,
+      "hit_rate": 0.3833333333333333,
+      "skipped": false
+    }
+  ],
+  "generated_plots": [
+    "sequence_mae_scores.png",
+    "tuner_trials.png",
+    "point_anomalies_daily.png",
+    "task_summary.png",
+    "series_with_anomalies.png",
+    "series_alarm_anomaly_overlay.png"
+  ]
+}

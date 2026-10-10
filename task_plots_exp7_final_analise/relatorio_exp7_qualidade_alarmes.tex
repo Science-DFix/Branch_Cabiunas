@@ -1,0 +1,488 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{multirow}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\title{Qualidade dos Alarmes no EXP7 (Itens 1+2)\\
+\large O que temos de alarmes, e o que de fato conta como\\
+alarme real para TC382\_03\_A e T5\_AVG\_A}
+\author{Pipeline \texttt{cnn1d\_ae} / AutoML --- projeto \texttt{TesteMLCab}}
+\date{Agosto de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este relatório complementa o EXP7 (itens 1+2 -- features multi-escala e de
+textura, ver \texttt{docs/analise\_automl\_exp7.md}) com um levantamento
+detalhado dos 40 alarmes usados na avaliação out-of-sample: quantos temos,
+de qual sensor, em qual condição, e -- o ponto central deste documento --
+\textbf{quais desses 40 são eventos físicos reais e quais são artefato de
+falha de sensor/comunicação}. Encontramos que os 8 alarmes de condição
+\texttt{UNDER} disparam com valores fisicamente implausíveis
+(-18 a -22, fora da faixa normal de operação) e coincidem, em todos os 5
+instantes distintos verificados, com gaps de dado, status de
+\texttt{Comm Fail}/\texttt{Out of Serv}, ou o equipamento já parado --
+nunca com uma queda física real de temperatura em operação. Ao excluir
+esses 8 casos, o candidato do EXP7 item 2 passa de \textbf{92,5\% de
+hit\_rate / 72,5\% de antecedência real} para \textbf{100\% de hit\_rate /
+90,6\% de antecedência real} sobre os 32 alarmes genuínos -- e os 3 casos
+``sem detecção'' que restavam eram exatamente os 3 alarmes \texttt{UNDER}
+mais problemáticos. Fechamos com um levantamento do catálogo completo de
+alarmes da turbina (47 tags, 3.757 eventos) para contextualizar o quanto
+ainda não foi explorado.
+\end{abstract}
+
+\tableofcontents
+
+% =====================================================================
+\section{Contexto: EXP7 itens 1 e 2}
+% =====================================================================
+
+O EXP7 estende o candidato do EXP6 (\texttt{TC382\_03\_A} + \texttt{T5\_AVG\_A}
++ 10 canais de vibração de mancal, modelo \texttt{iforest}/\texttt{ocsvm}
+não supervisionado) com duas mudanças de engenharia de features:
+
+\begin{itemize}
+  \item \textbf{Item 1 -- multi-escala}: features derivadas (média/desvio/
+        tendência móveis) em 4 janelas de tempo (6min, 1h, 4h, 24h) em vez
+        de uma única janela de 6min.
+  \item \textbf{Item 2 -- textura}: kurtosis, skewness e crest factor
+        (pico/RMS) móveis, para as janelas $\geq$1h -- capturam mudança de
+        \emph{forma} do sinal de vibração, não só nível ou tendência.
+\end{itemize}
+
+\textbf{Candidato vencedor (item 1+2):} \texttt{ocsvm} (percentil 99,9,
+debounce=1), sobre o grupo com 276 features de entrada. Avaliado no
+período out-of-sample de 2025-07-01 a 2026-04-30, contra os alarmes reais
+de \texttt{TC382\_03\_A}/\texttt{T5\_AVG\_A} desse período.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Etapa} & \textbf{hit\_rate} & \textbf{FP} & \textbf{Preditivo / Reativo / Sem detecção} \\
+\midrule
+EXP6 (janela única) & 75,0\% (30/40) & 0,06\% & 26 / 4 / 10 \\
+EXP7 item 1 (multi-escala) & 87,5\% (35/40) & 2,21\% & 28 / 7 / 5 \\
+\textbf{EXP7 item 1+2 (+ textura)} & \textbf{92,5\% (37/40)} & \textbf{1,94\%} & \textbf{29 / 8 / 3} \\
+\bottomrule
+\end{tabular}
+\caption{Evolução até o candidato deste relatório. Detalhe completo em
+\texttt{docs/analise\_automl\_exp7.md}.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{../task_plots_exp7_multiescala/02_metricas_por_etapa.png}
+\caption{hit\_rate, falso alerta e mediana de antecedência ao longo das
+três etapas.}
+\end{figure}
+
+% =====================================================================
+\section{Levantamento: o que temos de alarmes}
+\label{sec:levantamento}
+% =====================================================================
+
+\subsection{Os 40 alarmes da avaliação OOS}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Sensor} & \textbf{Alarmes} & \textbf{\% do total} \\
+\midrule
+TC382\_03\_A & 35 & 87,5\% \\
+T5\_AVG\_A & 5 & 12,5\% \\
+\bottomrule
+\end{tabular}
+\qquad
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Condição} & \textbf{Qtd.} \\
+\midrule
+HI & 18 \\
+HIHI & 14 \\
+UNDER & 8 \\
+\bottomrule
+\end{tabular}
+\caption{Os 40 alarmes OOS não são homogêneos: dominados por
+\texttt{TC382\_03\_A} (87,5\%), e 20\% deles (8/40) são condição
+\texttt{UNDER}.}
+\end{table}
+
+\subsection{A performance varia muito por sensor e por condição}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Sensor} & \textbf{Preditivo} & \textbf{Reativo} & \textbf{Sem detecção} & \textbf{Taxa preditiva} \\
+\midrule
+TC382\_03\_A & 28 & 5 & 2 & 80,0\% (28/35) \\
+T5\_AVG\_A & 1 & 3 & 1 & 20,0\% (1/5) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Condição} & \textbf{Preditivo} & \textbf{Reativo} & \textbf{Sem detecção} & \textbf{Taxa preditiva} \\
+\midrule
+HI & 16 & 2 & 0 & 88,9\% \\
+HIHI & 13 & 1 & 0 & 92,9\% \\
+\textbf{UNDER} & \textbf{0} & 5 & 3 & \textbf{0\%} \\
+\bottomrule
+\end{tabular}
+\caption{O modelo tem antecedência quase perfeita para HI/HIHI (temperatura
+subindo), mas \textbf{zero} antecedência para UNDER -- nenhum dos 8 alarmes
+dessa condição foi previsto com antecedência real.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{01_deteccao_por_condicao.png}
+\caption{Detecção por condição de alarme -- HI e HIHI com $>$88\% de
+antecedência real; UNDER com 0\%.}
+\end{figure}
+
+% =====================================================================
+\section{O achado central: UNDER é falha de sensor, não evento físico}
+\label{sec:achado}
+% =====================================================================
+
+\subsection{Por que suspeitar}
+
+Os 8 alarmes \texttt{UNDER} disparam com \texttt{Valor} negativo:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Data/hora} & \textbf{Tag} & \textbf{Condição} & \textbf{Valor} \\
+\midrule
+2025-07-24 16:14:37 & T5\_AVG\_A & UNDER & -22 \\
+2025-07-24 16:14:37 & TC382\_03\_A & UNDER & -21 \\
+2025-08-08 15:31:18 & T5\_AVG\_A & UNDER & -21 \\
+2025-08-08 15:31:18 & TC382\_03\_A & UNDER & -21 \\
+2025-11-29 07:52:03 & TC382\_03\_A & UNDER & -18 \\
+2026-01-14 16:18:05 & T5\_AVG\_A & UNDER & -20 \\
+2026-01-14 16:18:05 & TC382\_03\_A & UNDER & -19 \\
+2026-01-17 00:59:01 & T5\_AVG\_A & UNDER & -20 \\
+\bottomrule
+\end{tabular}
+\caption{Os 8 alarmes UNDER (5 instantes distintos, alguns disparando em
+ambos os sensores ao mesmo tempo). Valores entre -18 e -22 -- fora de
+qualquer faixa fisicamente plausível para esses sensores (operação normal
+$\sim$600--800; mesmo em idle/frio, $\sim$25--40).}
+\end{table}
+
+\subsection{Verificação direta na série bruta}
+
+Para cada um dos 5 instantes distintos, checamos a série de
+\texttt{TC382\_03\_A} e o estado de \texttt{RUNNING\_A} numa janela de
+poucos minutos ao redor do alarme:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Alarme} & \textbf{Evidência} \\
+\midrule
+08/08/2025 15:31 & 9 de 12 pontos NaN em \texttt{TC382\_03\_A} na janela de
+3 min; \texttt{RUNNING\_A=1} o tempo todo -- gap de dado, não queda física. \\
+17/01/2026 00:59 & \texttt{RUNNING\_A} = \texttt{\{'Name': 'Comm Fail', ...\}}
+e depois \texttt{\{'Name': 'Out of Serv', ...\}} -- falha de comunicação
+explícita registrada pelo próprio sistema. \\
+29/11/2025 07:52 & \texttt{RUNNING\_A=0} -- equipamento já desligado. \\
+24/07/2025 16:14 & Transição de \texttt{RUNNING\_A} 1$\to$0 -- parada em
+andamento. \\
+14/01/2026 16:18 & Mistura de \texttt{Out of Serv} e transição de estado. \\
+\bottomrule
+\end{tabular}
+\caption{Nenhum dos 5 casos corresponde a uma queda física real de
+temperatura durante operação normal.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{03_exemplos_under_sensor_error.png}
+\caption{Dois dos cinco casos, em detalhe. Em ambos, a série de
+\texttt{TC382\_03\_A} está numa faixa perfeitamente normal
+($\sim$630--640 e $\sim$685--691 respectivamente) exatamente no instante
+em que o sistema de alarme registrou um valor de -21/-20 -- confirmando
+que a leitura que disparou o alarme nunca chegou ao nosso pipeline de
+dados como um valor de processo real.}
+\end{figure}
+
+\subsection{Conclusão do achado}
+
+\textbf{Não existe precursor de sensor para prever a própria falha de
+comunicação do sensor.} Excluir os alarmes \texttt{UNDER} da avaliação não
+é viés de seleção favorável ao modelo -- é remover alvos que são
+estruturalmente impossíveis de prever com os dados de temperatura/vibração
+disponíveis, porque a causa do alarme é externa ao fenômeno físico que o
+modelo observa (instrumentação/comunicação, não o processo em si).
+
+% =====================================================================
+\section{Métricas corrigidas: o que de fato conta como alarme real}
+\label{sec:metricas-corrigidas}
+% =====================================================================
+
+Definimos \textbf{alarme real}, para fins de avaliação deste detector,
+como um alarme de condição \texttt{HI} ou \texttt{HIHI} -- ou seja,
+excluindo \texttt{UNDER} pela razão exposta na Seção~\ref{sec:achado}.
+Isso reduz o denominador de 40 para 32 alarmes.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Com UNDER (40)} & \textbf{Sem UNDER (32, real)} \\
+\midrule
+hit\_rate & 92,5\% & \textbf{100\%} \\
+Antecedência real (preditivo) & 72,5\% (29/40) & \textbf{90,6\% (29/32)} \\
+Reativo & 8 & 3 \\
+Sem detecção & 3 & \textbf{0} \\
+Mediana de antecedência & 14,7h & 14,7h (mesmos 29 casos) \\
+\bottomrule
+\end{tabular}
+\caption{Sobre os 32 alarmes genuínos, o candidato detecta 100\% deles,
+com 90,6\% de antecedência real -- os 3 ``sem detecção'' reportados
+anteriormente eram exatamente os 3 alarmes \texttt{UNDER} mais
+problemáticos.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{02_antes_depois_under.png}
+\caption{Antes e depois de excluir os alarmes \texttt{UNDER}. À direita,
+zero casos sem detecção.}
+\end{figure}
+
+\textbf{Ressalva importante:} os 3 casos ``reativos'' que sobram (detecção
+só depois do alarme, sem antecedência) continuam sem antecedência real --
+esse achado não os resolve, só remove o ruído dos casos \texttt{UNDER}. Os
+3 são investigados em detalhe na Seção~\ref{sec:reativos}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../task_plots_exp7_multiescala/03_painel_preditivos.png}
+\caption{Os 29 casos com antecedência real do candidato item 1+2 (inclui
+os que, após a filtragem de UNDER, permanecem exatamente os mesmos --
+nenhum caso preditivo era \texttt{UNDER}).}
+\end{figure}
+
+% =====================================================================
+\section{Os 3 alarmes reativos remanescentes}
+\label{sec:reativos}
+% =====================================================================
+
+Sobre os 32 alarmes genuínos (Seção~\ref{sec:metricas-corrigidas}), 3
+continuam sendo detectados só \emph{depois} do alarme disparar, sem
+antecedência real. Os 3 pertencem todos a \texttt{TC382\_03\_A} -- mas na
+prática correspondem a apenas \textbf{2 eventos físicos distintos}, com
+causas raiz completamente diferentes entre si.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Data/hora} & \textbf{Condição} & \textbf{Valor} & \textbf{Atraso até 1ª detecção} & \textbf{Evento} \\
+\midrule
+20/10/2025 16:18:40 & HI & 776 & 4h00 & \multirow{2}{*}{trip/religamento} \\
+20/10/2025 16:20:36 & HIHI & 784 & 3h57 & \\
+24/02/2026 11:01:00 & HI & 780 & 0min (simultâneo) & início tipo degrau \\
+\bottomrule
+\end{tabular}
+\caption{Os 2 alarmes de 20/10/2025 são a mesma escalada física (HI seguido
+de HIHI 2 minutos depois), tratados aqui como um único evento.}
+\end{table}
+
+\subsection{Evento 1 (20/10/2025) -- trip/religamento da turbina}
+
+Não é uma falha do modelo em captar um precursor gradual: é um
+\textbf{trip/desligamento-religamento}. O estado operacional
+(\texttt{operational\_state}) sai de \texttt{"on"} já às \textbf{15:29} --
+quase 1h \emph{antes} do próprio alarme -- e passa a oscilar entre
+\texttt{"transiente"} e \texttt{"off\_curto"} por quase 5 horas. A série
+bruta mostra \texttt{TC382\_03\_A}/\texttt{T5\_AVG\_A} saltando de forma
+violenta e fisicamente implausível (656$^{\circ}$C $\to$ 767$^{\circ}$C
+$\to$ 213$^{\circ}$C $\to$ 682$^{\circ}$C $\to$ 92$^{\circ}$C $\to$
+678$^{\circ}$C\ldots), junto com \texttt{RUNNING\_A} alternando entre 0 e
+1 -- assinatura típica de partida/parada, não de um processo térmico
+contínuo.
+
+A pipeline \textbf{zera \texttt{is\_anom\_point} por design} sempre que
+\texttt{operational\_state} $\neq$ \texttt{"on"} (ver
+\texttt{automl\_pipeline.py}, linhas 146--147 e 324--325) -- decisão
+tomada justamente para não confundir ruído de partida/parada com anomalia
+real. O estado só volta a \texttt{"on"} estável às \textbf{20:19:00}, e é
+exatamente nesse instante que aparece a primeira detecção -- não é
+coincidência, é a mecânica exata da máscara operacional.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{06_evento_trip_reativo.png}
+\caption{\texttt{TC382\_03\_A} ao redor do trip de 20/10/2025. Áreas
+sombreadas = estado \texttt{!= "on"}, período em que a pontuação de
+anomalia fica zerada por design. O alarme (linhas vermelhas) dispara
+dentro dessa janela; a 1ª detecção (ponto verde) só ocorre quando o estado
+volta a \texttt{"on"}.}
+\end{figure}
+
+\textbf{Conclusão:} o alarme disparou \emph{durante} um trip, período que
+o desenho atual do pipeline exclui deliberadamente da pontuação de
+anomalias (tanto no treino quanto no score). Não é uma limitação de
+engenharia de features -- é um limite estrutural de escopo: o modelo atual
+não foi desenhado para avaliar transientes de partida/parada.
+
+\subsection{Evento 2 (24/02/2026) -- início tipo degrau, sem precursor}
+
+Aqui o cenário é o oposto: \texttt{operational\_state = "on"} o tempo
+todo, sem nenhuma exclusão operacional envolvida.
+\texttt{TC382\_03\_A} fica \textbf{estável em $\sim$709--715$^{\circ}$C
+por pelo menos 6h antes} do alarme (deriva de menos de 1\%, dentro do
+ruído normal de operação), sem nenhum sinal gradual de degradação. Em um
+único intervalo de 10 min salta abruptamente para 748$^{\circ}$C e, no
+intervalo seguinte, para 791$^{\circ}$C -- um evento de \textbf{início
+rápido tipo degrau}, sem precursor visível em nenhuma das 4 escalas de
+tempo capturadas pelas features multi-escala (6min, 1h, 4h, 24h).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{07_evento_degrau_reativo.png}
+\caption{\texttt{TC382\_03\_A} ao redor do alarme de 24/02/2026. Patamar
+estável por 6h, depois salto abrupto coincidente com o próprio alarme. A
+1ª detecção (ponto verde) ocorre no mesmo intervalo de 10 min do alarme --
+o mais rápido possível dado o grid de debounce.}
+\end{figure}
+
+\textbf{Conclusão:} não há precursor a ser capturado -- a ausência de
+antecedência é inerente à física do evento, não ao modelo. O modelo
+detecta com a maior velocidade fisicamente possível dado o grid de
+debounce atual.
+
+\subsection{Síntese}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lp{6cm}c@{}}
+\toprule
+\textbf{Evento} & \textbf{Causa raiz} & \textbf{É falha do modelo?} \\
+\midrule
+20/10/2025 (HI+HIHI) & Trip/religamento -- alarme durante estado excluído
+da pontuação por design & Não -- limite estrutural de escopo \\
+24/02/2026 (HI) & Início tipo degrau, sem precursor gradual em nenhuma
+janela & Não -- evento genuinamente sem antecedência possível \\
+\bottomrule
+\end{tabular}
+\caption{Nenhum dos 3 casos reativos indica um problema de engenharia de
+features a corrigir.}
+\end{table}
+
+Se cobrir o Evento 1 for considerado prioritário no futuro, a via não é
+mais engenharia de features sobre o sinal de processo -- é estender a
+pontuação de anomalia para dentro dos estados \texttt{"transiente"}/
+\texttt{"off\_curto"} (ou tratar o próprio padrão de trip como uma classe
+de evento à parte), o que exigiria uma modelagem específica de dinâmica de
+partida/parada, fora do escopo desta série de experimentos.
+
+% =====================================================================
+\section{Contexto mais amplo: o catálogo geral de alarmes da turbina}
+\label{sec:catalogo}
+% =====================================================================
+
+O arquivo \texttt{alarmes\_selecionados\_turbina\_a.csv} cobre muito mais
+do que os 2 sensores usados no EXP5--EXP8: \textbf{47 tags distintos,
+3.757 alarmes (onset) entre 2022-01-04 e 2026-04-18}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Categoria} & \textbf{Alarmes} & \textbf{Nº de tags} \\
+\midrule
+Temperatura & 1.440 & 18 \\
+Pressão & 1.339 & 9 \\
+Falha de instrumento/transmissor & 844 & 10 \\
+Vibração & 134 & 10 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{TC382\_03\_A}/\texttt{T5\_AVG\_A} são só 2 dos 18 tags de
+temperatura. Os 10 canais de vibração (\texttt{TV\_*}) têm alarme
+próprio -- usados até aqui só como \emph{feature} de entrada, nunca como
+\emph{alvo} de predição.}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{05_categorias_catalogo.png}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{04_top_tags_catalogo.png}
+\caption{Os 5 tags com mais alarmes no catálogo completo:
+\texttt{PI\_6240319\_AL} (630, falha de partida a gás),
+\texttt{PAL\_6240315} (558, pressão baixa de gás combustível),
+\texttt{PAL\_6240339} (254, pressão baixa de óleo lub.),
+\texttt{TC382\_03\_A} (253) e \texttt{PALL\_6240340} (204).}
+\end{figure}
+
+Vale notar que ``Falha de instrumento/transmissor'' já é uma categoria
+\emph{própria} do catálogo (844 alarmes, 10 tags) -- ou seja, o padrão que
+encontramos nos alarmes \texttt{UNDER} de temperatura (falha de
+sensor/comunicação disfarçada de leitura de processo) provavelmente
+também existe, de forma explícita, nesses outros tags. Vale revisar se
+esse tipo de alarme está sendo contaminado da mesma forma em experimentos
+futuros que usem esses sensores.
+
+% =====================================================================
+\section{Recomendações}
+% =====================================================================
+
+\begin{itemize}
+  \item \textbf{Adotar 32 (não 40) como o denominador correto} para
+        relatar a performance do candidato \texttt{ocsvm} item 1+2 --
+        100\% de hit\_rate, 90,6\% de antecedência real.
+  \item \textbf{Filtrar por \texttt{Condição do Alarme}} (excluir
+        \texttt{UNDER}, e revisar caso a caso qualquer condição não
+        vista antes) deveria ser um passo padrão de pré-processamento do
+        arquivo de alarmes, não uma correção pontual -- vale incorporar
+        ao pipeline (\texttt{io.py}) em vez de só neste relatório.
+  \item \textbf{Os 3 alarmes reativos remanescentes} (Seção~\ref{sec:reativos})
+        já foram investigados: 2 são um trip/religamento (fora do escopo
+        de pontuação por design) e 1 é um início tipo degrau sem
+        precursor -- nenhum indica ganho disponível via engenharia de
+        features adicional.
+  \item \textbf{Considerar expandir o escopo} para os outros 45 tags do
+        catálogo (Seção~\ref{sec:catalogo}), sobretudo pressão (maior
+        categoria depois de temperatura) e os 10 canais de vibração como
+        alvo próprio, não só como feature.
+\end{itemize}
+
+\end{document}

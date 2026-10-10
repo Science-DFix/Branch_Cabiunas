@@ -1,0 +1,32 @@
+{
+  "alarm": {
+    "dataset": "alarm",
+    "is_monotonic_increasing": true,
+    "duplicate_timestamps": 360,
+    "coverage": {
+      "start": "2025-01-02 08:59:10",
+      "end": "2025-09-07 01:06:06",
+      "rows": 562
+    }
+  },
+  "feat": {
+    "dataset": "feat",
+    "is_monotonic_increasing": true,
+    "duplicate_timestamps": 39,
+    "coverage": {
+      "start": "2025-01-01 00:00:05",
+      "end": "2025-08-31 23:06:34",
+      "rows": 72359
+    }
+  },
+  "raw": {
+    "dataset": "raw",
+    "is_monotonic_increasing": true,
+    "duplicate_timestamps": 0,
+    "coverage": {
+      "start": "2025-01-01 00:00:00",
+      "end": "2025-10-31 23:59:30",
+      "rows": 875520
+    }
+  }
+}

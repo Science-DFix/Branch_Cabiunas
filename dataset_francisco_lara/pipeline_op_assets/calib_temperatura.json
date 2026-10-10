@@ -1,0 +1,72 @@
+{
+  "group": "mancal_temperatura_isolada",
+  "sensors": [
+    "TC382_03_A",
+    "T5_AVG_A"
+  ],
+  "eval_sensors": [
+    "TC382_03_A",
+    "T5_AVG_A"
+  ],
+  "target_sensor": "TC382_03_A",
+  "n_sensors": 2,
+  "best_model": "ocsvm",
+  "threshold": 10.504486083984375,
+  "threshold_percentile": 97.5,
+  "debounce": 1,
+  "n_trials": 15,
+  "anomaly_rate_points_per_day": 49.6382252559727,
+  "operational_mask_enabled": true,
+  "operational_ref_sensor": "RUNNING_A",
+  "oos_split_date": "2025-07-01",
+  "oos_validated": true,
+  "n_normal_points_used_for_fit": 386492,
+  "n_alarms": 40,
+  "alarms_with_detected_anomaly_in_window": 37,
+  "hit_rate": 0.925,
+  "composite_score": 0.9749691109732231,
+  "balanced_score": 0.9249073329196694,
+  "detection_rate": 0.925,
+  "normal_alert_rate": 0.006806874478445954,
+  "operational_state_counts": {
+    "on": 1276281,
+    "off_longo": 593174,
+    "transiente": 21695,
+    "off_curto": 3891
+  },
+  "seed_sweep": {
+    "runs": [
+      {
+        "seed": 42,
+        "hit_rate": 0.925,
+        "normal_alert_rate": 0.006806874478445954
+      },
+      {
+        "seed": 43,
+        "hit_rate": 0.925,
+        "normal_alert_rate": 0.0054780339921199125
+      },
+      {
+        "seed": 44,
+        "hit_rate": 0.925,
+        "normal_alert_rate": 0.007123768076138968
+      },
+      {
+        "seed": 45,
+        "hit_rate": 0.925,
+        "normal_alert_rate": 0.005985063748428736
+      },
+      {
+        "seed": 46,
+        "hit_rate": 0.925,
+        "normal_alert_rate": 0.006673779167414888
+      }
+    ],
+    "hit_rate_mean": 0.925,
+    "hit_rate_std": 0.0,
+    "hit_rate_min": 0.925,
+    "hit_rate_max": 0.925,
+    "normal_alert_rate_mean": 0.00641350389250969,
+    "normal_alert_rate_std": 0.0005975991530698064
+  }
+}
