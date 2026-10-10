@@ -108,7 +108,7 @@ modelos (C).
 | **A0** | Reprodução local | os artefatos em cache reproduzem 8/8 e 2,88? | não | **feito 10/10: passou** |
 | **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | **feito 10/10** |
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
-| **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | a fazer |
+| **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
 | **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | a fazer |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | a fazer |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | a fazer |
@@ -130,6 +130,28 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 10/10/2026 — A3, LOEO aninhado da camada de decisão — 5/8 COM TAGS LIVRES, 8/8 COM AS 5 FIXAS
+- **Script:** `frente_ocsvm/a3_loeo_decisao.py` · pré-registro `7667782` · grade salva em
+  `frente_ocsvm/dados/a3_grade.pkl` (fora do git) · 11,5 min local, 6 núcleos.
+- **Grade:** 3.968 configurações; 928 dão 8/8. A referência (45 min, 24 h, 48 h, 5 tags; 2,885 FP/mês)
+  é só a **118ª mais barata** entre as de 8/8; mínimo 2,404 FP/mês (50 min, 24 h, 48 h, 2 tags).
+- **PRIMÁRIO, grade inteira: LOEO 5/8** (banda 4/8), FP/mês mediano das escolhidas 2,404. Perde 27/02/25,
+  17/03/25 e 09/12/25. Escolhendo sem o trip, o critério corta tags (fica com 2–3) ou encurta a janela
+  para 6 h, e justamente a tag/janela que o trip deixado de fora precisava sai.
+- **SECUNDÁRIO, 5 tags fixas: LOEO 8/8** (banda 8/8); as 8 dobras escolhem a mesma (45 min, 6 h, 36 h), a
+  2,61 FP/mês.
+- **Dependência por tag** (temporização de referência): só `PI_6240319_AL` é indispensável (sem ela 6/8);
+  sem `PAL_6240315` ainda 8/8 a 2,54; `PDAL_6240302`, `TC382_05_A` e `PAH_6240319` saem sem perder trip.
+  27/02/25 e 26/02/26 só são pegos por subconjuntos com `PI_6240319_AL` (16 de 31); 09/12/25 precisa de
+  `PAL_6240315` ou `PDAL_6240302`.
+- **Expectativa × resultado:** previ 6–7/8 no primário (deu **5/8**: errada, pior) e 7/8 com tags fixas
+  (deu **8/8**: errada, melhor).
+- **Leitura (regra pré-registrada, ≤ 5/8):** o 8/8 é em boa parte **seleção do subconjunto de tags** do
+  canal 4. Filtro, janela e refratário **não** são o que o sustenta: com as 5 tags dadas, a temporização
+  escolhida sem o evento pega todos. E o otimismo está subestimado, porque as 5 tags já vieram de 47.
+- **Decisão:** as tags do canal 4 passam a ser o ponto fraco da validação. Tratar no B1 (chattering do
+  `PI_6240319_AL`, a única tag indispensável) e nunca reportar o 8/8 sem esta ressalva.
 
 ### 10/10/2026 — A2, nulos de acaso — ACIMA DO ACASO NOS TRÊS
 - **Script:** `frente_ocsvm/a2_nulo.py` · pré-registro `f6a656b`.
