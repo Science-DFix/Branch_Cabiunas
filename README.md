@@ -1,5 +1,7 @@
 # cabiunas-models
 
+> **Frente OCSVM (10/10/2026 em diante): o documento vivo é o [`DIARIO_DE_BORDO.md`](DIARIO_DE_BORDO.md).** O restante deste README e `docs/` são histórico de consulta.
+
 Pipeline CNN-1D Autoencoder para deteccao de anomalias em series temporais de Cabiunas, integrado ao ClearML para versionamento de dataset, tracking de tasks e execucao remota via ClearML Agent.
 
 ## ClearML
