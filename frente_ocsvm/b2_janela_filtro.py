@@ -33,6 +33,20 @@ FP/mês de fora cai 5-15% contra a referência, mas com ~10 meses e ~25 episódi
 Leitura prevista: REPROVADO pelo IC -- direção favorável, mas o período fora é curto demais para provar
 custo; a ação seria manter a referência e reavaliar quando houver mais meses pós-split.
 
+RESULTADO (10/10/2026) -- REPROVADO. O GANHO DE CUSTO É QUASE TODO DE AJUSTE AO PERÍODO DE ESCOLHA.
+  Escolhida só dentro: 45 min, janela 4 h, refratário 36 h.
+                 dentro (5 trips)     fora (3 trips, 10 meses)        total
+  referência     5/5, 2,894 FP/mês    3/3, banda 2/3, 2,877 FP/mês    8/8, 2,885
+  escolhida      5/5, 1,980 (-32%)    3/3, banda 3/3, 2,752 (-4,3%)   8/8, 2,404
+  PRIMÁRIO: FP/mês fora -0,125 (-4,3%), IC 95% -0,401 a +0,000. Nenhum trip perdido ou ganho; a banda de
+  fora sobe de 2/3 para 3/3 (26/02/26 passa a nascer >= 4 h antes).
+  SECUNDÁRIO: 140 de 280 configurações dão 8/8. LOEO 7/8 -- perde 29/04/25 (escolhe janela de 3 h).
+  Falha em três condições: -4,3% (precisava -10%), IC encosta em 0, LOEO 7/8.
+  Expectativa: acertada na janela curta (previ 6-8 h, deu 4 h), no refratário < 48 h, nos 3/3 de fora e no
+  IC cruzando 0; errada no LOEO (previ 8/8, deu 7/8) e no tamanho do ganho dentro (previ 2,3-2,6, deu 1,98).
+  Leitura: o -32% dentro vira -4% fora. Os 2,40-2,61 FP/mês do A3 eram, em sua maior parte, ajuste aos
+  meses em que se escolhe. Janela curta encurta o canal 4 sem custo de detecção, mas não prova custo menor.
+
 Uso:  python frente_ocsvm/b2_janela_filtro.py
 """
 from __future__ import annotations

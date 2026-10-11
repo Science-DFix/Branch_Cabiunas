@@ -111,7 +111,7 @@ modelos (C).
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
 | **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | a fazer |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
-| **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **pré-registrado 10/10** (`b2_janela_filtro.py`; escolha só dentro, teste fora) |
+| **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | a fazer |
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | a fazer |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
@@ -130,6 +130,29 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 10/10/2026 — B2, janela do canal 4 × filtro × refratário — REPROVADO
+- **Script:** `frente_ocsvm/b2_janela_filtro.py` · pré-registro `6843a0e` · 1 min 15 s local · grade em
+  `frente_ocsvm/dados/b2_grade.pkl`.
+- **Desenho:** 280 configurações (filtro 30–90 min × janela 3–36 h × refratário 24–48 h, 5 tags fixas).
+  Escolha **só antes de 01/07/2025**; teste nos 10 meses depois. Não cego: o A3 já tinha mostrado 6 h/36 h.
+- **Escolhida:** 45 min, janela **4 h**, refratário **36 h**.
+
+| | Dentro (5 trips) | Fora (3 trips, 10 meses) | Total |
+|---|---|---|---|
+| Referência (45 min, 24 h, 48 h) | 5/5, 2,894 FP/mês | 3/3, banda 2/3, 2,877 | 8/8, 2,885 |
+| Escolhida (45 min, 4 h, 36 h) | 5/5, 1,980 (−32%) | 3/3, banda 3/3, 2,752 (**−4,3%**) | 8/8, 2,404 |
+
+- **Primário:** Δ FP/mês fora −0,125, IC 95% −0,401 a +0,000. Nenhum trip perdido; banda fora 2/3 → 3/3.
+- **Secundário:** 140 de 280 configurações dão 8/8; LOEO **7/8** (perde 29/04/25 com janela de 3 h).
+- **Critério:** falha em três condições (−4,3% < 10%; IC encosta em 0; LOEO 7/8).
+- **Expectativa × resultado:** acertei janela curta, refratário < 48 h, 3/3 fora e IC cruzando 0; errei o
+  LOEO (previ 8/8) e subestimei o ganho dentro (previ 2,3–2,6; deu 1,98).
+- **Leitura:** o −32% dentro vira −4% fora. Os 2,40–2,61 FP/mês achados no A3 eram em sua maior parte
+  ajuste aos meses usados na escolha. Mexer na temporização da decisão não é uma alavanca de custo
+  comprovada.
+- **Decisão:** manter a referência. A camada de decisão já rendeu o que dava (B1 e B2 reprovados);
+  próximo passo útil é B3 (priorização, sem cortar alarme) ou a frente com treino (A4/C1–C3, no Cica).
 
 ### 10/10/2026 — B1, debounce do chattering no canal 4 — REPROVADO
 - **Script:** `frente_ocsvm/b1_chattering.py` · pré-registro `a74f660` · 28 s local.
