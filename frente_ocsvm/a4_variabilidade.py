@@ -88,6 +88,8 @@ def envia(so: str | None):
             t = Task.clone(source_task=tid, name=f"ocsvm-a4::{nome}::{cfg}")
             t.set_script(repository=REPO, branch=BRANCH, commit=commit)
             t.set_parameter("Args/config", f"frente_ocsvm/a4_configs/{nome}.json")
+            for k, v in REPLICAS[rep].items():  # o painel herda os valores da produção; alinha com a config
+                t.set_parameter(f"pipeline_config/{k}", v)
             Task.enqueue(t, queue_name="default")
             reg[nome] = t.id
             print(nome, t.id)
