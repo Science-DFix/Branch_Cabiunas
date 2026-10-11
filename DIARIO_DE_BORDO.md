@@ -110,7 +110,7 @@ modelos (C).
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
 | **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | a fazer |
-| **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **pré-registrado 10/10** (`b1_chattering.py`) |
+| **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | a fazer |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | a fazer |
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | a fazer |
@@ -130,6 +130,21 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 10/10/2026 — B1, debounce do chattering no canal 4 — REPROVADO
+- **Script:** `frente_ocsvm/b1_chattering.py` · pré-registro `a74f660` · 28 s local.
+- **Tratamento:** ativação só conta se a mesma tag ficou ≥ S h em silêncio; S ∈ {0…24 h}; B1a só em
+  `PI_6240319_AL`, B1b nas 5 tags; S escolhido por LOEO.
+- **Resultado:** até S = 8 h nada muda (duty do canal 4 46,8% → ≥ 45,9%; FP/mês 2,885). Só S = 24 h mexe.
+  Nenhum S perde trip (8/8, fora 3/3, banda 7/8). LOEO 8/8 nos dois braços (sempre S = 24 h).
+  B1a: 2,816 FP/mês, Δ −0,069 (IC 95% −0,220 a +0,000). B1b: 2,747, Δ −0,137 (IC −0,338 a +0,000).
+- **Critério:** falha no custo (> 2,60 e IC encosta em 0); também não bate os 2,61 que o A3 achou só
+  mexendo na temporização.
+- **Expectativa × resultado:** acertada (efeito pequeno, rejeitado); errada só no 09/12/25, que não caiu.
+- **Leitura:** o canal 4 fica aceso por alarmes recorrentes espaçados de horas, não por rajadas.
+  O debounce é seguro (não perde trip) mas inócuo.
+- **Decisão:** não adotar. Próximo: B2 (janela do canal 4 × filtro de duração), que o A3 indica ter
+  margem (2,61 com as 5 tags) — mas a escolha tem de vir de LOEO.
 
 ### 10/10/2026 — A3, LOEO aninhado da camada de decisão — 5/8 COM TAGS LIVRES, 8/8 COM AS 5 FIXAS
 - **Script:** `frente_ocsvm/a3_loeo_decisao.py` · pré-registro `7667782` · grade salva em

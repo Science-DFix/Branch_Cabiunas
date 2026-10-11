@@ -46,6 +46,18 @@ melhora pouco: no melhor S de B1a, 2,6-2,8; o IC da diferença cruza 0. LOEO 7/8
 algum trip cai, é 09/12/25 (depende de PAL_6240315/PDAL_6240302). Leitura prevista: REPROVADO pelo critério
 de custo -- o chattering não é o que mantém o canal 4 aceso; o que mantém são alarmes recorrentes espaçados.
 
+RESULTADO (10/10/2026) -- REPROVADO NOS DOIS BRAÇOS, COMO PREVISTO.
+  Até S = 8 h o debounce quase não mexe: duty do canal 4 em operação 46,8% -> 46,5% (B1a) / 45,9% (B1b) e
+  FP/mês parado em 2,885. Só S = 24 h mexe: duty 43,0% / 40,0%. Nenhum S, em nenhum braço, perde trip
+  (8/8, fora 3/3, banda 7/8 em todos) -- o 09/12/25 que eu temia em B1b não caiu.
+  LOEO 8/8 nos dois (todas as dobras escolhem S = 24 h).
+  B1a  S = 24 h: 2,816 FP/mês, diferença -0,069 (IC 95% -0,220 a +0,000).
+  B1b  S = 24 h: 2,747 FP/mês, diferença -0,137 (IC 95% -0,338 a +0,000).
+  Falha no critério de custo (> 2,60 e o IC encosta em 0) e não bate os 2,61 do A3 só com temporização.
+  Expectativa: acertada (duty quase parado até 2 h, FP 2,6-2,8, LOEO 7-8/8); errada só no 09/12/25.
+  Leitura: o chattering curto não é o que mantém o canal 4 aceso; o que mantém são alarmes recorrentes
+  espaçados de horas. Debounce não vira regra.
+
 Uso:  python frente_ocsvm/b1_chattering.py
 """
 from __future__ import annotations
