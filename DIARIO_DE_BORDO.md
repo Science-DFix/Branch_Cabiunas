@@ -109,7 +109,7 @@ modelos (C).
 | **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | **feito 10/10** |
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
-| **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **pré-registrado 10/10** (`a4_variabilidade.py`; 5 sementes + 2 splits, 21 tasks no Cica) |
+| **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **em execução, versão reduzida (13/10)**: 1 réplica (3 tasks) por vez, para no 1º FRÁGIL; envio de 10/10 cancelado |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | a fazer |
@@ -130,6 +130,18 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 11–13/10/2026 — A4, envio de 10/10 cancelado; retomado em versão reduzida
+- **10/10:** as 21 tasks foram enfileiradas de uma vez e ocuparam os 4 workers do Cica, deixando tasks da
+  equipe esperando. **11/10:** paradas e depois **apagadas** do ClearML, sem resultado aproveitado.
+  `a4_tasks.json` foi zerado (o `envia` recria os clones). No mesmo dia o Cica estava instável: os agentes
+  reiniciavam e a task em curso virava "user abort" em ~30–40 s.
+- **Regra de envio (13/10):** só com a fila vazia; **1 réplica = 3 tasks por vez**; a próxima só vai quando
+  as 3 terminarem. Se alguma não completar, parar e conferir os workers (`register_time`), `Args/config` e
+  `RANDOM_SEED` do clone antes de reenviar.
+- **Redução (decidida antes de qualquer resultado):** sementes em ordem, s43 → s47. Como o critério é "alguma
+  semente ≤ 6/8 ou FP/mês fora de ±20% → FRÁGIL", **parar na 1ª semente FRÁGIL**, porque o veredito do
+  primário já fica decidido. Os splits (sp0501, sp0901, secundário) só rodam se as 5 sementes saírem ROBUSTO.
 
 ### 10/10/2026 — B2, janela do canal 4 × filtro × refratário — REPROVADO
 - **Script:** `frente_ocsvm/b2_janela_filtro.py` · pré-registro `6843a0e` · 1 min 15 s local · grade em
