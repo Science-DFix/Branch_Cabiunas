@@ -29,13 +29,13 @@ export CLEARML_CONFIG_FILE="$(pwd)/clearml.conf"
 O dataset ja foi criado no ClearML. Para criar uma nova versao a partir de um config, use o uploader Python:
 
 ```bash
-PYTHONPATH=. ../venv/bin/python scripts/upload_cabiunas_dataset.py --config configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json
+PYTHONPATH=. ../venv/bin/python scripts/upload_cabiunas_dataset.py --config configs/calibracao_v4_eq/test_grupo_exp34_mancal_vibracao_isolada.json
 ```
 
 Tambem existe o wrapper CLI legado:
 
 ```bash
-scripts/create_clearml_dataset_from_config.sh configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json "TesteMLCab" "Cabiunas 2025"
+scripts/create_clearml_dataset_from_config.sh configs/calibracao_v4_eq/test_grupo_exp34_mancal_vibracao_isolada.json "TesteMLCab" "Cabiunas 2025"
 ```
 
 ## Execucao Remota
@@ -52,7 +52,7 @@ Em outro terminal, submeta a task:
 cd /home/thallys/Documents/projeto-petrobras/Analise-exploratoria-dos-dados/analise_cabiunas/cabiunas-models
 source ../venv/bin/activate
 export CLEARML_CONFIG_FILE="$(pwd)/clearml.conf"
-PYTHONPATH=. ../venv/bin/python src/main.py --config configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json
+PYTHONPATH=. ../venv/bin/python src/main.py --config configs/calibracao_v4_eq/test_grupo_exp34_mancal_vibracao_isolada.json
 ```
 
 Com `RUN_REMOTE=true`, a maquina local apenas enfileira a task. O worker remoto baixa o codigo do Git, baixa o dataset ClearML e executa o treino.
@@ -62,12 +62,12 @@ Com `RUN_REMOTE=true`, a maquina local apenas enfileira a task. O worker remoto 
 Para rodar localmente, use um config com `RUN_REMOTE=false` ou remova essa chave temporariamente:
 
 ```bash
-PYTHONPATH=. ../venv/bin/python src/main.py --config configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json
+PYTHONPATH=. ../venv/bin/python src/main.py --config configs/calibracao_v4_eq/test_grupo_exp34_mancal_vibracao_isolada.json
 ```
 
 ## Validacao
 
 ```bash
 python3 -m compileall src/main.py src/cnn1d_ae
-python3 -m json.tool configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json >/tmp/cabiunas_config_check.json
+python3 -m json.tool configs/calibracao_v4_eq/test_grupo_exp34_mancal_vibracao_isolada.json >/tmp/cabiunas_config_check.json
 ```
