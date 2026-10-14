@@ -33,6 +33,20 @@ mais ainda (<= 4/8 em ALTA), porque os 3 canais OCSVM coincidem entre si só ~1,
 detecções vêm de 1 modelo + canal 4. Se der assim, a prioridade não separa trip de FP com a informação que a
 pipeline tem, pelo mesmo motivo de o corte não separar.
 
+RESULTADO (14/10/2026) -- AS DUAS REPROVADAS:
+    regra            trips ALTA  fora ALTA  FP em BAIXA   inconcl. BAIXA  FP/mês ALTA  h/mês ALTA
+    R1 dois modelos  3/8         3/3        18/42 (43%)   6/25            1,648        7,1
+    R2 >= 3 canais   3/8         3/3        19/42 (45%)   7/25            1,580        6,6
+  · As duas rebaixam os MESMOS 5 trips: todos os de dentro da amostra (27/02, 17/03, 07/04, 11/04, 29/04/25).
+    Os 3 de fora ficam em ALTA.
+  · Expectativa: acertei o veredito e o R1 (<= 4/8); errei o R2 (previ ~5/8, deu 3/8).
+  · A POSTERIORI (não pré-registrado): dentro da amostra, 0/5 trips e 13/19 FP em ALTA; fora, 3/3 trips e
+    11/23 FP em ALTA (12/23 = 52% rebaixados). Não é deriva: o tempo com >= 2 OCSVM juntos é MENOR fora (0,94%)
+    que dentro (1,6%). Hipótese: o trecho antes dos trips de dentro entrou no treino como normal (a exclusão
+    é de 24 h em volta do alarme; a detecção nasce até 48 h antes) e os modelos aprenderam a não acender
+    juntos ali. Fora, onde o modelo não viu o precursor, os trips aparecem como coincidência de 2 modelos.
+    Com 3 trips isso é só hipótese; o teste é a pipeline congelada em dados novos (21/04/2026 em diante).
+
 Uso:  python frente_ocsvm/b3_priorizacao.py
 """
 from __future__ import annotations

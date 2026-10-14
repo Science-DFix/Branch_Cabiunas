@@ -112,7 +112,7 @@ modelos (C).
 | **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **feito 14/10: ROBUSTO à semente** (8/8, FP/mês 2,82–2,95); **FRÁGIL ao corte** (sp0501 4/8; sp0901 8/8) |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
-| **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | pré-registrado 14/10 (`b3_priorizacao.py`): prioridade por composição do episódio (R1, R2) |
+| **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | **feito 14/10: REPROVADO** (R1/R2 rebaixam os 5 trips de dentro; fora 3/3 em ALTA, hipótese para dados novos) |
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
@@ -130,6 +130,29 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 14/10/2026 — B3, prioridade ALTA/BAIXA por composição do episódio — REPROVADO (com hipótese fora da amostra)
+- **Script:** `frente_ocsvm/b3_priorizacao.py` · pré-registro `1f463bf` · local, sem treino.
+- **Desenho:** nada é suprimido; cada episódio da referência recebe prioridade. R1 = ALTA se ≥ 2 dos 3 OCSVM
+  ativos juntos; R2 = ALTA se ≥ 3 dos 4 canais. A ideia original (teto de N horas) saiu antes de rodar:
+  os episódios finais duram 1,2 h na mediana (~10 h/mês de alerta) e o refratário de 48 h já faz esse papel.
+- **Resultado:**
+
+| Regra | Trips em ALTA | Fora em ALTA | FP em BAIXA | FP/mês só ALTA | h/mês ALTA |
+|---|---|---|---|---|---|
+| referência (sem prioridade) | 8/8 | 3/3 | – | 2,885 | 10,3 |
+| R1 dois modelos | **3/8** | 3/3 | 18/42 (43%) | 1,648 | 7,1 |
+| R2 ≥ 3 canais | **3/8** | 3/3 | 19/42 (45%) | 1,580 | 6,6 |
+
+- **Critério:** as duas rebaixam 5 trips → **REPROVADO**. Expectativa: acertei o veredito e o R1; errei o R2
+  (previ ~5/8).
+- **A posteriori (não vale como aprovação):** os 5 trips rebaixados são **exatamente os de dentro da amostra**.
+  Fora, R1 põe 3/3 trips em ALTA e rebaixa 12/23 FP (52%). Não é deriva: o tempo com ≥ 2 OCSVM juntos é menor
+  fora (0,94%) que dentro (1,6%). Hipótese: o trecho de 48 h antes dos trips de dentro entrou no treino como
+  normal (a exclusão em volta do alarme é de só 24 h), e os modelos aprenderam a não acender juntos ali.
+- **Decisão:** sem aprovação com esses dados. A hipótese "R1 separa trip de FP fora da amostra" vira
+  **pré-registro para a validação em dados novos** (pipeline congelada, 21/04/2026 em diante): se os trips
+  novos caírem em ALTA e ~metade dos FP em BAIXA, a prioridade R1 vale para a operação.
 
 ### 14/10/2026 — C1, retreino mensal (walk-forward) × treino único — REPROVADO
 - **Script:** `frente_ocsvm/c1_retreino.py` · pré-registro `f573a86` · tasks em `frente_ocsvm/c1_tasks.json`
