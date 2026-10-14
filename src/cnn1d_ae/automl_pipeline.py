@@ -458,6 +458,8 @@ def run_automl_group(
         exclude = exclude | long_gap_mask
     if state is not None:
         exclude = exclude | (state != "on")
+    for w_start, w_end in cfg.TRAIN_EXCLUDE_WINDOWS or []:
+        exclude = exclude | ((df_use.index >= pd.Timestamp(w_start)) & (df_use.index <= pd.Timestamp(w_end)))
 
     df_normal = df_use.loc[~exclude].copy()
     df_all = df_use.copy()

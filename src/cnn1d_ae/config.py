@@ -47,6 +47,10 @@ class PipelineConfig:
     EXCLUDE_MINUTES_AROUND_ALARM: int = 1440
     INTERPOLATE_LIMIT: int = 3
     EXCLUDE_LONG_GAPS_FROM_TRAIN: bool = True
+    # Janelas [inicio, fim] (strings de data) tiradas do normal de treino do AutoML,
+    # alem das de alarme -- ex.: o trecho antes de trips conhecidos, para o modelo
+    # nao aprender o precursor como normal. None (default) = comportamento anterior.
+    TRAIN_EXCLUDE_WINDOWS: Optional[List[List[str]]] = None
     ENABLE_DERIVED_FEATURES: bool = False
     DERIVED_ROLLING_WINDOW: int = 12
     # Lista opcional de janelas (em nº de amostras) para gerar features
