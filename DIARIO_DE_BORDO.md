@@ -113,7 +113,7 @@ modelos (C).
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | a fazer |
-| **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | pré-registrado 14/10 (`c1_retreino.py`): c0 × c1, filtro de 4,5 min desligado nos dois, percentil fixo |
+| **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
 
@@ -130,6 +130,30 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 14/10/2026 — C1, retreino mensal (walk-forward) × treino único — REPROVADO
+- **Script:** `frente_ocsvm/c1_retreino.py` · pré-registro `f573a86` · tasks em `frente_ocsvm/c1_tasks.json`
+  (6 no Cica, 3 em paralelo por braço com a fila vazia). Os 3 grupos por sinal continuam separados (1 OCSVM por
+  grupo). Filtro de 4,5 min desligado nos dois braços (o `src/` proíbe esse filtro junto com o walk-forward).
+  Percentil e debounce fixos nos de produção. Comparação **fora da amostra**, porque o walk-forward só pontua
+  a partir de 01/07/2025.
+- **Resultado:**
+
+| Braço | Trips fora | Banda 4 h | Antecedência (h) | Episódios FP fora | FP/mês fora | Duty temp · vib · óleo |
+|---|---|---|---|---|---|---|
+| produção | 3/3 | 2/3 | 13,7 · 8,4 · 3,8 | 23 | 2,877 | 0,021 · 0,140 · 0,004 |
+| c0 (treino único, sem filtro 4,5 min) | 3/3 | 2/3 | 13,7 · 8,4 · 3,8 | 23 | 2,877 | 0,023 · 0,144 · 0,004 |
+| c1 (walk-forward mensal) | **2/3** | 2/3 | 13,7 · 8,4 · **–** | **26** | **3,252** | 0,024 · **0,072** · 0,003 |
+
+- **Critério:** c1 perde 26/02/2026 e tem 3 episódios de FP a **mais** → **REPROVADO**.
+- **Expectativa × resultado:** errei a direção. Previ efeito nulo (±2 episódios); o retreino mensal piora.
+- **Leitura:** o retreino mensal corta à metade o duty da vibração fora da amostra (14,4% → 7,2%). Com isso
+  some a coincidência que pegava o trip mais tardio (26/02, 3,8 h), e o FP não cai: os episódios de FP não
+  vinham do excesso de vibração. O −19% pontual do EXP10c não se transfere para a camada de decisão por canal.
+  c0 = produção, ponto a ponto no nível de episódio: o filtro de 4,5 min por canal é redundante (confirma a seção 3).
+- **Decisão:** retreino mensal fica fora. Junto com o A4 (o corte do treino muda o resultado), o retreino da
+  pipeline é um risco operacional e não uma alavanca de FP: retreinar exige revalidar os 8 trips antes de trocar
+  o modelo. Restam C2 (iforest como voto extra), C3 (limiares dos portões por LOEO) e B3 (priorização).
 
 ### 14/10/2026 — A4 secundário, data de corte do treino (sp0501, sp0901) — FRÁGIL AO CORTE
 - **Script:** `frente_ocsvm/a4_variabilidade.py` (configs pré-registradas em `5728fe4`), semente 42, só

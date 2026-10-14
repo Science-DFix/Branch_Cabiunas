@@ -30,6 +30,18 @@ Se APROVADO, o próximo passo é retreino mensal com o AutoML livre (o caso de p
 EXPECTATIVA REGISTRADA. REPROVADO por efeito nulo: 3/3 mantido, FP fora do c1 a até ±2 episódios do c0. Os ~19%
 pontuais do EXP10c se diluem no voto com o canal 4 e no refratário de 48 h. O c0 fica a até ±2 episódios da produção.
 
+RESULTADO (14/10/2026, tasks em frente_ocsvm/c1_tasks.json) -- REPROVADO:
+    rep   det_fora  banda  lead fora (h)    FP_fora  FP/mês fora  duty fora temp vib óleo
+    prod  3/3       2/3    13,7 8,4 3,8     23       2,877        0,021 0,140 0,004
+    c0    3/3       2/3    13,7 8,4 3,8     23       2,877        0,023 0,144 0,004
+    c1    2/3       2/3    13,7 8,4 --      26       3,252        0,024 0,072 0,003
+  · c1 x c0: perde 26/02/2026 (o trip de antecedência mais curta, 3,8 h) e soma 3 episódios de FP (+13%).
+  · O retreino mensal corta à METADE o duty da vibração fora da amostra (14,4% -> 7,2%), e mesmo assim o FP sobe.
+    O ganho pontual do EXP10c (-19%) não sobrevive à camada de decisão por canal.
+  · c0 x prod: tirar o filtro de 4,5 min não muda nada no nível de episódio (mesmos 23 FP, mesmos leads),
+    o que confirma a seção 3 (filtro redundante).
+  · Expectativa: errei a direção. Previ efeito nulo; o retreino mensal PIORA (perde trip e soma FP).
+
 Uso:
   python frente_ocsvm/c1_retreino.py gera                # escreve as configs (commitar e dar push)
   python frente_ocsvm/c1_retreino.py envia --so c0       # clona as tasks de produção e enfileira um braço
