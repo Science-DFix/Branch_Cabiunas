@@ -109,7 +109,7 @@ modelos (C).
 | **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | **feito 10/10** |
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
-| **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **em execução, versão reduzida (13/10)**: 1 task por vez, para no 1º FRÁGIL; envio de 10/10 cancelado |
+| **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **feito 14/10: ROBUSTO** (5 sementes: 8/8, FP/mês 2,82–2,95); splits adiados |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | a fazer |
@@ -130,6 +130,31 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 14/10/2026 — A4, variabilidade de treino (5 sementes) — ROBUSTO
+- **Script:** `frente_ocsvm/a4_variabilidade.py` · pré-registro `5728fe4` · redução `c0fff2d` · tasks em
+  `frente_ocsvm/a4_tasks.json` (15 tasks no Cica, 3 em paralelo por réplica com a fila vazia, ~50 min cada).
+- **Resultado** (camada de decisão de referência: canal 4 com 5 tags/24 h, voto ≥ 2, 45 min, 48 h):
+
+| Réplica | Trips | Fora (3) | Banda 4 h | FP/mês | AutoML temp · vib · óleo |
+|---|---|---|---|---|---|
+| produção (semente 42) | 8/8 | 3/3 | 7/8 | 2,885 | p97,5/d1 · p95/d4 · p99,9/d12 |
+| s43 | 8/8 | 3/3 | 7/8 | 2,953 | p97,5/d1 · p95/d4 · p99,5/d12 |
+| s44 | 8/8 | 3/3 | 7/8 | 2,816 | idem |
+| s45 | 8/8 | 3/3 | 7/8 | 2,885 | idem |
+| s46 | 8/8 | 3/3 | 7/8 | 2,816 | idem |
+| s47 | 8/8 | 3/3 | 7/8 | 2,953 | idem |
+
+- **Critério:** as 5 sementes ≥ 7/8 e FP/mês em 2,30–3,46 → **ROBUSTO** (mín. 8/8; FP/mês 2,816–2,953,
+  ±2,4% da produção). Os três valores de FP/mês distam ~0,069 entre si, ou seja, **±1 episódio** em 14,5 meses.
+- **Expectativa × resultado:** errei. Previ FRÁGIL (mediana 7/8, alguma semente ≤ 6/8, perda de 27/02 ou
+  17/03). Acertei só que o AutoML troca de percentil: o óleo foi p99,5 nas 5 sementes (a produção, p99,9, é
+  a exceção), sem efeito na detecção. Duty dos canais quase idêntico (temp 0,022–0,024; vib 0,101–0,105).
+- **Leitura:** a semente da subamostra de 50 mil não move o resultado; o ruído de treino dos OCSVM é ~1
+  episódio de FP. O que sustenta o 8/8 continua sendo a seleção das tags do canal 4 (A3), não o treino.
+- **Decisão:** C1–C3 podem ser julgados com **uma semente por braço**; efeito mínimo crível ≈ 2 episódios
+  (~0,14 FP/mês, ~5%). Os splits (sp0501, sp0901, secundário) ficam **adiados** por decisão do usuário em
+  13/10 (seis tasks para pergunta secundária); o próximo uso do Cica é o C1.
 
 ### 11–13/10/2026 — A4, envio de 10/10 cancelado; retomado em versão reduzida
 - **10/10:** as 21 tasks foram enfileiradas de uma vez e ocuparam os 4 workers do Cica, deixando tasks da
