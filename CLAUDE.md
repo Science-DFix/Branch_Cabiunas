@@ -4,119 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CNN-1D Autoencoder pipeline for anomaly detection in time-series sensor data (Cabiunas/Petrobras), integrated with ClearML for dataset versioning, experiment tracking, and remote execution via ClearML Agent.
+Detecção de precursores de trip da turbina TC-33003A (Cabiúnas/Petrobras) com uma pipeline de **OCSVM por grupo de
+sinal**, integrada ao ClearML (dataset, tracking e execução remota no Cica).
 
-- **ClearML project**: `TesteMLCab`
-- **ClearML dataset**: `Cabiunas 2025` (ID: `e2765c3eef2349cda5f5cbcb0fcd5a40`)
-- **Remote queue**: `default`
-- **Docker image**: `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime`
+- **Pipeline vigente:** 3 canais OCSVM isolados, um por grupo de sinal (EXP33 temperatura de mancal, EXP34 vibração,
+  EXP38 pressão de óleo) + canal 4 de proximidade a alarme (5 tags do catálogo, janela de 24 h). Decisão: voto ≥ 2
+  de 4, filtro de 45 min, refratário de 48 h → 8/8 trips, 2,88 FP/mês.
+- **Documento vivo:** `DIARIO_DE_BORDO.md` (estado, regras de trabalho, o que já foi testado, registro). `README.md`
+  e `docs/` são histórico de consulta.
+- **Não reintroduzir** modelo único nem o autoencoder: a arquitetura é um OCSVM por grupo de sinal. O pacote ainda se
+  chama `src/cnn1d_ae/` por herança; o caminho do AE dentro dele é legado.
+- **ClearML:** projeto `TesteMLCab`, fila `default` (4 workers compartilhados com a equipe; ver regras de envio no
+  diário, seção 5).
 
 ## Environment Setup
 
 ```bash
-source ../venv/bin/activate
-export CLEARML_CONFIG_FILE="$(pwd)/clearml.conf"
+source ../venv/bin/activate   # ou o Python com clearml/sklearn/tensorflow instalado
+export CLEARML_CONFIG_FILE="$(pwd)/clearml.conf"   # fora do Git; credenciais também valem via ~/.bashrc
 ```
-
-`clearml.conf` must exist at the project root but is excluded from Git.
 
 ## Common Commands
 
-**Run pipeline (local or submit remote):**
+**Treinar um canal (enfileira no Cica se `RUN_REMOTE=true` no config):**
 ```bash
-PYTHONPATH=. python src/main.py --config configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json
+PYTHONPATH=. python src/main.py --config configs/calibracao_v4_eq/test_grupo_exp34_mancal_vibracao_isolada.json
 ```
 
-**Run tests:**
+**Experimentos da frente OCSVM** (`frente_ocsvm/`, um script por teste, com pré-registro no docstring):
+```bash
+python frente_ocsvm/a0_reproducao.py                 # reavaliação local sobre artefatos já treinados
+python frente_ocsvm/c1_retreino.py gera|envia|avalia  # testes com treino: configs -> tasks no Cica -> régua
+```
+Código comum (camada de decisão, régua, canal 4, trips) em `frente_ocsvm/comum.py`. Dados locais em
+`frente_ocsvm/dados/` (links, fora do Git).
+
+**Testes:**
 ```bash
 PYTHONPATH=. python -m pytest tests/
-# or a single test file:
-PYTHONPATH=. python -m pytest tests/test_split_and_threshold.py
-```
-
-**Validate syntax and config:**
-```bash
-python3 -m compileall src/main.py src/cnn1d_ae
-python3 -m json.tool configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json
-```
-
-**Upload/update dataset:**
-```bash
-PYTHONPATH=. python scripts/upload_cabiunas_dataset.py --config configs/calibracao_v4_eq/record2025_tzm3_interpolado_v4_T5_AVG_A.json
-```
-
-**Generate plots from a completed ClearML task:**
-```bash
-PYTHONPATH=. python scripts/plot_task_artifacts.py --task-id <TASK_ID>
-PYTHONPATH=. python scripts/plot_task_zoom_series.py --task-id <TASK_ID>
-# --include-raw also downloads dataset to plot the raw time series
-```
-
-**Start remote ClearML worker:**
-```bash
-clearml-agent daemon --queue default
 ```
 
 ## Architecture
 
 ### Execution Flow
 
-`src/main.py` is the entrypoint. It:
-1. Loads a JSON config into `PipelineConfig` (a dataclass in `src/cnn1d_ae/config.py`)
-2. Initializes a ClearML `Task`, connects config parameters, sets docker image
-3. If `RUN_REMOTE=true` and running locally, calls `task.execute_remotely()` — the local process exits and the worker picks it up from Git
-4. Otherwise calls `pipeline.run(cfg)` which iterates over all discovered sensors
+`src/main.py` carrega o JSON em `PipelineConfig` (`src/cnn1d_ae/config.py`), cria a task do ClearML e, se
+`RUN_REMOTE=true` e rodando local, chama `task.execute_remotely()` (o worker clona o repo e roda o commit). O `cfg`
+vem sempre do JSON de `Args/config`; o painel `pipeline_config` do ClearML é só registro.
 
-### Per-Sensor Pipeline (`src/cnn1d_ae/pipeline.py: run_one_sensor`)
+Com `ENABLE_AUTOML=true` e `SENSOR_GROUPS`, `pipeline.run()` chama `automl_pipeline.run_automl_group` para cada grupo:
+1. Monta o normal de treino (exclui janelas de alarme e buracos longos), clipa outliers, normaliza só com o treino
+2. Treina o OCSVM (subamostra de `AUTOML_OCSVM_MAX_TRAIN_SAMPLES`, semente `RANDOM_SEED`) com dados antes de
+   `AUTOML_OOS_SPLIT_DATE`
+3. AutoML escolhe percentil de limiar × debounce pelo desempenho nos alarmes depois do split
+4. Aplica máscara operacional, filtro de duração e portões (carga, degrau, sensor congelado)
+5. Salva `point_anomalies_all.csv`, `best_hyperparameters.json` e relatórios como artefatos da task
 
-For each sensor the pipeline:
-1. Builds a clean DataFrame excluding alarm windows and long gaps (`preprocess.py`)
-2. Clips outliers, normalizes using train-only statistics (`zscore` or `robust`)
-3. Creates sliding-window sequences (`sequences.py: make_sequences`)
-4. Runs KerasTuner hyperparameter search (`tuning.py: run_tuner`)
-5. Refits best model and saves to `best_model/model.keras`
-6. Scores all data (including anomaly periods) via MAE reconstruction error
-7. Applies threshold (`scoring.py: compute_threshold`) and optional operational mask
-8. Maps sequence-level anomalies to point-level anomalies (`POINT_RULE`, `POINT_WINDOW`, `POINT_MIN_COUNT`)
-9. Saves CSVs, figures, and JSON reports; uploads artifacts to ClearML
+`ENABLE_WALKFORWARD_RETRAIN` retreina mês a mês (testado no C1 e reprovado).
 
 ### Key Modules
 
 | Module | Responsibility |
 |---|---|
-| `config.py` | `PipelineConfig` dataclass — all hyperparameters and paths |
-| `io.py` | Data loading (from ClearML Dataset or local paths), timezone conversion, time integrity audit |
-| `preprocess.py` | Alarm exclusion mask, outlier clipping, train-only normalization |
-| `sequences.py` | Sliding window sequence creation, train/val split (temporal or random) |
-| `model.py` | CNN-1D autoencoder architecture (KerasTuner), GPU setup |
-| `tuning.py` | KerasTuner `RandomSearch` execution, trial ranking |
-| `scoring.py` | MAE scoring, threshold modes, seq→point anomaly mapping, operational state mask |
-| `plots.py` | Loss curves, MAE histograms, series+anomaly overlays, alarm comparison subplots |
-
-### Output Structure
-
-Each sensor produces an output directory (`OUTPUT_DIR_TEMPLATE`, default `OUTPUT_CNN1D_AE_{sensor}` under `OUTPUT_ROOT`):
-```
-OUTPUT_CNN1D_AE_<sensor>/
-  tuner/               # KerasTuner trial artifacts
-  best_model/          # model.keras + best_hyperparameters.json
-  figs/                # loss_curve, train_mae_hist, series_with_anomalies, series_alarm_anomaly_subplots
-  csv/                 # run_config.json, trials_ranking.csv, sequence_scores_all.csv,
-                       # point_anomalies_all.csv, calibration_report.json, evaluation_alarm_hit_rate.json
-```
-
-### Config System
-
-All pipeline behavior is driven by JSON configs in `configs/`. Keys map directly to `PipelineConfig` fields. Two config families exist:
-- `calibracao_v3_on/` — operational mask enabled (`ENABLE_OPERATIONAL_MASK: true`)
-- `calibracao_v4_eq/` — equalized calibration configs
-
-`RUN_REMOTE: true` in a config causes the local process to enqueue the task for the ClearML worker. The worker clones the repo from Git and runs with `USE_CLEARML_DATASET: true` to pull data from ClearML.
+| `config.py` | `PipelineConfig` — todos os parâmetros |
+| `io.py` | Leitura de dados (ClearML Dataset ou local), fuso, auditoria de tempo |
+| `preprocess.py` | Máscara de alarme, clipping, normalização só com treino, estado operacional |
+| `automl_models.py` | Fitters: `ocsvm` (vigente), `iforest`, `dense` |
+| `automl_pipeline.py` | `run_automl_group`: treino por grupo, AutoML de limiar/debounce, walk-forward |
+| `scoring.py` | Limiar, seq→ponto, portões, voto entre canais, refratário, episódios e régua |
+| `pipeline.py` | `run()`: despacha para AutoML/supervisionado; o resto é o caminho legado do AE |
 
 ### Time Handling
 
-All timestamps are normalized to UTC-naive on load (`io.py`). Source data is `America/Sao_Paulo`. The `APPLY_HOUR_SHIFT` + `SHIFT_HOURS` parameters handle edge cases where raw data has an additional offset (e.g., `SHIFT_HOURS: -3` for `tzm3` datasets).
-
-### Parallel Sensor Execution
-
-`N_WORKERS > 1` spawns a `ProcessPoolExecutor`. Each worker reloads all data independently (required because TensorFlow/Keras cannot be forked cleanly). Keep `N_WORKERS=1` for debugging.
+Timestamps são normalizados para UTC naive na leitura (`io.py`).

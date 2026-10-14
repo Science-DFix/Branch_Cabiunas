@@ -2,7 +2,7 @@
 
 > **Frente OCSVM (10/10/2026 em diante): o documento vivo é o [`DIARIO_DE_BORDO.md`](DIARIO_DE_BORDO.md).** O restante deste README e `docs/` são histórico de consulta.
 
-Pipeline CNN-1D Autoencoder para deteccao de anomalias em series temporais de Cabiunas, integrado ao ClearML para versionamento de dataset, tracking de tasks e execucao remota via ClearML Agent.
+Pipeline de deteccao de anomalias em series temporais de Cabiunas com um OCSVM por grupo de sinal (temperatura, vibracao, oleo) + canal de alarme, integrado ao ClearML para versionamento de dataset, tracking de tasks e execucao remota via ClearML Agent. O caminho CNN-1D Autoencoder que deu nome ao pacote `src/cnn1d_ae/` e legado.
 
 ## ClearML
 

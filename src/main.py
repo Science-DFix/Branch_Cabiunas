@@ -120,7 +120,7 @@ def main():
         d["CLEARML_DATASET_ID"] = dataset_id
 
     project_name = cfg.CLEARML_PROJECT_NAME
-    task_name = f"cnn1d-ae::{path.stem}"
+    task_name = f"{'automl' if cfg.ENABLE_AUTOML else 'cnn1d-ae'}::{path.stem}"
     task = Task.init(
         project_name=project_name,
         task_name=task_name,
