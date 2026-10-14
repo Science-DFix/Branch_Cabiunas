@@ -113,7 +113,7 @@ modelos (C).
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | **feito 14/10: REPROVADO** (R1/R2 rebaixam os 5 trips de dentro; fora 3/3 em ALTA, hipótese para dados novos) |
-| **A5** | Descontaminação do treino | tirar [T−72 h, T+24 h] dos trips do normal de treino faz os trips de dentro virarem coincidência de 2 OCSVM (R1)? | **sim (Cica)** | pré-registrado 14/10 (`a5_descontaminacao.py`) |
+| **A5** | Descontaminação do treino | tirar [T−72 h, T+24 h] dos trips do normal de treino faz os trips de dentro virarem coincidência de 2 OCSVM (R1)? | **sim (Cica)** | **feito 14/10: REFUTA** (1/5 dentro em ALTA; FP/mês 2,88 → 3,50) |
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
@@ -131,6 +131,28 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 14/10/2026 — A5, treino sem [T−72 h, T+24 h] dos trips — REFUTA a hipótese do B3
+- **Script:** `frente_ocsvm/a5_descontaminacao.py` · pré-registro `1996465` · 3 tasks no Cica · chave nova
+  `TRAIN_EXCLUDE_WINDOWS` no `src/` (desligada por padrão). Percentil e debounce fixos nos de produção.
+- **Conferência antes:** as 72 h antes dos 5 trips de dentro estavam ~100% no normal de treino (11/04: 29% em
+  temp/vib); as dos 3 de fora, 0%.
+
+| | Trips | Banda 4 h | FP/mês | Duty vib | R1: dentro em ALTA | R1: fora em ALTA | FP em BAIXA |
+|---|---|---|---|---|---|---|---|
+| produção | 8/8 | 7/8 | 2,885 | 0,105 | 0/5 | 3/3 | 18/42 |
+| A5 | 8/8 | 7/8 | **3,503** | 0,147 | **1/5** | 3/3 | 24/51 |
+
+- **Critério:** 1/5 → **REFUTA**. Expectativa errada (previ 3/5).
+- **Leitura:** tirar o precursor do treino não faz os trips de dentro virarem coincidência de 2 modelos. O
+  efeito que aparece é colateral: o limiar (percentil do erro de treino) desce, a vibração acende mais e o FP
+  sobe 21%. O padrão dentro × fora do B3 continua sem explicação (o tipo de trip não basta: fora há 2 de óleo e
+  1 de mancal, todos em ALTA).
+- **Contexto descoberto no mesmo dia:** o pacote de produção (detector PCA de 4 sinais, `cabiunas-models`)
+  já exclui ±7 d em volta dos trips conhecidos, mas só da referência rolante da vibração, e retreina todo mês.
+  A OCSVM herdou do PCA só o voto ≥ 2 e o refratário de 48 h.
+- **Decisão:** não adotar a exclusão no treino da OCSVM. Próximo: levantar quais regras do detector PCA a OCSVM
+  não herdou e testar a OCSVM com elas.
 
 ### 14/10/2026 — B3, prioridade ALTA/BAIXA por composição do episódio — REPROVADO (com hipótese fora da amostra)
 - **Script:** `frente_ocsvm/b3_priorizacao.py` · pré-registro `1f463bf` · local, sem treino.

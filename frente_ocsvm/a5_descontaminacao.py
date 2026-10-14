@@ -34,6 +34,17 @@ EXPECTATIVA REGISTRADA. CONFIRMA parcial: 3/5 dentro em ALTA (11/04 fica de fora
 treino de temp/vib e o efeito ali deve ser pequeno), fora 3/3. Na pipeline de referência, 8/8 mantido e FP/mês a
 até ±10% de 2,88: os modelos ficam um pouco mais sensíveis, mas só perto dos trips.
 
+RESULTADO (14/10/2026, tasks em frente_ocsvm/a5_tasks.json) -- REFUTA:
+    rep   det  fora  banda  FP/mês  duty temp vib óleo   lead por trip (h)                        R1 dentro  R1 fora  FP BAIXA
+    prod  8/8  3/3   7/8    2,885   0,023 0,105 0,005    33,8 31,2 43,2 19,8 36,7 13,7  8,4 3,8   0/5        3/3      18/42
+    a5    8/8  3/3   7/8    3,503   0,025 0,147 0,007    33,8 31,2 31,7 19,8 12,4 13,7 23,4 3,8   1/5        3/3      24/51
+  · Só 1 dos 5 trips de dentro vira coincidência de 2 modelos: a contaminação do treino NÃO explica o padrão do B3.
+  · Efeito colateral: sem as janelas, o limiar (percentil do erro de treino) desce e a vibração acende mais
+    (duty 10,5% -> 14,7%); FP/mês sobe 21% (42 -> 51 episódios). Detecção e banda iguais.
+  · Expectativa: errei (previ CONFIRMA parcial, 3/5).
+  · A posteriori: o tipo de trip não explica sozinho -- fora há 2 de óleo (04/11, 26/02) e 1 de temperatura de
+    mancal (09/12), e os 3 ficam em ALTA; dentro há 4 de temperatura de mancal e 1 de selo.
+
 Uso:
   python frente_ocsvm/a5_descontaminacao.py gera      # escreve as configs (commitar e dar push)
   python frente_ocsvm/a5_descontaminacao.py envia     # clona as 3 tasks de produção e enfileira
