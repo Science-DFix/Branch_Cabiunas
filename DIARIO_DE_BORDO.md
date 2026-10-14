@@ -109,7 +109,7 @@ modelos (C).
 | **A1** | Avaliação dentro × fora da amostra | quanto do 8/8 está nos 3 trips depois do split? | não | **feito 10/10** |
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
-| **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **feito 14/10: ROBUSTO** (5 sementes: 8/8, FP/mês 2,82–2,95); splits adiados |
+| **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **feito 14/10: ROBUSTO à semente** (8/8, FP/mês 2,82–2,95); **FRÁGIL ao corte** (sp0501 4/8; sp0901 8/8) |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | a fazer |
@@ -130,6 +130,29 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 14/10/2026 — A4 secundário, data de corte do treino (sp0501, sp0901) — FRÁGIL AO CORTE
+- **Script:** `frente_ocsvm/a4_variabilidade.py` (configs pré-registradas em `5728fe4`), semente 42, só
+  `AUTOML_OOS_SPLIT_DATE` muda. 6 tasks no Cica, 3 em paralelo por réplica com a fila vazia; ids em
+  `frente_ocsvm/a4_tasks.json`. Liberadas pelo usuário em 14/10 ("faça split").
+- **Resultado** (mesma camada de decisão de referência; "fora" ainda contado com o corte de 01/07/2025):
+
+| Réplica | Trips | Banda 4 h | FP/mês | Duty temp · vib · óleo | AutoML temp · vib · óleo | Perde |
+|---|---|---|---|---|---|---|
+| produção (01/07/2025) | 8/8 | 7/8 | 2,885 | 0,023 · 0,105 · 0,005 | p97,5/d1 · p95/d4 · p99,9/d12 | – |
+| sp0501 (01/05/2025) | **4/8** | 3/8 | **3,297** | 0,023 · **0,010** · **0,063** | p97,5/d1 · **p99,5/d1** · p99,5/d12 | 27/02/25, 07/04/25, 29/04/25, 04/11/25 |
+| sp0901 (01/09/2025) | 8/8 | 7/8 | 3,022 | 0,022 · 0,078 · 0,008 | p97,5/d1 · p95/d4 · p99,5/d12 | – |
+
+- **Expectativa × resultado:** acertei ("pelo menos um dos dois ≤ 6/8"): sp0501 cai para 4/8.
+- **Leitura:** a fragilidade é de um lado só. Com o corte em 01/05/2025 o AutoML da vibração troca p95/d4
+  por p99,5/d1 e o canal quase se cala (duty 10% → 1%); o óleo, com o mesmo percentil, sobe de 0,8% para
+  6,3% (limiar tirado de outro trecho de treino). Sem a vibração, o voto ≥ 2 perde as coincidências que
+  pegavam 4 trips, e o óleo ruidoso sobe o FP. Cortando mais tarde (01/09) nada muda além de +2 episódios
+  de FP (3,02, perto do efeito mínimo crível). O 8/8 depende de o AutoML da vibração escolher p95/d4, e
+  essa escolha não é estável quando a janela de calibração encolhe.
+- **Decisão:** A4 fecha como **robusto à semente, frágil ao corte**. Para C1 (retreino mensal), esse é o
+  risco central: cada retreino reescolhe os hiperparâmetros do AutoML, e um corte "ruim" derruba a vibração.
+  Registrar em cada braço do C1 o percentil/debounce escolhido por canal, não só det e FP/mês.
 
 ### 14/10/2026 — A4, variabilidade de treino (5 sementes) — ROBUSTO
 - **Script:** `frente_ocsvm/a4_variabilidade.py` · pré-registro `5728fe4` · redução `c0fff2d` · tasks em
