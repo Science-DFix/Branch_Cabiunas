@@ -1,0 +1,40 @@
+t,duracao_h,rodando_h,critico,curado,alarmes,ocsvm_48h
+2024-09-17 23:00:30,156.4,436.6,False,,,True
+2024-09-24 21:44:00,19.9,11.3,False,,,False
+2024-09-25 20:36:30,6.2,5.9,False,,,True
+2024-10-04 11:34:30,25.6,201.8,False,,,False
+2024-10-06 23:31:00,42.3,35.4,False,,,False
+2024-10-19 22:53:00,71.0,270.1,False,,"PI_6240319_AL (TC_33003A - Falha PI Gás Motor p/Partida, LOW)",True
+2024-11-15 13:25:00,27.7,568.8,False,,,False
+2024-11-19 01:54:00,539.0,57.8,False,,,False
+2024-12-31 02:56:00,191.6,471.0,False,,,False
+2025-01-08 14:58:00,146.4,13.4,False,,,False
+2025-01-21 08:33:30,75.8,160.2,False,,,True
+2025-02-20 09:14:00,18.0,645.9,False,,"PDIT_6240305_AL (TC_33003A - Falha PDI Vazam. Selo Prim., LOW)",False
+2025-02-27 08:38:00,5.5,150.4,True,27/02/2025,"PDAH_6240305 (TC_33003A -Pr.Dif.Alta Vaz.Selo Primário, MEDIUM); PDIT_6240305_AL (TC_33003A - Falha PDI Vazam. Selo Prim., LOW); PDAHH6240305 (TC_33003A Pr.Dif.Mt.Alta Vaz. Selo Prim., HIGH); PI_6240319_AL (TC_33003A - Falha PI Gás Motor p/Partida, LOW)",True
+2025-03-06 17:26:30,54.5,172.4,False,,,False
+2025-03-17 18:15:30,7.2,211.4,True,17/03/2025,"TAH_6240305 (TC_33003A - Temp.Alta Mancal Rad.LNA CP, MEDIUM); TAHH_6240305 (TC_33003A - Temp.Mt.Alta Manc.Rad.LNA CP, HIGH)",True
+2025-04-02 05:18:30,5.6,364.8,False,,"PAL_6240339 (TC_33003A - Pressão Bx. Header Óleo Lub., LOW); PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",True
+2025-04-07 21:18:00,19.3,131.9,True,07/04/2025,"TAH_6240305 (TC_33003A - Temp.Alta Mancal Rad.LNA CP, MEDIUM); TAHH_6240305 (TC_33003A - Temp.Mt.Alta Manc.Rad.LNA CP, HIGH)",True
+2025-04-11 17:03:00,42.4,73.5,True,11/04/2025,"TAH_6240305 (TC_33003A - Temp.Alta Mancal Rad.LNA CP, MEDIUM); TAHH_6240305 (TC_33003A - Temp.Mt.Alta Manc.Rad.LNA CP, HIGH)",True
+2025-04-19 16:25:00,26.4,150.0,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW); PI_6240319_AL (TC_33003A - Falha PI Gás Motor p/Partida, LOW); PAL_6240315 (TC_33003A - Pressão Baixa Gás Comb., LOW)",True
+2025-04-21 17:47:00,16.0,24.0,False,,,True
+2025-04-25 09:33:30,17.0,72.8,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
+2025-04-29 03:03:30,565.9,79.0,True,29/04/2025,"TAH_6240305 (TC_33003A - Temp.Alta Mancal Rad.LNA CP, MEDIUM); PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW); TAHH_6240305 (TC_33003A - Temp.Mt.Alta Manc.Rad.LNA CP, HIGH)",True
+2025-06-03 04:45:30,302.3,277.5,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
+2025-06-18 14:25:00,12.9,68.4,False,,"PI_6240319_AL (TC_33003A - Falha PI Gás Motor p/Partida, LOW)",True
+2025-06-30 14:38:00,10.9,276.4,False,,"PI_6240319_AL (TC_33003A - Falha PI Gás Motor p/Partida, LOW); PAL_6240315 (TC_33003A - Pressão Baixa Gás Comb., LOW)",False
+2025-07-31 09:47:30,13.1,730.7,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
+2025-08-19 11:17:00,96.3,445.4,False,,,True
+2025-08-24 14:01:00,8.3,27.5,False,,,True
+2025-10-21 05:24:00,14.0,1376.1,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",True
+2025-10-31 09:43:00,78.4,234.3,False,,,False
+2025-11-04 06:22:30,279.2,15.3,True,04/11/2025,"PALL_6240309 (TC_33003A -TRIP-Pr.Mt.Bx.Óleo Lub. Comp., HIGH); PAL_6240339 (TC_33003A - Pressão Bx. Header Óleo Lub., LOW); PALL_6240340 (TC_33003A - TRIP-Pr.Mt.Bx. Hd. Óleo Lub., HIGH)",True
+2025-11-24 09:21:30,44.0,205.2,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW); PAL_6240339 (TC_33003A - Pressão Bx. Header Óleo Lub., LOW)",False
+2025-11-27 00:22:00,110.1,20.0,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",True
+2025-12-09 08:36:00,8.8,187.2,True,09/12/2025,"TAH_6240305 (TC_33003A - Temp.Alta Mancal Rad.LNA CP, MEDIUM); TAHH_6240305 (TC_33003A - Temp.Mt.Alta Manc.Rad.LNA CP, HIGH); PAL_6240315 (TC_33003A - Pressão Baixa Gás Comb., LOW)",True
+2026-01-23 17:48:00,138.3,1081.4,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
+2026-02-26 15:34:00,6.7,676.5,True,26/02/2026,"PAL_6240339 (TC_33003A - Pressão Bx. Header Óleo Lub., LOW); PALL_6240309 (TC_33003A -TRIP-Pr.Mt.Bx.Óleo Lub. Comp., HIGH); PALL_6240340 (TC_33003A - TRIP-Pr.Mt.Bx. Hd. Óleo Lub., HIGH)",True
+2026-03-02 09:39:30,169.8,84.4,False,,"PAL_6240315 (TC_33003A - Pressão Baixa Gás Comb., LOW); PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
+2026-03-29 14:28:00,80.6,484.0,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
+2026-04-04 08:55:30,93.9,58.9,False,,"PDAL_6240302 (TC_33003A - PrDif.Bx.Gás Linha Balanc., LOW)",False
