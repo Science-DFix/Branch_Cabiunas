@@ -114,6 +114,7 @@ modelos (C).
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | **feito 14/10: REPROVADO** (R1/R2 rebaixam os 5 trips de dentro; fora 3/3 em ALTA, hipótese para dados novos) |
 | **A5** | Descontaminação do treino | tirar [T−72 h, T+24 h] dos trips do normal de treino faz os trips de dentro virarem coincidência de 2 OCSVM (R1)? | **sim (Cica)** | **feito 14/10: REFUTA** (1/5 dentro em ALTA; FP/mês 2,88 → 3,50) |
+| **B5** | FP como "alarme antecipado" | os episódios de FP antecedem alarme novo do catálogo (48 h) mais que o acaso? (pipeline retreinada do zero) | **sim (Cica)** | **feito 14/10: NULO** (0,70x todas · 1,07x sem canal 4; HIGH vazio por construção) |
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
@@ -131,6 +132,29 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 14/10/2026 — B5, FP como "alarme antecipado" (pipeline retreinada do zero) — NULO
+- **Script:** `frente_ocsvm/b5_alarme_antecipado.py` · pré-registro `e830050` · 3 tasks novas no Cica com os
+  configs de produção sem mudança (AutoML livre, semente 42), a pedido do usuário ("fazer todo o processo").
+- **Ideia (do usuário):** aceitar os FP e rever a contagem. Um FP que antecede um alarme real ainda não ativo
+  seria "alarme antecipado", não falso.
+- **Reprodução:** o AutoML escolheu os mesmos hiperparâmetros e a pipeline nova dá exatamente a produção (8/8,
+  banda 7/8, 42 FP, mesmos leads).
+- **Teste:** alarme novo = tag que vai a ACT em (s, s + 48 h] sem ter ido em [s − 24 h, s]; acaso = mesma regra
+  em instantes de 5 min elegíveis a FP (on, sem trip nem parada ≥ 2 h nas 48 h seguintes). Válido se ≥ 1,5x e
+  p < 0,05/3.
+
+| Recorte | FP com alarme novo | Acaso | Enriquecimento | p | |
+|---|---|---|---|---|---|
+| todas as tags | 14/42 (33%) | 47,6% | 0,70 | 0,98 | NULO |
+| HIGH/LOLO | 0/42 | 0,0% | — | — | NULO (vazio por construção) |
+| sem as 5 do canal 4 | 7/42 (17%) | 15,6% | 1,07 | 0,49 | NULO |
+
+- **Leitura:** os FP não antecipam alarme além do acaso; com todas as tags ficam até abaixo dele. O recorte HIGH é
+  vazio porque 252/266 ativações HIGH/LOLO ocorrem com a máquina já parada: acompanham paradas, que a régua já
+  conta como "inconclusivo". Expectativa certa (NULO nos 3).
+- **Decisão:** a 4ª classe não se sustenta; os 2,885 FP/mês continuam sendo FP. Com B1–B5 e C1, a camada de
+  decisão e a régua estão esgotadas com a informação disponível.
 
 ### 14/10/2026 — A5, treino sem [T−72 h, T+24 h] dos trips — REFUTA a hipótese do B3
 - **Script:** `frente_ocsvm/a5_descontaminacao.py` · pré-registro `1996465` · 3 tasks no Cica · chave nova

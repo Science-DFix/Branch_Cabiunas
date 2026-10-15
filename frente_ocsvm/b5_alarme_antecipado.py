@@ -34,6 +34,21 @@ EXPECTATIVA REGISTRADA. NULO nos 3. O catálogo tem ~2,9 ativações por dia no 
 saturam (acaso >= 60%) e não há espaço para 1,5x; "critico" pode chegar perto de 1,5x, mas com 42 FP não passa
 no Bonferroni.
 
+RESULTADO (14/10/2026, tasks em frente_ocsvm/b5_tasks.json) -- NULO NOS 3:
+  · Reprodução: o AutoML escolheu os mesmos hiperparâmetros (p97,5/d1, p95/d4, p99,9/d12) e a pipeline nova dá
+    EXATAMENTE a produção: 8/8, banda 7/8, 42 FP (2,885/mês), mesmos leads. O teste vale igual para as duas.
+    recorte   FP com alarme novo   acaso (93.956 instantes)   enriq.   p       veredito
+    todas     14/42 (33%)          47,6%                      0,70     0,98    NULO
+    critico    0/42                 0,0%                      --       1,00    NULO (vazio por construção)
+    sem_c4     7/42 (17%)          15,6%                      1,07     0,49    NULO
+  · Os FP não antecipam alarme além do acaso. Em "todas", ficam ABAIXO do acaso (0,70x): o modelo tende a
+    acender depois de alarmes recentes (que a regra do "novo" descarta), não antes de alarmes novos.
+  · "critico" é vazio por construção, não por bug: 252 das 266 ativações HIGH/LOLO do período ocorrem com a
+    máquina já parada (off_longo). Elas acompanham paradas, que a régua já trata como "inconclusivo"; nenhum
+    instante elegível (sem parada nas 48 h seguintes) fica a menos de 49 h delas. Deveria ter visto isso antes.
+  · Expectativa: acertei o veredito (NULO nos 3); "todas" ficou abaixo, e não perto, de 1x.
+  · Decisão: a 4ª classe "alarme antecipado" não se sustenta. Os 2,885 FP/mês continuam sendo FP.
+
 Uso:
   python frente_ocsvm/b5_alarme_antecipado.py envia --so temp   # clona a task de produção do canal e enfileira
   python frente_ocsvm/b5_alarme_antecipado.py avalia            # baixa os artefatos novos e aplica o teste
