@@ -41,8 +41,10 @@ CONF = ("CONFIRMADO real (forte)", "confirmado real (moderado)")
 
 
 def sensores() -> pd.DataFrame:
-    from clearml import Dataset
-    raiz = Dataset.get(dataset_id="a97ba56ba14840fbb1125c2a82f883c9").get_local_copy()
+    raiz = os.path.expanduser("~/.clearml/cache/storage_manager/datasets/ds_a97ba56ba14840fbb1125c2a82f883c9")
+    if not os.path.exists(os.path.join(raiz, "sensores_full_2024_2026_30s.csv")):  # sem cache: baixa do ClearML
+        from clearml import Dataset
+        raiz = Dataset.get(dataset_id="a97ba56ba14840fbb1125c2a82f883c9").get_local_copy()
     df = pd.read_csv(os.path.join(raiz, "sensores_full_2024_2026_30s.csv"), usecols=["data_datetime"] + COLS)
     df["data_datetime"] = pd.to_datetime(df["data_datetime"], errors="coerce")
     df = df.dropna(subset=["data_datetime"]).set_index("data_datetime").sort_index()
