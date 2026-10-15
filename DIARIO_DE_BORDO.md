@@ -6,7 +6,7 @@ agosto e setembro continua onde está e serve de consulta, não de plano:
 | Para consultar | Onde |
 |---|---|
 | Tudo do EXP10 ao EXP39, com números e tasks | `docs/analise_automl_exp10.md` |
-| Relatório operacional (8/8, 2,88 FP/mês) | `relatorio_pipeline_operacional/relatorio_pipeline_operacional.tex` (commit `c5ec664`) |
+| Relatório operacional (8/8, 2,88 FP/mês) | `relatorio_pipeline_operacional/relatorio_pipeline_operacional.tex` (commit `c5ec664`; revisado com a seção 8 de validação em `6699db9`) |
 | EXP28 a EXP37, apêndice dos 24 isolados | `relatorio_exp28_pipeline_francisco/relatorio_exp28.tex` |
 | Eras anteriores (AutoML EXP5–EXP18, CNN EXP13, máscara) | `docs/*.md` |
 
@@ -119,6 +119,7 @@ modelos (C).
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
+| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **aprovado 15/10, aguardando o Cica voltar** (nada enviado nem pré-registrado) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -133,6 +134,42 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 15/10/2026 — D1, disputa entre modelos por grupo de sinal — PLANEJADO, PARADO (Cica fora do ar)
+- **Contexto:** depois de ler o relatório operacional com a validação (A0–A6, B1–B5, C1), o usuário perguntou
+  o que mudou. Os números não mudaram (8/8, 2,885; retreino do zero idêntico); mudou o quanto se pode confiar
+  neles: 5/8 no LOEO, 8,4 h de antecedência fora da amostra, 4/8 com outro corte ou outra grade, natureza dos
+  FP indeterminada. Minha indicação foi parar de ajustar, congelar e testar em dados novos ao lado do PCA.
+- **Decisão do usuário:** nova abordagem. Mantém 8/8 como dado e mira **reduzir FP**, com a premissa de que outro
+  modelo, sob as mesmas regras, acende menos no normal. Inclui o autoencoder: o CNN-1D AE sempre foi treinado
+  com todos os sinais juntos e sem regras; nunca foi testado por grupo de sinal com a camada de decisão.
+- **Por que a premissa é plausível:** o FP nasce da coincidência de um canal de modelo com o canal 4 (aceso
+  ~47% do tempo). O canal de vibração da OCSVM fica aceso 10,5% do tempo em operação e é o maior gerador de FP.
+- **Desenho combinado (a pré-registrar antes de enviar):**
+  - Camada de decisão e régua congeladas (voto ≥ 2, 45 min, 48 h, canal 4 com 5 tags/24 h). Todo candidato
+    roda por grupo (temp, vib, óleo), pelo mesmo caminho do AutoML (mesmo limiar por percentil do treino,
+    mesmos portões, mesmo artefato), trocando só `AUTOML_MODELS` nos 3 configs de produção.
+  - Rodada 1: `iforest` e `dense` (já implementados; só config, 6 tasks) e CNN-1D AE (fitter novo em
+    `_FITTERS` de `automl_pipeline.py`, usando `model.py`/`sequences.py`, janelas sem cruzar buracos; teste
+    local antes do Cica; 3 tasks). Rodada 2: PCA/T² por grupo (código pequeno) e treino mensal dos melhores
+    (no C1 o mensal piorou a OCSVM; no PCA ele funciona, então vale testar por modelo).
+  - Critério para trocar a OCSVM: mantém 8/8 e 3/3 fora; **≥ 25% menos FP/mês** que 2,885 (ruído entre
+    sementes ~±3%); curva trips × FP/mês igual ou melhor (traçada local a partir do `sequence_scores_all.csv`
+    que o AutoML grava); confirmação em 3 sementes. O limiar nunca é ajustado olhando os trips.
+  - Ressalva registrada: escolher entre vários modelos nos mesmos 8 trips pode repetir o otimismo do A3; o FP
+    (~42 episódios) é métrica mais estável que trips, mas o vencedor ainda precisa de dados novos.
+- **Levantamento do código:** `src/cnn1d_ae/automl_pipeline.py` despacha por `_FITTERS = {dense, ocsvm,
+  iforest}` com a interface `fitter(cfg, x_normal, x_all, n_features) -> (train_err, all_err, modelo,
+  params)`; `x_normal` é o trecho normal antes do split, `x_all` a série inteira. O caminho antigo do AE
+  (`run_one_group` em `pipeline.py`) tem limiar e portões próprios e não serve para comparação justa.
+- **Cica fora do ar (15/10, manhã):** o nome resolve e o relay do Tailscale Funnel aceita a conexão, mas o
+  TLS é encerrado sem resposta (API, web e arquivos). Na noite de 14/10 funcionava. Deixei um vigia de 5 em
+  5 min. Também neste dia: o A6 lê o CSV de sensores do cache local porque o `Dataset.get` travava.
+- **Ao retomar:** (1) conferir o Cica e a fila; (2) escrever e commitar o pré-registro do D1; (3) atualizar o
+  `CLAUDE.md` (AE volta como candidato por grupo); (4) enviar `iforest` e `dense`, 1 task por vez; (5) em
+  paralelo, local, o fitter do CNN-1D.
+- **Pendente com a equipe:** planilha `frente_ocsvm/revisao/paradas_para_revisao.xlsx` (31 paradas + 4 FP sem
+  explicação), ainda não enviada.
 
 ### 15/10/2026 — A6, controle do z-score da seção 6.2 do relatório operacional — NÃO ESPECÍFICO
 - **Script:** `frente_ocsvm/a6_controle_zscore.py` · pré-registro `60ffec6` (leitura do cache em `82d12c3`) ·
