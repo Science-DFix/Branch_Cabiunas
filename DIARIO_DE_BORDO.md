@@ -110,6 +110,7 @@ modelos (C).
 | **A2** | Nulo de acaso | quantas detecções faria um canal 4 aleatório de mesmo duty, ou os alarmes deslocados no tempo? | não | **feito 10/10: acima do acaso** |
 | **A3** | LOEO da camada de decisão | filtro, janela, tags e refratário escolhidos sem o evento ainda o pegam? | não | **feito 10/10: 5/8 (tags) · 8/8 (5 tags fixas)** |
 | **A4** | Variabilidade de treino | deslocar o split e a amostra de 50 mil muda o resultado? | **sim (Cica)** | **feito 14/10: ROBUSTO à semente** (8/8, FP/mês 2,82–2,95); **FRÁGIL ao corte** (sp0501 4/8; sp0901 8/8) |
+| **A6** | Controle do z-score do relatório (seção 6.2) | os 61,9% de FP "com sinal físico" superam janelas sorteadas de mesma duração? | não | **feito 15/10: NÃO ESPECÍFICO** (controle 96,9%) |
 | **B1** | Chattering do `PI_6240319_AL` | contar só ativações novas após silêncio mínimo reduz o duty do canal 4 sem perder trips? | não | **feito 10/10: reprovado** |
 | **B2** | Janela do canal 4 × filtro de duração | a janela de 24 h, varrida junto com os 45 min, tem ponto melhor? | não | **feito 10/10: reprovado** (−32% dentro vira −4% fora) |
 | **B3** | Priorização em vez de supressão | gestão de alarme (ativo nas primeiras N h, depois "condição conhecida") e o contexto de catálogo do EXP30/31 como prioridade | não | **feito 14/10: REPROVADO** (R1/R2 rebaixam os 5 trips de dentro; fora 3/3 em ALTA, hipótese para dados novos) |
@@ -132,6 +133,21 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 15/10/2026 — A6, controle do z-score da seção 6.2 do relatório operacional — NÃO ESPECÍFICO
+- **Script:** `frente_ocsvm/a6_controle_zscore.py` · pré-registro `60ffec6` (leitura do cache em `82d12c3`) ·
+  local, ~5 min.
+- **Pergunta:** o relatório (seção 6.2) deu 26/42 FP (61,9%) "confirmados como sinal físico" pelo pico de |z| de
+  15 sensores contra as 2 h anteriores, sem controle. Janelas sorteadas de mesma duração (on, longe de qualquer
+  episódio) dão menos?
+- **Resultado:** reprodução exata (26/42, mesmos 4 sem explicação). Controle (840 janelas): **96,9%**
+  confirmado; só janelas totalmente "on" (a posteriori): 97,3%. Diferença −35 p.p.
+- **Leitura:** o critério é satisfeito por quase qualquer trecho de operação; não discrimina. Os 61,9% não
+  sustentam que os FP sejam eventos físicos. Somado à seção 6.3 (enriquecimento real, mas 8 dos 10 alarmes vêm
+  ANTES do episódio: eco, não antecipação) e ao B5 (sem antecipação de alarme), a conclusão da seção 6.5 do
+  relatório ("FP são eventos físicos reais; não suprimir mais") fica sem sustentação. Expectativa: veredito
+  certo, magnitude errada (previ 40–55%).
+- **Decisão:** corrigir as seções 4.2, 6.2, 6.3 e 6.5 do relatório (nova seção 8, validação).
 
 ### 14/10/2026 — B5, FP como "alarme antecipado" (pipeline retreinada do zero) — NULO
 - **Script:** `frente_ocsvm/b5_alarme_antecipado.py` · pré-registro `e830050` · 3 tasks novas no Cica com os

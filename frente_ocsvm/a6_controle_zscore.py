@@ -22,6 +22,23 @@ Se a reprodução falhar (fora de 25-27), o teste para e o motivo é investigado
 EXPECTATIVA REGISTRADA. NÃO ESPECÍFICO: o controle dá entre 40% e 55% de "confirmado" (diferença < 20 p.p.),
 porque o critério mede variação de curto prazo de 15 sensores, e não algo próprio dos FP.
 
+RESULTADO (15/10/2026) -- NÃO ESPECÍFICO:
+  · Reprodução exata: 11 fortes + 15 moderados = 26/42 (61,9%), 12 borderline, 4 sem explicação (os mesmos 4 do
+    relatório: 14/01/25 17h57, 24/01/25 12h42, 21/02/25 03h27, 09/03/26 12h07).
+                    FP (42)   controle (840)
+    forte           26,2%     31,2%
+    moderado        35,7%     65,7%
+    borderline      28,6%      1,7%
+    fraco            9,5%      1,4%
+    confirmado      61,9%     96,9%     diferença -35,0 p.p., p = 1,0;  mediana do pico |z|: FP 5,3 · controle 6,9
+  · Sensibilidade (a posteriori, semente 1): só janelas com baseline e janela inteiros "on" -> 97,3% confirmado
+    no controle. Não é efeito de partida/transiente.
+  · Expectativa: acertei o veredito, errei a magnitude (previ 40-55% no controle; deu 97%).
+  · Leitura: o critério "|z| >= 3 em >= 2 de 15 sensores contra 2 h antes" é satisfeito por quase qualquer
+    trecho de operação normal. Os 61,9% do relatório não são evidência de evento físico; os FP chegam a ficar
+    ABAIXO do controle. A conclusão da seção 6.5 ("fica difícil defender que sejam ruído") perde a seção 6.2
+    como sustentação.
+
 Uso:  python frente_ocsvm/a6_controle_zscore.py
 """
 from __future__ import annotations
