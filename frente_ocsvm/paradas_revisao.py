@@ -6,6 +6,8 @@ Mesma definição da contagem de 14/10/2026: parada = passagem do estado operaci
 as outras 31 vão para revisão. Os dados e o catálogo estão no mesmo relógio (UTC); a planilha mostra também
 Brasília (UTC-3).
 
+Segundo pedido (15/10/2026): os 4 alertas (FP) sem sinal físico em nenhum sensor, para a equipe dizer o que houve.
+
 Saídas em frente_ocsvm/revisao/:
   paradas_para_revisao.xlsx   para a equipe (revisão CEGA: sem a coluna da OCSVM)
   paradas_interno.csv         as mesmas 39, com a coluna "OCSVM alertou nas 48 h antes" (só para nós)
@@ -20,10 +22,13 @@ from openpyxl.worksheet.datavalidation import DataValidation
 import comum as C
 
 SAIDA = C.AQUI / "revisao"
-OPCOES = ["Programada", "Operacional (não programada, sem falha)", "Falha de equipamento", "Não sei"]
+OPCOES = ["Programada", "Operacional não programada (sem falha)", "Falha de equipamento", "Não sei"]
 FONTE = Font(name="Arial", size=10)
 NEGRITO = Font(name="Arial", size=10, bold=True)
 AMARELO = PatternFill("solid", fgColor="FFFF00")
+SEM_EXPLICACAO = ["2025-01-14_17h57", "2025-01-24_12h42", "2025-02-21_03h27", "2026-03-09_12h07"]
+OPCOES_FP = ["Manobra ou intervenção operacional", "Problema de instrumento/sensor", "Evento de processo (sem falha)",
+             "Nada de anormal", "Não sei"]
 
 
 def paradas() -> pd.DataFrame:
@@ -59,7 +64,30 @@ def paradas() -> pd.DataFrame:
     return pd.DataFrame(L)
 
 
-def planilha(P: pd.DataFrame):
+def fp_sem_explicacao() -> pd.DataFrame:
+    """Os 4 FP sem sinal físico em nenhum sensor (relatório operacional, seção 6.2; reproduzidos no A6)."""
+    df = C.carrega_canais()
+    idx, op = df.index, df["operational_state"]
+    can = {c: df[c].astype(bool) for c in C.CANAIS}
+    cls, _ = C.avalia(C.decide(can, **{k: C.REF[k] for k in ("min_votes", "dur_min", "refrat_h")}), op, C.trips(idx))
+    a = pd.read_csv(C.DADOS / "alarmes_selecionados_turbina_a.csv")
+    a["t"] = pd.to_datetime(a["Data da Ocorrência"], errors="coerce")
+    a = a[a.Status.astype(str).str.startswith("ACT")]
+    nomes = dict(zip(C.CANAIS, ["temperatura de mancal", "vibração de mancal", "pressão de óleo",
+                                "alarme recente do catálogo (24 h)"]))
+    L = []
+    for s in SEM_EXPLICACAO:
+        r = cls[cls.start.dt.strftime("%Y-%m-%d_%Hh%M") == s].iloc[0]
+        w = (idx >= r.start) & (idx <= r.end)
+        perto = a[(a.t >= r.start - pd.Timedelta(hours=2)) & (a.t <= r.end)]
+        L.append(dict(t=r.start, fim=r.end, duracao_h=round((r.end - r.start).total_seconds() / 3600, 1),
+                      sinais=", ".join(n for c, n in nomes.items() if can[c][w].any()),
+                      alarmes="; ".join(f"{x['Tag Alarme']} ({x['Descrição Alarme']}, {x.Prioridade})"
+                                        for _, x in perto.drop_duplicates("Tag Alarme").iterrows())))
+    return pd.DataFrame(L)
+
+
+def planilha(P: pd.DataFrame, fp: pd.DataFrame):
     rev, ref = P[~P.critico].reset_index(drop=True), P[P.critico].reset_index(drop=True)
     wb = Workbook()
     ws = wb.active
@@ -70,7 +98,7 @@ def planilha(P: pd.DataFrame):
         (f"A aba 'Paradas para revisão' tem as {len(rev)} paradas em que a máquina saiu de operação sem alarme "
          "HIGH/LOLO do catálogo em ±15 min.", FONTE),
         ("Pedido: preencher as colunas amarelas (Classificação, Motivo e Fonte) de cada linha.", FONTE),
-        ("Classificação: escolher na lista (Programada / Operacional (não programada, sem falha) / "
+        ("Classificação: escolher na lista (Programada / Operacional não programada (sem falha) / "
          "Falha de equipamento / Não sei).", FONTE),
         ("Fonte: de onde veio a informação (livro de turno, nota/ordem SAP, registro de partidas e paradas, "
          "memória da equipe...).", FONTE),
@@ -79,6 +107,10 @@ def planilha(P: pd.DataFrame):
          "nas 3 h anteriores (derivado dos sinais, não de registro da operação).", FONTE),
         ("A aba 'Trips curados (referência)' mostra as 8 paradas já reconhecidas como trip, só para comparação.",
          FONTE),
+        ("", FONTE),
+        (f"Segundo pedido: a aba 'Alertas sem explicação' tem {len(fp)} alertas do modelo em que nenhum sensor mostrou "
+         "variação. A máquina seguiu operando. O que aconteceu nesses intervalos?", FONTE),
+        ("Classificação: escolher na lista (" + " / ".join(OPCOES_FP) + ").", FONTE),
         ("", FONTE),
         ("Exemplo de preenchimento (fictício):", NEGRITO),
         ("Classificação = Programada · Motivo = Parada para lavagem do compressor · Fonte = Livro de turno "
@@ -117,6 +149,28 @@ def planilha(P: pd.DataFrame):
 
     aba("Paradas para revisão", rev, True)
     aba("Trips curados (referência)", ref, False)
+
+    w = wb.create_sheet("Alertas sem explicação")
+    cols = ["Nº", "Início (Brasília)", "Fim (Brasília)", "Duração (h)", "Sinais que acenderam no modelo",
+            "Alarmes do catálogo de 2 h antes ao fim", "Classificação", "Motivo / observação", "Fonte"]
+    for j, (c, l) in enumerate(zip(cols, [5, 18, 18, 10, 40, 60, 30, 40, 25]), 1):
+        k = w.cell(1, j, c)
+        k.font, k.alignment = NEGRITO, Alignment(wrap_text=True, vertical="top")
+        w.column_dimensions[k.column_letter].width = l
+    for i, r in fp.iterrows():
+        linha = [i + 1, (r.t - pd.Timedelta(hours=3)).to_pydatetime(), (r.fim - pd.Timedelta(hours=3)).to_pydatetime(),
+                 r.duracao_h, r.sinais, r.alarmes or "-", "", "", ""]
+        for j, v in enumerate(linha, 1):
+            k = w.cell(i + 2, j, v)
+            k.font, k.alignment = FONTE, Alignment(wrap_text=True, vertical="top")
+            if j in (2, 3):
+                k.number_format = "dd/mm/yyyy hh:mm"
+            if j >= 7:
+                k.fill = AMARELO
+    w.freeze_panes = "B2"
+    dv = DataValidation(type="list", formula1='"' + ",".join(OPCOES_FP) + '"', allow_blank=True)
+    w.add_data_validation(dv)
+    dv.add(f"G2:G{len(fp) + 1}")
     wb.save(SAIDA / "paradas_para_revisao.xlsx")
     return rev, ref
 
@@ -125,7 +179,8 @@ def main():
     SAIDA.mkdir(exist_ok=True)
     P = paradas()
     P.to_csv(SAIDA / "paradas_interno.csv", index=False)
-    rev, ref = planilha(P)
+    fp = fp_sem_explicacao()
+    rev, ref = planilha(P, fp)
     print(f"paradas vindas de operação: {len(P)}; com alarme crítico: {len(ref)} "
           f"(batem com trip curado: {(ref.curado != '').sum()}); para revisão: {len(rev)}")
     print(f"OCSVM alertou nas 48 h antes: revisão {rev.ocsvm_48h.sum()}/{len(rev)}, trips {ref.ocsvm_48h.sum()}/{len(ref)}")

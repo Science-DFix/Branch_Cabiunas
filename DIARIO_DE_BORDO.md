@@ -148,6 +148,10 @@ pré-registro, resultado, decisão.
   relatório ("FP são eventos físicos reais; não suprimir mais") fica sem sustentação. Expectativa: veredito
   certo, magnitude errada (previ 40–55%).
 - **Decisão:** corrigir as seções 4.2, 6.2, 6.3 e 6.5 do relatório (nova seção 8, validação).
+- **Feito no mesmo dia:** relatório operacional revisado (notas nas seções 4.2, 6.2, 6.3, 6.5 e seção 8 com
+  todos os testes; 17 páginas). Planilha de revisão ganhou a aba "Alertas sem explicação" com os 4 FP sem
+  sinal físico (14/01/25, 24/01/25, 21/02/25, 09/03/26), e a lista suspensa das paradas foi corrigida (uma
+  opção tinha vírgula e se partia em duas no Excel).
 
 ### 14/10/2026 — B5, FP como "alarme antecipado" (pipeline retreinada do zero) — NULO
 - **Script:** `frente_ocsvm/b5_alarme_antecipado.py` · pré-registro `e830050` · 3 tasks novas no Cica com os

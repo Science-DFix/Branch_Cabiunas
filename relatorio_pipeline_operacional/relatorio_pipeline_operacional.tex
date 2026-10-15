@@ -14,7 +14,7 @@
 \title{Documentação Operacional da Pipeline de Detecção de Anomalias\\
 \large Turbina A -- Cabiúnas}
 \author{Equipe de Modelagem}
-\date{Setembro de 2026}
+\date{Setembro de 2026 -- revisado em outubro de 2026}
 
 \begin{document}
 \maketitle
@@ -30,7 +30,10 @@ histórico de TRIPs disponível. Todas as figuras e tabelas foram
 geradas a partir do retreino completo dos três modelos (03/09/2026) e
 do estudo dos falsos positivos residuais (04/09/2026), que resultou
 na adição do filtro de duração mínima de 45 minutos na votação
-combinada.
+combinada. A Seção~\ref{sec:validacao}, acrescentada em outubro de
+2026, traz a validação independente desses resultados e corrige
+leituras das Seções~\ref{sec:estudo-fp} e~\ref{sec:auditoria42}; as
+demais seções ficam como registro do que foi feito em setembro.
 \end{abstract}
 
 \tableofcontents
@@ -231,7 +234,7 @@ janela real de TRIP.}
 \label{sec:estudo-fp}
 
 Antes de aceitar qualquer mudança para reduzir falso positivo, os 96
-episódios de FP da configuração anterior (votação ≥2 + refratário,
+episódios de FP da configuração anterior (votação $\geq$2 + refratário,
 sem filtro de duração) foram caracterizados pela combinação de canais
 que os disparou:
 
@@ -373,6 +376,9 @@ confirmados como sinal físico real) do que com ruído de amostragem.
 Reduzir mais exigiria um 5º canal com informação nova ou auditoria
 individual desses episódios -- não mais ajuste de parâmetro.
 
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small\textbf{Nota (outubro/2026).} O teto foi confirmado por testes posteriores (Seção~\ref{sec:validacao}), mas o filtro de 45~min e o refratário de 48~h foram escolhidos varrendo contra os mesmos 8 TRIPs: o platô de 16--52~min é seguro \emph{nesses} 8, não garantido em TRIPs novos. A comparação com o ``checkup geral (79\%)'' não vale como evidência: o critério de z-score não discrimina (Seção~\ref{sec:validacao}).}}
+
 \section{Resultado final}
 \label{sec:resultado}
 
@@ -497,6 +503,9 @@ sensor checado -- únicos candidatos honestos a ruído puro:
 \texttt{2025-01-14\_17h57}, \texttt{2025-01-24\_12h42},
 \texttt{2025-02-21\_03h27} e \texttt{2026-03-09\_12h07}.
 
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small\textbf{Nota (outubro/2026).} Este passo não teve controle. Aplicado a 840 janelas sorteadas de mesma duração, com a máquina em operação e longe de qualquer alerta, o mesmo critério dá \textbf{96,9\% ``confirmado''} (contra 61,9\% nos FP). Ele é satisfeito por quase qualquer trecho de operação normal e não serve como evidência de evento físico (teste A6, Seção~\ref{sec:validacao}).}}
+
 \subsection{Passo 3 -- segunda evidência: corroboração por outro alarme de processo}
 
 Sinal físico no próprio sensor é uma evidência; uma segunda e
@@ -546,6 +555,10 @@ alarmes do próprio sensor de temperatura de mancal
 (\texttt{TC382\_03\_A}, \texttt{T5\_AVG\_A}).}
 \end{figure}
 
+
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small\textbf{Nota (outubro/2026).} A taxa de 23,8\% foi reproduzida (10/42) e o enriquecimento é real (cerca de 8$\times$ contra instantes com a máquina em operação). Mas em 8 dos 10 casos o outro alarme vem \emph{antes} do início do episódio: o modelo ecoa um alarme que a planta já deu (sobretudo \texttt{TC382\_03\_A}, o mesmo sensor do canal de temperatura), em vez de antecipá-lo. Olhando as 48~h \emph{depois} de cada FP, não há mais alarmes novos do que o acaso (teste B5, Seção~\ref{sec:validacao}).}}
+
 \subsection{Passo 4 -- visualização na série completa}
 
 A Figura~\ref{fig:auditoria42} mostra as duas evidências sobrepostas
@@ -580,6 +593,9 @@ catalogado desta vez. \textbf{Recomendação: não suprimir mais} --
 nenhuma explicação (Passo 2) são os únicos candidatos legítimos a uma
 investigação futura mais específica.
 
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{\small\textbf{Nota (outubro/2026).} A conclusão de que os FP são ``na maioria eventos físicos reais'' não se sustenta: o Passo~2 não discrimina (controle 96,9\%) e o Passo~3 mostra eco de alarmes já dados, não antecipação. Os dados disponíveis não dizem se os FP são eventos físicos ou ruído. A recomendação de não suprimir mais continua valendo, por outro motivo: todas as tentativas de suprimir FP perderam TRIPs ou se mostraram ajuste ao período (Seção~\ref{sec:validacao}).}}
+
 \section{Reprodução operacional}
 
 Todo o resultado deste documento é reproduzível a partir do
@@ -608,6 +624,88 @@ treinamento:
     combinada, via \texttt{apply\_min\_duration\_filter} (já existente
     em \texttt{src/cnn1d\_ae/scoring.py}, antes usado só por canal) --
     reduz FP/mês para 2,88 mantendo 8/8.
+\end{itemize}
+
+\clearpage
+\section{Validação independente (outubro de 2026)}
+\label{sec:validacao}
+
+Entre 10 e 15 de outubro de 2026, os resultados deste documento
+passaram por testes \textbf{pré-registrados}: a pergunta, o critério
+de decisão e a expectativa de cada teste foram gravados no
+repositório antes de rodar. Scripts em \texttt{frente\_ocsvm/};
+registro completo em \texttt{DIARIO\_DE\_BORDO.md}. Os treinos foram
+feitos como tasks no ClearML. Esta seção resume o que muda na leitura
+das Seções~\ref{sec:estudo-fp}--\ref{sec:auditoria42}.
+
+\subsection{O que foi testado}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.6cm}p{5.6cm}p{7.2cm}}
+\toprule
+\textbf{Teste} & \textbf{Pergunta} & \textbf{Resultado} \\
+\midrule
+A0 & Os artefatos reproduzem 8/8 e 2,88? & Sim (2,885 FP/mês). \\
+A1 & Quanto do 8/8 está depois do corte de treino (01/07/2025)? & Dentro 5/5, fora 3/3. FP/mês igual (2,89 $\times$ 2,88). Antecedência mediana \textbf{33,8~h dentro, 8,4~h fora}. \\
+A2 & A detecção supera o acaso? & Sim. Instantes sorteados: $p = 7\times10^{-5}$. Paradas comuns: 28/67 com alerta antes, contra 8/8 TRIPs ($p = 0{,}002$). \\
+A3 & Escolhendo filtro, janela, tags e refratário \emph{sem} o TRIP testado, ele ainda é pego? & \textbf{5/8} com as tags do canal 4 livres; 8/8 com as 5 tags fixas. O 8/8 depende da escolha das 5 tags entre 47. \\
+A4 & O resultado depende da semente e da data de corte? & Robusto à semente (8/8 em 5 sementes, 2,82--2,95 FP/mês). \textbf{Frágil ao corte}: com corte em 01/05/2025, 4/8. \\
+A5 & Tirar do treino as 72~h antes de cada TRIP muda algo? & Não melhora (8/8) e o FP sobe para 3,50/mês. \\
+A6 & O z-score da Seção~6.2 discrimina FP de operação normal? & \textbf{Não}: janelas sorteadas dão 96,9\% ``confirmado'' (FP: 61,9\%). \\
+B1 & Debounce do chattering no canal 4 reduz FP? & Inócuo (2,82 e 2,75 FP/mês nos dois braços; IC encosta em 0). \\
+B2 & Outra janela do canal 4 / filtro / refratário? & $-$32\% de FP no período de escolha vira $-$4\% fora dele. \\
+B3 & Prioridade ALTA/BAIXA pela composição do episódio? & Rebaixa 5 dos 8 TRIPs. Reprovado. \\
+B5 & Os FP antecedem alarmes novos do catálogo (48~h)? & Não: 0,70$\times$ o acaso (todas as tags); 1,07$\times$ sem as 5 do canal 4. \\
+C1 & Retreino mensal (walk-forward) reduz FP? & Não: perde o TRIP de 26/02/2026 e soma 3 FP fora da amostra. \\
+-- & Retreino do zero (14/10/2026) & Idêntico: mesmos hiperparâmetros, 8/8, 42 FP, mesmas antecedências. \\
+\bottomrule
+\end{tabular}
+\caption{Testes de validação, outubro de 2026. A = validação, B = camada
+de decisão sem treino, C = com treino.}
+\end{table}
+
+\subsection{Leitura revisada}
+
+\begin{itemize}
+  \item \textbf{O que se confirma.} A detecção é real e reprodutível:
+    supera o acaso (A2), separa TRIP de parada comum, não depende da
+    semente (A4) e o retreino do zero dá o mesmo resultado. O custo de
+    $\sim$2,9 FP/mês é estável no tempo (A1) e é de fato um teto: nenhuma
+    regra na camada de decisão o reduziu sem perder TRIP ou sem ser
+    ajuste ao período (B1, B2, B3, B5, C1).
+  \item \textbf{O que é otimista.} O 8/8 foi obtido com filtro, janela,
+    tags do canal 4 e refratário escolhidos olhando os mesmos 8 TRIPs.
+    Refeitas essas escolhas sem o TRIP testado, ficam \textbf{5/8} (A3).
+    Fora da amostra são só 3 TRIPs (3/3), detectados com antecedência
+    mediana de \textbf{8,4~h}, e não 23,8~h. Leitura honesta:
+    \textbf{entre 5/8 e 8/8}, com antecedência curta nos TRIPs recentes.
+  \item \textbf{O que é frágil.} A detecção depende de o AutoML da
+    vibração escolher p95/d4. Uma grade mais fina (Seção~4.2) ou um
+    corte de treino dois meses antes (A4) leva a vibração a quase se
+    calar, e a pipeline cai para 4/8.
+  \item \textbf{Natureza dos FP: indeterminada.} O z-score não
+    discrimina (A6). O enriquecimento por outro alarme é eco de alarmes
+    já dados, não antecipação (Seção~6.3 revisada, B5). Não há evidência
+    de que os 42 FP sejam eventos físicos, nem de que sejam ruído.
+  \item \textbf{Referência.} O detector PCA de 4 sinais do pacote de
+    produção (\texttt{cabiunas-models}) acha 8/8 no mesmo período a
+    \textbf{0,344 FP/mês}, com retreino mensal e as ressalvas de
+    \texttt{documentos/ENTREGA\_TC33003A.pdf}. As réguas dos dois não
+    são idênticas, mas a diferença de custo (cerca de 8$\times$) é grande
+    demais para vir só daí.
+\end{itemize}
+
+\subsection{O que falta para fechar}
+
+\begin{itemize}
+  \item \textbf{Dados novos} (a partir de 21/04/2026), avaliados com a
+    pipeline congelada: é o único teste que mede a generalização.
+  \item \textbf{Revisão pela equipe} das 31 paradas sem alarme crítico do
+    período e dos 4 FP sem explicação (planilha
+    \texttt{frente\_ocsvm/revisao/paradas\_para\_revisao.xlsx}). Paradas
+    que forem falhas reais mudam a contagem de FP.
 \end{itemize}
 
 \end{document}
