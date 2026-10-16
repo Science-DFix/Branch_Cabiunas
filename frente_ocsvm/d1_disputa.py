@@ -12,8 +12,12 @@ configs de produção (configs/calibracao_v4_eq, exp33/34/38) trocando SÓ AUTOM
 percentil e debounce na mesma grade e com o mesmo corte de 01/07/2025 que escolheu os da OCSVM; o limiar nunca é
 ajustado nos trips. Semente 42, mesmo src/, tasks clonadas das de produção.
   Rodada 1 (este envio): iforest e dense (já implementados; 6 tasks, 1 por vez).
-  Rodada 1b: CNN-1D AE por grupo -- precisa de um fitter novo em _FITTERS (janelas que não cruzam buracos do
-            x_normal). Entra neste mesmo registro quando o fitter passar no teste local; o critério é o mesmo.
+  Rodada 1b: CNN-1D AE por grupo (fitter "cnn1d" em _FITTERS, adicionado em 16/10 e testado em dados sintéticos
+            antes de enviar). Mesma arquitetura e mesmo tuner do AE legado (RandomSearch no val_loss do normal,
+            MAX_TRIALS 10, EPOCHS 20, BATCH 1024, PATIENCE 6, semente 42), janela TIME_STEPS 60 (30 min) que nunca
+            cruza buraco do normal; janelas de treino com passo STRIDE 5 (memória do worker). Score de cada ponto =
+            MSE da janela que TERMINA nele (causal). Sem seed sweep (só iforest/ocsvm têm). Envio depois das 6 da
+            rodada 1, 1 por vez. Critério, combinações e confirmação iguais (todos_cnn1d + 3 trocas de 1 grupo).
   Rodada 2 (fora deste registro): PCA/T² por grupo e treino mensal dos melhores.
 
 COMBINAÇÕES AVALIADAS (fixadas antes):
@@ -32,7 +36,8 @@ como leitura secundária. A banda de 4 h e o duty de cada canal se reportam, mas
 
 EXPECTATIVA REGISTRADA. Nenhuma combinação principal PASSA. O iforest pontua por isolamento e tende a ser mais
 ruidoso que a OCSVM em sinais com deriva (mais FP); o dense AE ponto a ponto aprende quase a mesma fronteira que a
-OCSVM (FP a +-15%). Na secundária, a chance maior é a vibração (o canal com mais duty, 14% fora), mas a aposta é
+OCSVM (FP a +-15%). O CNN-1D vê a forma temporal (30 min) e pode cortar FP de pico curto, mas perdeu como
+modelo único; aposta: também NÃO. Na secundária, a chance maior é a vibração (o canal com mais duty, 14% fora), mas a aposta é
 que nenhuma chegue a -25% mantendo 8/8.
 
 Uso:
@@ -50,14 +55,17 @@ from a4_variabilidade import RAIZ, REPO, BRANCH, CANAIS, canais_da_replica
 
 CFG_DIR = C.AQUI / "d1_configs"
 TASKS_JSON = C.AQUI / "d1_tasks.json"
-MODELOS = ["iforest", "dense"]
+MODELOS = ["iforest", "dense", "cnn1d"]
 PROD = {c: v[1] for c, v in CANAIS.items()}
 REF_FP = {"total": 2.885, "fora": 2.877}  # FP/mês da produção (A0, A1)
 CORTE = 0.75
 
 
+CNN1D = dict(TIME_STEPS=60, STRIDE=5, MAX_TRIALS=10, EPOCHS=20, BATCH_SIZE=1024, PATIENCE=6)
+
+
 def mudancas(modelo: str) -> dict:
-    return dict(AUTOML_MODELS=[modelo])
+    return dict(AUTOML_MODELS=[modelo], **(CNN1D if modelo == "cnn1d" else {}))
 
 
 def gera():

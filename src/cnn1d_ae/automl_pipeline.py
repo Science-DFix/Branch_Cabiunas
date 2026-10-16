@@ -11,6 +11,7 @@ import pandas as pd
 from .config import PipelineConfig
 from .io import ensure_sensor_dirs, save_run_config, load_alert_context_catalog
 from .model import build_callbacks
+from .tuning import run_tuner, refit_best_model
 from .preprocess import (
     build_sensor_dataframe,
     build_group_dataframe,
@@ -122,7 +123,66 @@ def _fit_score_iforest(cfg: PipelineConfig, x_normal: np.ndarray, x_all: np.ndar
                                         "n_estimators": cfg.AUTOML_IFOREST_N_ESTIMATORS}
 
 
-_FITTERS = {"dense": _fit_score_dense, "ocsvm": _fit_score_ocsvm, "iforest": _fit_score_iforest}
+def _segments(index: pd.DatetimeIndex) -> List[Tuple[int, int]]:
+    """Trechos contiguos (passo = passo mediano do indice) -- janelas nunca cruzam buracos."""
+    if len(index) < 2:
+        return [(0, len(index))]
+    d = np.diff(index.values.astype("datetime64[ns]").astype(np.int64))
+    cortes = np.flatnonzero(d != np.median(d)) + 1
+    b = np.concatenate([[0], cortes, [len(index)]])
+    return list(zip(b[:-1], b[1:]))
+
+
+def _cnn1d_point_error(model, x: np.ndarray, segs, t: int, batch: int) -> np.ndarray:
+    """Erro de reconstrucao (MSE da janela) atribuido ao ultimo ponto da janela (causal); os t-1 primeiros pontos
+    de cada trecho herdam o erro da 1a janela; trechos mais curtos que t ficam com erro 0 (nunca alertam)."""
+    out = np.zeros(len(x), dtype=np.float32)
+    for a, b in segs:
+        if b - a < t:
+            continue
+        w = np.lib.stride_tricks.sliding_window_view(x[a:b], t, axis=0).transpose(0, 2, 1)
+        err = _predict_err(model, w, batch)
+        out[a + t - 1:b] = err
+        out[a:a + t - 1] = err[0]
+    return out
+
+
+def _predict_err(model, w: np.ndarray, batch: int, bloco: int = 50_000) -> np.ndarray:
+    """predict em blocos: a vista das janelas nunca vira uma copia inteira na memoria."""
+    errs = []
+    for i in range(0, len(w), bloco):
+        xb = np.ascontiguousarray(w[i:i + bloco])
+        errs.append(np.mean(np.square(model.predict(xb, batch_size=batch, verbose=0) - xb), axis=(1, 2)))
+    return np.concatenate(errs)
+
+
+def _fit_score_cnn1d(cfg: PipelineConfig, x_normal: np.ndarray, x_all: np.ndarray, n_features: int,
+                     normal_index: pd.DatetimeIndex | None = None, all_index: pd.DatetimeIndex | None = None):
+    """CNN-1D AE por grupo (disputa D1, frente_ocsvm/d1_disputa.py): mesma arquitetura e mesmo tuner (val_loss do
+    normal, MAX_TRIALS) do AE legado, janelas de TIME_STEPS sem cruzar buracos; treino com passo STRIDE."""
+    import tempfile
+    if normal_index is None or all_index is None:
+        raise ValueError("cnn1d precisa de normal_index/all_index (walk-forward nao suportado)")
+    t = cfg.TIME_STEPS
+    segs_n = _segments(normal_index)
+    w = np.concatenate([
+        np.lib.stride_tricks.sliding_window_view(x_normal[a:b], t, axis=0).transpose(0, 2, 1)[::cfg.STRIDE]
+        for a, b in segs_n if b - a >= t
+    ]).astype(np.float32)
+    n_val = max(1, int(len(w) * cfg.VAL_FRAC))  # validacao = fim do treino (temporal)
+    w_tr, w_val = w[:-n_val], w[-n_val:]
+    with tempfile.TemporaryDirectory() as d:
+        best_hp, model, _ = run_tuner(cfg, {"tuner": d}, w_tr, w_val, n_features)
+        refit_best_model(cfg, model, w_tr, w_val)
+    train_err = _cnn1d_point_error(model, x_normal, segs_n, t, cfg.BATCH_SIZE)
+    train_err = train_err[np.concatenate([np.arange(a, b) for a, b in segs_n if b - a >= t])]
+    all_err = _cnn1d_point_error(model, x_all, _segments(all_index), t, cfg.BATCH_SIZE)
+    return train_err, all_err, model, {"time_steps": t, "train_stride": cfg.STRIDE, "train_windows": int(len(w)),
+                                       **best_hp.values}
+
+
+_FITTERS = {"dense": _fit_score_dense, "ocsvm": _fit_score_ocsvm, "iforest": _fit_score_iforest,
+            "cnn1d": _fit_score_cnn1d}
 
 
 _SEED_SWEEP_SUPPORTED = ("iforest", "ocsvm")
@@ -262,7 +322,7 @@ def _walkforward_fit_periods(
 
 
 def _save_model(model_type: str, model_obj: Any, out_dirs: Dict[str, str]) -> str:
-    if model_type == "dense":
+    if model_type in ("dense", "cnn1d"):
         path = os.path.join(out_dirs["best_model"], "model.keras")
         model_obj.save(path)
         return path
@@ -570,7 +630,8 @@ def run_automl_group(
                     train_err, all_err, model_obj, model_params = fitter(cfg, x_normal, x_all, n_features, nu=nu, gamma=gamma)
                 else:
                     print(f"[AUTOML] group={group_name} model={model_type} — treinando...")
-                    train_err, all_err, model_obj, model_params = fitter(cfg, x_normal, x_all, n_features)
+                    idx_kw = {"normal_index": df_normal_z.index, "all_index": all_index} if model_type == "cnn1d" else {}
+                    train_err, all_err, model_obj, model_params = fitter(cfg, x_normal, x_all, n_features, **idx_kw)
 
                 if cfg.ENABLE_SCORE_EWMA:
                     halflife = pd.Timedelta(cfg.SCORE_EWMA_HALFLIFE)
