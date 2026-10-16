@@ -12,8 +12,9 @@ sinal**, integrada ao ClearML (dataset, tracking e execução remota no Cica).
   de 4, filtro de 45 min, refratário de 48 h → 8/8 trips, 2,88 FP/mês.
 - **Documento vivo:** `DIARIO_DE_BORDO.md` (estado, regras de trabalho, o que já foi testado, registro). `README.md`
   e `docs/` são histórico de consulta.
-- **Não reintroduzir** modelo único nem o autoencoder: a arquitetura é um OCSVM por grupo de sinal. O pacote ainda se
-  chama `src/cnn1d_ae/` por herança; o caminho do AE dentro dele é legado.
+- **Não reintroduzir** modelo único: a arquitetura é um modelo por grupo de sinal + camada de decisão. Desde 15/10/2026
+  o AE (denso e CNN-1D) volta como **candidato por grupo** na disputa D1 (`frente_ocsvm/d1_disputa.py`), pelo caminho
+  do AutoML (`_FITTERS`); o caminho antigo do AE em `pipeline.py` (modelo único) segue legado.
 - **ClearML:** projeto `TesteMLCab`, fila `default` (4 workers compartilhados com a equipe; ver regras de envio no
   diário, seção 5).
 
