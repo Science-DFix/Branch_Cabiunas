@@ -162,7 +162,7 @@ def _fit_score_cnn1d(cfg: PipelineConfig, x_normal: np.ndarray, x_all: np.ndarra
     normal, MAX_TRIALS) do AE legado, janelas de TIME_STEPS sem cruzar buracos; treino com passo STRIDE."""
     import tempfile
     if normal_index is None or all_index is None:
-        raise ValueError("cnn1d precisa de normal_index/all_index (walk-forward nao suportado)")
+        raise ValueError("cnn1d precisa de normal_index/all_index")
     t = cfg.TIME_STEPS
     segs_n = _segments(normal_index)
     w = np.concatenate([
@@ -308,7 +308,8 @@ def _walkforward_fit_periods(
             nu, gamma = params
             train_err, score_err, model_obj, model_params = fitter(cfg, x_train, x_score, n_features, nu=nu, gamma=gamma)
         else:
-            train_err, score_err, model_obj, model_params = fitter(cfg, x_train, x_score, n_features)
+            idx_kw = {"normal_index": df_normal_z.index, "all_index": df_score_z.index} if fitter is _fit_score_cnn1d else {}
+            train_err, score_err, model_obj, model_params = fitter(cfg, x_train, x_score, n_features, **idx_kw)
 
         periods.append({
             "period_start": period_start, "index": score_slice.index,

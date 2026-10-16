@@ -18,7 +18,15 @@ ajustado nos trips. Semente 42, mesmo src/, tasks clonadas das de produção.
             cruza buraco do normal; janelas de treino com passo STRIDE 5 (memória do worker). Score de cada ponto =
             MSE da janela que TERMINA nele (causal). Sem seed sweep (só iforest/ocsvm têm). Envio depois das 6 da
             rodada 1, 1 por vez. Critério, combinações e confirmação iguais (todos_cnn1d + 3 trocas de 1 grupo).
-  Rodada 2 (fora deste registro): PCA/T² por grupo e treino mensal dos melhores.
+  Rodada 1c (acrescentada em 16/10, antes de enviar qualquer cnn1d; ideia do usuário: "treinamento por grupo de
+            sinais, mensal, e usar as regras" para o CNN-1D, que antes só rodava como modelo único e treino único):
+            cnn1d_mensal = cnn1d + ENABLE_WALKFORWARD_RETRAIN (retreina do zero no início de cada mês de 07/2025 a
+            04/2026 com todo o normal anterior; normalização, tuner e limiar refeitos a cada mês) e
+            ENABLE_MIN_DURATION_FILTER = false (o src/ não aceita os dois juntos; no C1 tirar o filtro não mudou
+            nenhum episódio). Antes de 01/07/2025 o walk-forward sai com flag 0, então ESTE braço só se julga FORA
+            DA AMOSTRA: PASSA = 3/3 fora E FP/mês fora <= 2,158. Comparações: OCSVM treino único (C1-c0: 3/3, 23 FP)
+            e OCSVM mensal (C1-c1: 2/3, 26 FP), e o cnn1d de treino único.
+  Rodada 2 (fora deste registro): PCA/T² por grupo e treino mensal dos outros vencedores.
 
 COMBINAÇÕES AVALIADAS (fixadas antes):
   principal   o candidato nos 3 grupos (todos_iforest, todos_dense)
@@ -55,17 +63,21 @@ from a4_variabilidade import RAIZ, REPO, BRANCH, CANAIS, canais_da_replica
 
 CFG_DIR = C.AQUI / "d1_configs"
 TASKS_JSON = C.AQUI / "d1_tasks.json"
-MODELOS = ["iforest", "dense", "cnn1d"]
+CNN1D = dict(AUTOML_MODELS=["cnn1d"], TIME_STEPS=60, STRIDE=5, MAX_TRIALS=10, EPOCHS=20, BATCH_SIZE=1024, PATIENCE=6)
+MODELOS = {  # variante: mudanças sobre o config de produção
+    "iforest": dict(AUTOML_MODELS=["iforest"]),
+    "dense": dict(AUTOML_MODELS=["dense"]),
+    "cnn1d": CNN1D,
+    "cnn1d_mensal": dict(CNN1D, ENABLE_WALKFORWARD_RETRAIN=True, WALKFORWARD_RETRAIN_FREQ="MS",
+                         ENABLE_MIN_DURATION_FILTER=False),
+}
 PROD = {c: v[1] for c, v in CANAIS.items()}
 REF_FP = {"total": 2.885, "fora": 2.877}  # FP/mês da produção (A0, A1)
 CORTE = 0.75
 
 
-CNN1D = dict(TIME_STEPS=60, STRIDE=5, MAX_TRIALS=10, EPOCHS=20, BATCH_SIZE=1024, PATIENCE=6)
-
-
 def mudancas(modelo: str) -> dict:
-    return dict(AUTOML_MODELS=[modelo], **(CNN1D if modelo == "cnn1d" else {}))
+    return MODELOS[modelo]
 
 
 def gera():
@@ -136,7 +148,7 @@ def avalia():
         on = (op == "on").values
         det, det_f = int(P.deteccao.notna().sum()), int(Pf.deteccao.notna().sum())
         fpm, fpm_f = m["falso_positivo_por_mes"], fp / (dias / 30.4375)
-        ok = det == 8 and det_f == 3 and fpm <= CORTE * REF_FP["total"] and fpm_f <= CORTE * REF_FP["fora"]
+        ok = det_f == 3 and fpm_f <= CORTE * REF_FP["fora"] and ("mensal" in rep or (det == 8 and fpm <= CORTE * REF_FP["total"]))
         L.append(dict(rep=rep, det=f"{det}/8", banda=int(P.banda_4h.sum()), FP=m["n_episodios_falso_positivo"],
                       FP_mes=round(fpm, 3), det_fora=f"{det_f}/3", FP_fora=fp, FP_mes_fora=round(fpm_f, 3),
                       duty=" ".join(f"{df.loc[on, k].mean():.3f}" for k in C.CANAIS[:3]),
@@ -145,7 +157,8 @@ def avalia():
     pd.set_option("display.width", 200)
     print(T.to_string(index=False))
     print(f"\nPASSA = 8/8, 3/3 fora, FP/mês <= {CORTE * REF_FP['total']:.3f} (inteiro) e "
-          f"<= {CORTE * REF_FP['fora']:.3f} (fora). duty = temp vib óleo com a máquina on.")
+          f"<= {CORTE * REF_FP['fora']:.3f} (fora). duty = temp vib óleo com a máquina on.\n"
+          "*_mensal: só vale o fora da amostra (antes de 01/07/2025 o walk-forward sai com flag 0).")
 
 
 if __name__ == "__main__":
