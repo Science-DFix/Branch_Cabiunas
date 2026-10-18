@@ -119,7 +119,7 @@ modelos (C).
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
-| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); falta a rodada 2 (PCA/T²) |
+| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA por grupo) pré-registrada 18/10 (`e026b73`), enviando |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -134,6 +134,17 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 18/10/2026 — D1 rodada 2, PCA por grupo — PRÉ-REGISTRADA, ENVIANDO
+- **Pré-registro:** docstring de `frente_ocsvm/d1_disputa.py`, commit `e026b73` (antes do fitter e do envio).
+  PCA com 95% da variância no normal de treino; score phi = max(T²/T²_p99, Q/Q_p99) com p99 do próprio treino
+  (só T², isto é Mahalanobis, quando todas as componentes ficam retidas). Braços `pca` e `pca_mensal`
+  (walk-forward, julgado só fora), 6 tasks, 8 combinações, mesmo critério. Confirmação: 0,90 e 0,99 da variância
+  (o PCA é determinístico, a semente não muda nada). Expectativa: NÃO.
+- **Fitter `pca`** em `automl_pipeline.py` + `AUTOML_PCA_VARIANCE` no config. Teste sintético: phi igual à conta
+  manual; com 2 sensores, phi·T²_p99 = Mahalanobis² (o Q_p99 dava 4e-31 de ruído e foi zerado pela regra de
+  "todas as componentes retidas"); walk-forward ok; pytest 15/15.
+- **Envio:** 1 por vez (temp, vib, óleo, depois os 3 mensais), IDs em `frente_ocsvm/d1_envios.md`.
 
 ### 17–18/10/2026 — D1, rodadas 1, 1b e 1c — NENHUMA COMBINAÇÃO PASSA
 - **Estado ao retomar:** as 10 tasks de 16/10 (iforest, dense e cnn1d nos 3 grupos; cnn1d_mensal só em temp)

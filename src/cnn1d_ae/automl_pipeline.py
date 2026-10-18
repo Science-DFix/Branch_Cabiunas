@@ -123,6 +123,30 @@ def _fit_score_iforest(cfg: PipelineConfig, x_normal: np.ndarray, x_all: np.ndar
                                         "n_estimators": cfg.AUTOML_IFOREST_N_ESTIMATORS}
 
 
+def _fit_score_pca(cfg: PipelineConfig, x_normal: np.ndarray, x_all: np.ndarray, n_features: int):
+    """PCA por grupo (disputa D1, rodada 2): phi = max(T2/T2_p99, Q/Q_p99), p99 do proprio normal de treino;
+    com todas as componentes retidas nao ha residuo e phi = T2/T2_p99 (Mahalanobis)."""
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=cfg.AUTOML_PCA_VARIANCE, svd_solver="full").fit(x_normal)
+
+    def t2_q(x):
+        z = pca.transform(x)
+        return np.sum(z ** 2 / pca.explained_variance_, axis=1), np.sum((x - pca.inverse_transform(z)) ** 2, axis=1)
+
+    t2_n, q_n = t2_q(x_normal)
+    todas = pca.n_components_ == x_normal.shape[1]  # Q e so ruido numerico (~1e-31), nao entra
+    t2_lim, q_lim = float(np.percentile(t2_n, 99)), (0.0 if todas else float(np.percentile(q_n, 99)))
+
+    def phi(t2, q):
+        return t2 / t2_lim if todas else np.maximum(t2 / t2_lim, q / q_lim)
+
+    train_err = phi(t2_n, q_n)
+    all_err = phi(*t2_q(x_all))
+    model = {"pca": pca, "t2_p99": t2_lim, "q_p99": q_lim}
+    return train_err, all_err, model, {"variance": cfg.AUTOML_PCA_VARIANCE, "n_components": int(pca.n_components_),
+                                       "t2_p99": t2_lim, "q_p99": q_lim}
+
+
 def _segments(index: pd.DatetimeIndex) -> List[Tuple[int, int]]:
     """Trechos contiguos (passo = passo mediano do indice) -- janelas nunca cruzam buracos."""
     if len(index) < 2:
@@ -191,7 +215,7 @@ def _cnn1d_period_entry(cfg_dict, x_train, x_score, n_features, normal_index, al
 
 
 _FITTERS = {"dense": _fit_score_dense, "ocsvm": _fit_score_ocsvm, "iforest": _fit_score_iforest,
-            "cnn1d": _fit_score_cnn1d}
+            "cnn1d": _fit_score_cnn1d, "pca": _fit_score_pca}
 
 
 _SEED_SWEEP_SUPPORTED = ("iforest", "ocsvm")

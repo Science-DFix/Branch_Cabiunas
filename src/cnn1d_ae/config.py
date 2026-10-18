@@ -304,6 +304,9 @@ class PipelineConfig:
     AUTOML_IFOREST_CONTAMINATION: float = 0.05
     AUTOML_IFOREST_N_ESTIMATORS: int = 100
 
+    # PCA por grupo (D1 rodada 2): fracao da variancia retida no normal de treino.
+    AUTOML_PCA_VARIANCE: float = 0.95
+
     # Validacao out-of-sample: quando definido (ex: "2025-05-01"), o treino
     # (ajuste do modelo, estatisticas de normalizacao e percentil de threshold)
     # usa APENAS dados com timestamp anterior a essa data; hit_rate,
