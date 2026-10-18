@@ -670,7 +670,8 @@ def run_automl_group(
                 print(f"[AUTOML] group={group_name} model={model_type} {label} — walk-forward "
                       f"({cfg.WALKFORWARD_RETRAIN_FREQ}, janela expansiva)...")
                 walkforward_periods = _walkforward_fit_periods(
-                    cfg, fitter, params, df_normal, df_all, oos_start, n_features
+                    cfg, fitter, params, df_normal, df_all,
+                    pd.Timestamp(cfg.WALKFORWARD_START_DATE) if cfg.WALKFORWARD_START_DATE else oos_start, n_features
                 )
                 model_obj = walkforward_periods[-1]["model_obj"]
                 model_params = walkforward_periods[-1]["model_params"]

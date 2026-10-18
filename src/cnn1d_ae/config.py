@@ -407,6 +407,9 @@ class PipelineConfig:
     # congelado. False (default) = comportamento anterior inalterado.
     ENABLE_WALKFORWARD_RETRAIN: bool = False
     WALKFORWARD_RETRAIN_FREQ: str = "MS"
+    # Inicio do walk-forward, separado do split (D1 rodada 1d): None = AUTOML_OOS_SPLIT_DATE. O split continua
+    # definindo o treino do modelo unico e os alarmes que o AutoML usa para escolher percentil/debounce.
+    WALKFORWARD_START_DATE: Optional[str] = None
 
     # Filtro de duracao minima: suprime episodios continuos de
     # is_anom_point mais curtos que MIN_DURATION_FILTER_MINUTES --

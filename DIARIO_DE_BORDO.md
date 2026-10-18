@@ -119,7 +119,7 @@ modelos (C).
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
-| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). **D1 encerrado** |
+| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025, os 8 trips) pré-registrada 18/10 (`45b8b6c`), enviando |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -134,6 +134,19 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 18/10/2026 — D1 rodada 1d, CNN-1D mensal desde 01/2025 (os 8 trips) — PRÉ-REGISTRADA, ENVIANDO
+- **Pergunta do usuário:** o CNN-1D mensal pega os 8 trips com antecedência? Na 1c o walk-forward começava em
+  01/07/2025, então só os 3 trips fora eram julgáveis (antes disso o braço não emite flag).
+- **Pré-registro:** docstring de `frente_ocsvm/d1_disputa.py`, commit `45b8b6c` (antes do código e do envio).
+  `cnn1d_mensal_jan` = cnn1d_mensal com `WALKFORWARD_START_DATE` = 2025-01-01 (1º retreino com o normal de 07–12/2024).
+  O AutoML continua escolhendo percentil/debounce só com alarmes depois de 01/07/2025, então os 5 trips de
+  fev–abr/2025 entram fora da amostra para este braço. Recorte: 01/2025 ao fim, com a OCSVM no mesmo recorte.
+  Expectativa: 6 a 8 de 8, FP maior que a OCSVM, NÃO pelo critério.
+- **Código:** `WALKFORWARD_START_DATE` no config (None = split, comportamento antigo; as 18 configs anteriores não
+  mudam) e no `run_automl_group`. pytest 15/15; as 3 configs carregam com 16 retreinos mensais.
+- **Envio:** temp, vib, óleo, 1 por vez; IDs em `frente_ocsvm/d1_envios.md`. Tempo estimado: vib ~3,5 h, temp e
+  óleo ~1,5 h cada.
 
 ### 18/10/2026 — D1 rodada 2, PCA por grupo — NENHUMA COMBINAÇÃO PASSA
 - **Pré-registro:** docstring de `frente_ocsvm/d1_disputa.py`, commit `e026b73` (antes do fitter e do envio).
