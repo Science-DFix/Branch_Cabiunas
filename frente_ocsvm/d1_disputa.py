@@ -27,6 +27,22 @@ ajustado nos trips. Semente 42, mesmo src/, tasks clonadas das de produção.
             DA AMOSTRA: PASSA = 3/3 fora E FP/mês fora <= 2,158. Comparações: OCSVM treino único (C1-c0: 3/3, 23 FP)
             e OCSVM mensal (C1-c1: 2/3, 26 FP), e o cnn1d de treino único.
   Resultado das rodadas 1, 1b e 1c (18/10): nenhuma das 17 combinações PASSA (DIARIO_DE_BORDO.md).
+  Rodada 1d (PRÉ-REGISTRADA EM 18/10/2026, depois das rodadas 1, 1c e 2 e antes de mudar o código e de enviar; pedida
+            pelo usuário: o cnn1d_mensal pega os 8 trips com antecedência? Na 1c o walk-forward começava em
+            01/07/2025 e só 3 trips eram julgáveis). cnn1d_mensal_jan = cnn1d_mensal + WALKFORWARD_START_DATE
+            "2025-01-01" (parâmetro novo; None = AUTOML_OOS_SPLIT_DATE, comportamento antigo). O 1º retreino usa o
+            normal de 07/2024 a 12/2024; depois, todo mês, todo o normal anterior. NADA MAIS muda: o AutoML continua
+            escolhendo percentil e debounce só com os alarmes depois de 01/07/2025, então os 5 trips de fev–abr/2025
+            entram FORA DA AMOSTRA para este braço (nenhuma escolha olhou para eles). 3 tasks, 1 por vez.
+            Recorte de julgamento: de 01/01/2025 ao fim (o único em que o braço emite flag), com a OCSVM de produção
+            no MESMO recorte como referência. Combinações: todos_cnn1d_mensal_jan e cnn1d_mensal_jan_so_<grupo> (3).
+            PERGUNTA PRINCIPAL (do usuário, descritiva): quantos dos 8 trips o braço detecta e com quantas horas de
+            antecedência, trip a trip, contra a OCSVM. CRITÉRIO para trocar a OCSVM (o mesmo de sempre): 8/8 E FP/mês
+            no recorte <= 0,75 x OCSVM no recorte, E 3/3 com FP/mês <= 2,158 depois de 01/07/2025.
+            Ressalvas: (1) a OCSVM viu os 5 trips de 2025 no treino; o braço não, então empate nesses 5 favorece o
+            braço; (2) 1º retreino com só ~6 meses de normal (sem estação seca/chuvosa completa).
+            EXPECTATIVA: detecta 6 a 8 de 8 (no treino único, 6/8 todos e 8/8 só na vib); FP no recorte maior que o
+            da OCSVM (como na 1c: 26 x 23 fora), então NÃO pelo critério.
   Rodada 2 (PRÉ-REGISTRADA EM 18/10/2026, depois do resultado acima e antes de escrever o fitter e de enviar; pedida
             pelo usuário: "pode rodar a rodada 2"). PCA por grupo, fitter "pca" em _FITTERS, no MESMO caminho do
             AutoML (dados já clipados e normalizados só com o treino, como os outros fitters).
@@ -92,6 +108,8 @@ MODELOS = {  # variante: mudanças sobre o config de produção
     "pca": dict(AUTOML_MODELS=["pca"]),
     "pca_mensal": dict(AUTOML_MODELS=["pca"], ENABLE_WALKFORWARD_RETRAIN=True, WALKFORWARD_RETRAIN_FREQ="MS",
                        ENABLE_MIN_DURATION_FILTER=False),
+    "cnn1d_mensal_jan": dict(CNN1D, ENABLE_WALKFORWARD_RETRAIN=True, WALKFORWARD_RETRAIN_FREQ="MS",
+                             ENABLE_MIN_DURATION_FILTER=False, WALKFORWARD_START_DATE="2025-01-01"),
 }
 PROD = {c: v[1] for c, v in CANAIS.items()}
 REF_FP = {"total": 2.885, "fora": 2.877}  # FP/mês da produção (A0, A1)
