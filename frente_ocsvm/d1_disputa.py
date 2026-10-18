@@ -26,7 +26,26 @@ ajustado nos trips. Semente 42, mesmo src/, tasks clonadas das de produção.
             nenhum episódio). Antes de 01/07/2025 o walk-forward sai com flag 0, então ESTE braço só se julga FORA
             DA AMOSTRA: PASSA = 3/3 fora E FP/mês fora <= 2,158. Comparações: OCSVM treino único (C1-c0: 3/3, 23 FP)
             e OCSVM mensal (C1-c1: 2/3, 26 FP), e o cnn1d de treino único.
-  Rodada 2 (fora deste registro): PCA/T² por grupo e treino mensal dos outros vencedores.
+  Resultado das rodadas 1, 1b e 1c (18/10): nenhuma das 17 combinações PASSA (DIARIO_DE_BORDO.md).
+  Rodada 2 (PRÉ-REGISTRADA EM 18/10/2026, depois do resultado acima e antes de escrever o fitter e de enviar; pedida
+            pelo usuário: "pode rodar a rodada 2"). PCA por grupo, fitter "pca" em _FITTERS, no MESMO caminho do
+            AutoML (dados já clipados e normalizados só com o treino, como os outros fitters).
+            Modelo: PCA(n_components=0,95 da variância, svd_solver full) ajustado no normal de treino. Score de cada
+            ponto = índice combinado phi = max(T²/T²_p99, Q/Q_p99), com T² = soma(z_k²/lambda_k) nas componentes
+            retidas, Q = SPE (resíduo ao quadrado) e os p99 tirados do PRÓPRIO normal de treino (mesma régua do
+            PCA de referência, cabiunas_pdm/scoring.py). Se Q_p99 = 0 (todas as componentes retidas, possível nos
+            grupos de 2 sensores), phi = T²/T²_p99, que é a distância de Mahalanobis. O AutoML escolhe percentil e
+            debounce sobre phi na mesma grade de sempre; o limiar nunca é ajustado nos trips.
+            Braços: pca (treino único, julgado nos dois recortes) e pca_mensal (pca + o mesmo walk-forward do
+            cnn1d_mensal, julgado SÓ FORA da amostra). 6 tasks, 1 por vez. Combinações fixadas antes: todos_pca,
+            pca_so_<grupo> (3), todos_pca_mensal, pca_mensal_so_<grupo> (3) = 8.
+            Critério: o mesmo da rodada 1 (e o da 1c para o mensal). CONFIRMAÇÃO: o PCA é determinístico, então a
+            troca de semente não se aplica; quem PASSA roda de novo com 0,90 e 0,99 da variância e vale se PASSA
+            nos três. Ressalva: é a 4ª família testada nos mesmos 8 trips; um vencedor ainda precisaria de dados novos.
+            EXPECTATIVA: NÃO. Nos grupos de 2 sensores o PCA vira uma elipse de Mahalanobis, mais rígida que a
+            fronteira RBF da OCSVM (aposta: mais FP no óleo/temperatura com a deriva). Na vibração (10 sensores) o Q
+            pega quebra de correlação entre mancais, que pode antecipar trips, mas também acende com a deriva; o
+            mensal deve cortar FP da deriva e, como nos outros modelos, perder trip.
 
 COMBINAÇÕES AVALIADAS (fixadas antes):
   principal   o candidato nos 3 grupos (todos_iforest, todos_dense)
@@ -70,6 +89,9 @@ MODELOS = {  # variante: mudanças sobre o config de produção
     "cnn1d": CNN1D,
     "cnn1d_mensal": dict(CNN1D, ENABLE_WALKFORWARD_RETRAIN=True, WALKFORWARD_RETRAIN_FREQ="MS",
                          ENABLE_MIN_DURATION_FILTER=False),
+    "pca": dict(AUTOML_MODELS=["pca"]),
+    "pca_mensal": dict(AUTOML_MODELS=["pca"], ENABLE_WALKFORWARD_RETRAIN=True, WALKFORWARD_RETRAIN_FREQ="MS",
+                       ENABLE_MIN_DURATION_FILTER=False),
 }
 PROD = {c: v[1] for c, v in CANAIS.items()}
 REF_FP = {"total": 2.885, "fora": 2.877}  # FP/mês da produção (A0, A1)
