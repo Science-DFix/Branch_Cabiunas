@@ -20,3 +20,12 @@ Para retomar: `python frente_ocsvm/d1_disputa.py envia --so <nome>` pula o que j
 | 17/10 21:31 | cnn1d_mensal_vib | 71647eac561e49dc8d3798d47b151baa | in_progress |
 | 17/10 22:55 | cnn1d_mensal_vib | 71647eac561e49dc8d3798d47b151baa | failed |
 | 17/10 23:55 | cnn1d_mensal_vib | 71647eac561e49dc8d3798d47b151baa | FALHA: exit 137 (OOM) no 1º trial do 8º mês (fev/2026); TF/Keras não devolve a memória de cada fit. Correção: 1 processo por mês no walk-forward do cnn1d. Removida do d1_tasks.json para reenvio |
+| 17/10 23:51 | cnn1d_mensal_vib | 6fbead3c83fd47958e5d8fcc48016a6d | enfileirada |
+| 17/10 23:51 | cnn1d_mensal_vib | 6fbead3c83fd47958e5d8fcc48016a6d | queued |
+| 17/10 23:52 | cnn1d_mensal_vib | 6fbead3c83fd47958e5d8fcc48016a6d | in_progress |
+| 18/10 02:12 | cnn1d_mensal_vib | 6fbead3c83fd47958e5d8fcc48016a6d | completed |
+| 18/10 02:14 | cnn1d_mensal_vib | 6fbead3c83fd47958e5d8fcc48016a6d | completed (10/10 meses; correção do OOM validada no worker) |
+| 18/10 02:23 | cnn1d_mensal_oleo | 7a7b77bf45ef48ae827370c3e52c9216 | enfileirada |
+| 18/10 02:24 | cnn1d_mensal_oleo | 7a7b77bf45ef48ae827370c3e52c9216 | in_progress |
+| 18/10 03:34 | cnn1d_mensal_oleo | 7a7b77bf45ef48ae827370c3e52c9216 | completed |
+| 18/10 03:34 | — | — | fila do D1 concluída |

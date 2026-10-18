@@ -8,5 +8,7 @@
   "cnn1d_temp": "14348f72381043e1a5bd41e5db7e6d4c",
   "cnn1d_vib": "ee9c1a9e98124a8cbf1dd49675381dea",
   "cnn1d_oleo": "80fbbc239b334846a9eadce85c241bb8",
-  "cnn1d_mensal_temp": "2c19e1b9dc424f6e80867457cd8f12d9"
+  "cnn1d_mensal_temp": "2c19e1b9dc424f6e80867457cd8f12d9",
+  "cnn1d_mensal_vib": "6fbead3c83fd47958e5d8fcc48016a6d",
+  "cnn1d_mensal_oleo": "7a7b77bf45ef48ae827370c3e52c9216"
 }
