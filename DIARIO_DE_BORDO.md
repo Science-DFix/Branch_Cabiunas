@@ -119,7 +119,7 @@ modelos (C).
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
-| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); rodada 1 (iforest, dense) enviando 1 task por vez |
+| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); 10 tasks concluídas em 16/10; faltam `cnn1d_mensal_vib`/`_oleo` (enviando 17/10, IDs em `frente_ocsvm/d1_envios.md`) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -134,6 +134,26 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 17/10/2026 — D1, envio do restante da rodada 1c — EM CURSO
+- **Estado ao retomar:** as 10 tasks de 16/10 (iforest, dense e cnn1d nos 3 grupos; cnn1d_mensal só em temp)
+  terminaram `completed`; nenhuma ainda passou pela régua (`d1_disputa.py avalia`).
+- **Envio:** `cnn1d_mensal_vib` e depois `cnn1d_mensal_oleo`, 1 por vez, commit `c2d183a`, semente 42. Cada ID e
+  mudança de status é anotado em `frente_ocsvm/d1_envios.md` (sobrevive ao terminal fechar; o `envia` também
+  grava em `d1_tasks.json` e pula o que já está lá).
+- **Não commitar no meio da fila:** o `envia` exige HEAD == `cabiunas/exp/ocsvm-validacao`.
+- **Placar parcial (`avalia`, 17/10, 10 tasks, semente 42): nenhuma combinação PASSA.** Melhor FP com 8/8:
+  `dense_so_oleo` e `cnn1d_so_oleo`, idênticos à produção (42 FP, 2,885; o óleo quase não vota). Abaixo do corte
+  só `dense_so_vib` (1,992), mas com 4/8 e 2/3 fora. Principais: todos_iforest 6/8 (3,091), todos_dense 4/8
+  (3,022), todos_cnn1d 6/8 e 2/3 fora (3,503). `cnn1d_mensal_so_temp` (vale só fora): 3/3, 27 FP (3,377) > 23 da
+  OCSVM. Coerente com a expectativa registrada. Falta o mensal de vib e óleo.
+- **`cnn1d_mensal_vib` falhou** (`71647eac`, exit 137 = memória do worker) no 8º dos 10 retreinos. Causa medida
+  local: cada `fit` do TF/Keras deixa memória que nem `clear_session`, `gc` ou `malloc_trim` devolvem (~45 MB por
+  fit puro, ~200 MB por tuner de 2 trials; com 10 trials e 10 sensores ~1 GB/mês). Correção em `automl_pipeline.py`:
+  no walk-forward, o `cnn1d` treina cada mês num processo filho (`spawn`) e só o modelo do último mês fica na
+  memória. Teste sintético: RSS do pai estável (+8 MB/mês contra +200 MB/mês), saída igual dentro do ruído do TF
+  (6e-5; duas execuções iguais diferem 4e-5); pytest 15/15. Método inalterado (a semente é refixada a cada
+  chamada), então a `cnn1d_mensal_temp` (commit antigo) continua valendo. Reenvio de vib e depois óleo no commit novo.
 
 ### 15/10/2026 — D1, disputa entre modelos por grupo de sinal — PLANEJADO, PARADO (Cica fora do ar)
 - **Contexto:** depois de ler o relatório operacional com a validação (A0–A6, B1–B5, C1), o usuário perguntou

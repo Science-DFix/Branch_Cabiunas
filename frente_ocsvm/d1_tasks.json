@@ -1,0 +1,12 @@
+{
+  "iforest_temp": "2a248bc14b3f40bdb1068d1f7eceae4c",
+  "iforest_vib": "886f9e65ac314041a37e2f9d44bb491c",
+  "iforest_oleo": "3387ed70d22445ff83ec7b2f3611a8a0",
+  "dense_temp": "e1c0b41fc6a246079c9ec94e8382594a",
+  "dense_vib": "11f7c65d2d9a434680032a659cbcee85",
+  "dense_oleo": "fc90a0eb928a4cf9ab6b66362e70fc1e",
+  "cnn1d_temp": "14348f72381043e1a5bd41e5db7e6d4c",
+  "cnn1d_vib": "ee9c1a9e98124a8cbf1dd49675381dea",
+  "cnn1d_oleo": "80fbbc239b334846a9eadce85c241bb8",
+  "cnn1d_mensal_temp": "2c19e1b9dc424f6e80867457cd8f12d9"
+}

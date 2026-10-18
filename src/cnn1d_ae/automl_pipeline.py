@@ -10,7 +10,7 @@ import pandas as pd
 
 from .config import PipelineConfig
 from .io import ensure_sensor_dirs, save_run_config, load_alert_context_catalog
-from .model import build_callbacks
+from .model import build_callbacks, setup_gpu
 from .tuning import run_tuner, refit_best_model
 from .preprocess import (
     build_sensor_dataframe,
@@ -181,6 +181,15 @@ def _fit_score_cnn1d(cfg: PipelineConfig, x_normal: np.ndarray, x_all: np.ndarra
                                        **best_hp.values}
 
 
+def _cnn1d_period_entry(cfg_dict, x_train, x_score, n_features, normal_index, all_index, model_path):
+    """Roda _fit_score_cnn1d num processo filho (walk-forward) e salva o modelo em model_path."""
+    setup_gpu()
+    train_err, score_err, model, model_params = _fit_score_cnn1d(
+        PipelineConfig(**cfg_dict), x_train, x_score, n_features, normal_index=normal_index, all_index=all_index)
+    model.save(model_path)
+    return train_err, score_err, model_params
+
+
 _FITTERS = {"dense": _fit_score_dense, "ocsvm": _fit_score_ocsvm, "iforest": _fit_score_iforest,
             "cnn1d": _fit_score_cnn1d}
 
@@ -307,9 +316,26 @@ def _walkforward_fit_periods(
         if params is not None:
             nu, gamma = params
             train_err, score_err, model_obj, model_params = fitter(cfg, x_train, x_score, n_features, nu=nu, gamma=gamma)
+        elif fitter is _fit_score_cnn1d:
+            # um processo por periodo: o TF/Keras nao devolve a memoria de cada fit (~1 GB/mes com o tuner), e a vib
+            # do cnn1d mensal estourou o worker no 8o mes (D1, 17/10). Mesmo resultado: run_tuner e
+            # refit_best_model refixam a semente a cada chamada. So o modelo do ultimo periodo fica em memoria.
+            import tempfile
+            from concurrent.futures import ProcessPoolExecutor
+            from dataclasses import asdict
+            from multiprocessing import get_context
+            from tensorflow import keras
+            with tempfile.TemporaryDirectory() as d, \
+                    ProcessPoolExecutor(max_workers=1, mp_context=get_context("spawn")) as ex:
+                path = os.path.join(d, "model.keras")
+                train_err, score_err, model_params = ex.submit(
+                    _cnn1d_period_entry, asdict(cfg), x_train, x_score, n_features,
+                    df_normal_z.index, df_score_z.index, path).result()
+                model_obj = keras.models.load_model(path)
+            if periods:
+                periods[-1]["model_obj"] = None
         else:
-            idx_kw = {"normal_index": df_normal_z.index, "all_index": df_score_z.index} if fitter is _fit_score_cnn1d else {}
-            train_err, score_err, model_obj, model_params = fitter(cfg, x_train, x_score, n_features, **idx_kw)
+            train_err, score_err, model_obj, model_params = fitter(cfg, x_train, x_score, n_features)
 
         periods.append({
             "period_start": period_start, "index": score_slice.index,

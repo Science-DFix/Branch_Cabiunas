@@ -153,7 +153,8 @@ def avalia():
                       FP_mes=round(fpm, 3), det_fora=f"{det_f}/3", FP_fora=fp, FP_mes_fora=round(fpm_f, 3),
                       duty=" ".join(f"{df.loc[on, k].mean():.3f}" for k in C.CANAIS[:3]),
                       veredito="PASSA" if ok else "NÃO"))
-    T = pd.DataFrame(L)
+    # ranking para escolher o ponto de partida do refinamento: trips fora, FP/mês fora, depois o período inteiro
+    T = pd.DataFrame(L).sort_values(["det_fora", "FP_mes_fora", "det", "FP_mes"], ascending=[False, True, False, True])
     pd.set_option("display.width", 200)
     print(T.to_string(index=False))
     print(f"\nPASSA = 8/8, 3/3 fora, FP/mês <= {CORTE * REF_FP['total']:.3f} (inteiro) e "
