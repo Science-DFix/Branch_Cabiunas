@@ -161,6 +161,14 @@ pré-registro, resultado, decisão.
 - **Decisão:** sem candidato para a confirmação (0,90/0,99). Fecha o D1: nas 4 famílias (iforest, dense, CNN-1D,
   PCA), treino único e mensal, nenhum modelo por grupo corta 25% do FP mantendo os trips. A OCSVM segue nos 3
   grupos; reduzir FP pela troca de modelo, com estas regras e estes 8 trips, não se sustentou.
+- **Funil das regras pós-treino (pergunta do usuário, `frente_ocsvm/d1_funil.py`; fora da amostra, máquina on,
+  700.843 pontos):** o CNN-1D mensal corta muito PONTO e quase nada de EPISÓDIO.
+  - Pontos anômalos da vib: 97.992 (OCSVM) → 43.520 (−56%); algum canal de modelo 108.633 → 66.021 (−39%).
+  - Depois das regras: voto ≥ 2 58.302 → 45.825 (−21%); 45 min 44.091 → 30.578 (−31%); 48 h 11.304 → 9.951 (−12%).
+  - Episódios: 35 → 38 e FP 23 → 26 (todos_cnn1d_mensal); só na vib, 36 e 24. Detecções 3/3 nos dois.
+  - Leitura: o canal 4 fica aceso 36% do tempo, então basta um canal de modelo encostar nele para virar voto; o
+    mensal deixa menos pontos, mas espalhados em episódios separados. A régua conta episódio (FP), não ponto.
+    No temp o mensal faz o contrário: 14.544 → 33.674 pontos (2,3x).
 
 ### 17–18/10/2026 — D1, rodadas 1, 1b e 1c — NENHUMA COMBINAÇÃO PASSA
 - **Estado ao retomar:** as 10 tasks de 16/10 (iforest, dense e cnn1d nos 3 grupos; cnn1d_mensal só em temp)
