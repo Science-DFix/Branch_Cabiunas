@@ -29,3 +29,25 @@ Para retomar: `python frente_ocsvm/d1_disputa.py envia --so <nome>` pula o que j
 | 18/10 02:24 | cnn1d_mensal_oleo | 7a7b77bf45ef48ae827370c3e52c9216 | in_progress |
 | 18/10 03:34 | cnn1d_mensal_oleo | 7a7b77bf45ef48ae827370c3e52c9216 | completed |
 | 18/10 03:34 | — | — | fila do D1 concluída |
+| 18/10 — | — | — | rodada 2 (PCA), commit 67c3f7c: fila pca_temp, pca_vib, pca_oleo, pca_mensal_temp, pca_mensal_vib, pca_mensal_oleo |
+| 18/10 11:57 | pca_temp | 8077dc2e288541c481b63da200ec3680 | enfileirada |
+| 18/10 11:57 | pca_temp | 8077dc2e288541c481b63da200ec3680 | in_progress |
+| 18/10 12:00 | pca_temp | 8077dc2e288541c481b63da200ec3680 | completed |
+| 18/10 12:00 | pca_vib | 3a7b65aab93e48128f9db37d9507faca | enfileirada |
+| 18/10 12:01 | pca_vib | 3a7b65aab93e48128f9db37d9507faca | in_progress |
+| 18/10 12:06 | pca_temp | 8077dc2e288541c481b63da200ec3680 | completed |
+| 18/10 12:06 | pca_vib | 3a7b65aab93e48128f9db37d9507faca | in_progress |
+| 18/10 12:07 | pca_vib | 3a7b65aab93e48128f9db37d9507faca | completed |
+| 18/10 12:14 | pca_oleo | 47964c2e46f04a5f9758c193684c94fb | enfileirada |
+| 18/10 12:15 | pca_oleo | 47964c2e46f04a5f9758c193684c94fb | in_progress |
+| 18/10 12:17 | pca_oleo | 47964c2e46f04a5f9758c193684c94fb | completed |
+| 18/10 12:21 | pca_mensal_temp | d42c0e474a254cd09824ca6582d7f000 | enfileirada |
+| 18/10 12:22 | pca_mensal_temp | d42c0e474a254cd09824ca6582d7f000 | in_progress |
+| 18/10 12:24 | pca_mensal_temp | d42c0e474a254cd09824ca6582d7f000 | completed |
+| 18/10 12:28 | pca_mensal_vib | a6d764a1fc65427788cdc8970eb1399a | enfileirada |
+| 18/10 12:28 | pca_mensal_vib | a6d764a1fc65427788cdc8970eb1399a | in_progress |
+| 18/10 12:36 | pca_mensal_vib | a6d764a1fc65427788cdc8970eb1399a | completed |
+| 18/10 12:41 | pca_mensal_oleo | 37a895cc62f042579b636129f6e6fc01 | enfileirada |
+| 18/10 12:42 | pca_mensal_oleo | 37a895cc62f042579b636129f6e6fc01 | in_progress |
+| 18/10 12:44 | pca_mensal_oleo | 37a895cc62f042579b636129f6e6fc01 | completed |
+| 18/10 12:44 | — | — | fila do D1 concluída |

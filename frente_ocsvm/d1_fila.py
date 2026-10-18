@@ -14,7 +14,9 @@ def anota(nome, tid, ev):
 def livre():
     ws = [w for w in c.workers.get_all() if w.id.startswith("clearml-worker")]
     q = c.queues.get_all(name="default")[0]
-    return len(q.entries) == 0 and sum(w.task is None for w in ws) >= 2
+    nossas = set(json.load(open(REG)).values())  # o worker anterior ainda sobe artefatos depois do completed
+    return len(q.entries) == 0 and sum(w.task is None for w in ws) >= 2 and not any(
+        w.task is not None and w.task.id in nossas for w in ws)
 for nome in FALTAM:
     reg = json.load(open(REG))
     if nome not in reg:

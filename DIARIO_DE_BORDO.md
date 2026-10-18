@@ -119,7 +119,7 @@ modelos (C).
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
-| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA por grupo) pré-registrada 18/10 (`e026b73`), enviando |
+| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). **D1 encerrado** |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -135,7 +135,7 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
-### 18/10/2026 — D1 rodada 2, PCA por grupo — PRÉ-REGISTRADA, ENVIANDO
+### 18/10/2026 — D1 rodada 2, PCA por grupo — NENHUMA COMBINAÇÃO PASSA
 - **Pré-registro:** docstring de `frente_ocsvm/d1_disputa.py`, commit `e026b73` (antes do fitter e do envio).
   PCA com 95% da variância no normal de treino; score phi = max(T²/T²_p99, Q/Q_p99) com p99 do próprio treino
   (só T², isto é Mahalanobis, quando todas as componentes ficam retidas). Braços `pca` e `pca_mensal`
@@ -145,6 +145,22 @@ pré-registro, resultado, decisão.
   manual; com 2 sensores, phi·T²_p99 = Mahalanobis² (o Q_p99 dava 4e-31 de ruído e foi zerado pela regra de
   "todas as componentes retidas"); walk-forward ok; pytest 15/15.
 - **Envio:** 1 por vez (temp, vib, óleo, depois os 3 mensais), IDs em `frente_ocsvm/d1_envios.md`.
+- **Correção de premissa (sem mudar o critério):** o pré-registro supôs que temp e óleo teriam 2 dimensões, mas o
+  AutoML treina sobre as features derivadas do grupo; a `pca_temp` reteve 17 componentes (Q_p99 = 26,9), então o caso
+  "só Mahalanobis" não ocorre ali. A expectativa ("elipse rígida") partia dessa premissa errada.
+- **Fila:** a task fica `completed` antes de o worker terminar de subir os artefatos (~3 min para 100 MB; o
+  `task.close()` espera). A fila agora também espera o worker da task anterior ficar livre (1 task nossa por vez).
+- **Tasks (commit `67c3f7c`):** pca_temp `8077dc2e`, pca_vib `3a7b65aa`, pca_oleo `47964c2e`, pca_mensal_temp
+  `d42c0e47`, pca_mensal_vib `a6d764a1`, pca_mensal_oleo `37a895cc`; todas completed 18/10 11:57–12:44.
+- **Placar (8 combinações): nenhuma PASSA**, como na expectativa.
+  - Melhor com 8/8: `pca_so_temp`, 40 FP (2,747, −5% vs 2,885) e fora 3/3 com 23 (= OCSVM). Longe do −25%.
+    `pca_so_oleo` = produção (o óleo quase não vota).
+  - Vibração piora: `pca_so_vib` 6/8 e 2/3 fora (27 FP); `todos_pca` 6/8, 2/3 fora.
+  - Mensal (só fora): `pca_mensal_so_temp` e `_so_oleo` 3/3 e 23 (= OCSVM); `_so_vib` 3/3 e 33 (4,128, duty da vib
+    sobe para 15%); `todos_pca_mensal` 3/3 e 33.
+- **Decisão:** sem candidato para a confirmação (0,90/0,99). Fecha o D1: nas 4 famílias (iforest, dense, CNN-1D,
+  PCA), treino único e mensal, nenhum modelo por grupo corta 25% do FP mantendo os trips. A OCSVM segue nos 3
+  grupos; reduzir FP pela troca de modelo, com estas regras e estes 8 trips, não se sustentou.
 
 ### 17–18/10/2026 — D1, rodadas 1, 1b e 1c — NENHUMA COMBINAÇÃO PASSA
 - **Estado ao retomar:** as 10 tasks de 16/10 (iforest, dense e cnn1d nos 3 grupos; cnn1d_mensal só em temp)

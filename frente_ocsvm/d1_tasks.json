@@ -10,5 +10,11 @@
   "cnn1d_oleo": "80fbbc239b334846a9eadce85c241bb8",
   "cnn1d_mensal_temp": "2c19e1b9dc424f6e80867457cd8f12d9",
   "cnn1d_mensal_vib": "6fbead3c83fd47958e5d8fcc48016a6d",
-  "cnn1d_mensal_oleo": "7a7b77bf45ef48ae827370c3e52c9216"
+  "cnn1d_mensal_oleo": "7a7b77bf45ef48ae827370c3e52c9216",
+  "pca_temp": "8077dc2e288541c481b63da200ec3680",
+  "pca_vib": "3a7b65aab93e48128f9db37d9507faca",
+  "pca_oleo": "47964c2e46f04a5f9758c193684c94fb",
+  "pca_mensal_temp": "d42c0e474a254cd09824ca6582d7f000",
+  "pca_mensal_vib": "a6d764a1fc65427788cdc8970eb1399a",
+  "pca_mensal_oleo": "37a895cc62f042579b636129f6e6fc01"
 }
