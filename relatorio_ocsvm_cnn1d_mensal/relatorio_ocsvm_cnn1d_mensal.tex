@@ -745,6 +745,30 @@ mudança de carga & 5,1 & 11,4 & 0,47 & 0,40 & 0,40 \\
         separam o que é trip do que não é.
 \end{itemize}
 
+\subsection*{Atualização: o mesmo teste com o CNN-1D mensal (D3b) -- não separa}
+
+O retreino mensal do CNN-1D passou a salvar o score de cada mês dividido pelo limiar daquele mês (commit
+\tg{77f09c4}). As 3 tasks da rodada 1d foram rodadas de novo com configuração idêntica e reproduziram exatamente o
+resultado: 8 detecções, 45 FP, 23 inconclusivos e as mesmas antecedências. O teste e o critério são os da D3, no
+recorte de 01/2025 ao fim.
+
+\begin{table}[H]
+\centering\small
+\caption{D3b -- CNN-1D mensal, 8 detecções $\times$ 45 FP desde 01/2025 (magnitude em score/limiar do mês).}
+\begin{tabular}{llllll}
+\toprule
+medida & mediana detecções & mediana FP & AUC & $p$ & AUC fora (3 trips, descritivo) \\
+\midrule
+magnitude & 2,63 & 3,40 & 0,34 & 0,92 & 0,25 \\
+persistência & 0,25 & 0,63 & 0,39 & 0,84 & 0,56 \\
+mudança de carga & 4,2 & 11,9 & 0,40 & 0,18 & 0,38 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Com o CNN-1D o quadro é o mesmo, ou mais claro. Os FP têm score \emph{maior} e \emph{mais persistente} que os trips.
+Nenhuma das duas famílias traz, no score, a informação que separaria trip de FP.
+
 \appendix
 
 %=====================================================================

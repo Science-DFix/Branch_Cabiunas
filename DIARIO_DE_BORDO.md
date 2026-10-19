@@ -122,7 +122,7 @@ modelos (C).
 | **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025) feita 18/10: 8/8 nos 3 grupos, mas +25% FP: **NÃO PASSA** (`docs/cnn1d_mensal_por_grupo.md`) |
 | **D2** | CNN-1D de vibração como canal extra | somar (A) ou exigir concordância com a OCSVM na vibração (B) corta FP mantendo 8/8? | não | **feito 18/10: NÃO PASSA** (A +64% FP; B −6%, 8/8, antecedência intacta) |
 | **D3** | Score contínuo no momento do alerta | magnitude, persistência ou carga separam trip de FP? | não | **feito 18/10: NÃO SEPARA** (AUC 0,40–0,47; fora 0,40–0,61) |
-| **D3b** | Score contínuo do CNN-1D mensal | idem D3, com CNN-1D mensal desde 01/2025 | **sim (Cica)** | **pré-registrado 18/10** (`d3b_score_cnn1d.py`), enviando |
+| **D3b** | Score contínuo do CNN-1D mensal | idem D3, com CNN-1D mensal desde 01/2025 | **sim (Cica)** | **feito 19/10: NÃO SEPARA** (AUC 0,34–0,40; fora 0,25–0,56) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -138,7 +138,7 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
-### 18/10/2026 — D3b, score contínuo do CNN-1D mensal — PRÉ-REGISTRADO, ENVIANDO
+### 18–19/10/2026 — D3b, score contínuo do CNN-1D mensal — NÃO SEPARA
 - **Pedido do usuário:** "faça para CNN1D".
 - **Código:** o walk-forward passa a salvar `sequence_scores_all.csv` com r = score/limiar do próprio mês (limiar 1;
   `automl_pipeline.py`). As flags não mudam.
@@ -148,6 +148,16 @@ pré-registro, resultado, decisão.
   commit. São 3 tasks, uma por vez, ~8 h.
 - **Script:** `frente_ocsvm/d3b_score_cnn1d.py`. As medidas, a Etapa 1, a Etapa 2 e o critério são os da D3, no
   recorte de 01/2025 ao fim. Expectativa: nulo → NÃO.
+- **Execução:** temp `ffe9825c` e óleo `de4e9963` em paralelo, a pedido do usuário; vib `dc73ba24` sozinha, por
+  último. As três ficaram `completed` e com o arquivo de score (conferido a cada 30 min).
+  - Reprodução da 1d exata: 8 detecções, 45 FP, 23 inconclusivos e as mesmas antecedências.
+- **Resultado:** nenhuma medida separa.
+  - Magnitude: AUC 0,34 (p 0,92), mediana de r 2,6 nas detecções contra 3,4 nos FP.
+  - Persistência: AUC 0,39 (p 0,84).
+  - Carga: AUC 0,40 (p 0,18).
+  - Fora da amostra (descritivo): 0,25, 0,56 e 0,38.
+- **Leitura:** como na OCSVM, os FP do CNN-1D têm score maior e mais persistente que os trips. Nenhuma das duas
+  famílias traz no score a informação que separaria trip de FP.
 
 ### 18/10/2026 — D3, o score contínuo separa trip de FP? — NÃO SEPARA
 - **Script:** `frente_ocsvm/d3_score_continuo.py` (pré-registro no docstring, commitado antes de rodar). Local, sem

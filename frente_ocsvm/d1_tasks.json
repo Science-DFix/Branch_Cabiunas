@@ -19,5 +19,8 @@
   "pca_mensal_oleo": "37a895cc62f042579b636129f6e6fc01",
   "cnn1d_mensal_jan_temp": "bbc71b16f97842dcb429bafda2d89c32",
   "cnn1d_mensal_jan_oleo": "aab72b804b4e4e228e83d9ca77cea99a",
-  "cnn1d_mensal_jan_vib": "892e93c1698149aebc4e84817217755b"
+  "cnn1d_mensal_jan_vib": "892e93c1698149aebc4e84817217755b",
+  "cnn1d_mensal_jan_sc_temp": "ffe9825c0be149b38942e7f694f0226e",
+  "cnn1d_mensal_jan_sc_oleo": "de4e996396bf4358bada36f0e7a5ecbd",
+  "cnn1d_mensal_jan_sc_vib": "dc73ba2413f94b2680da39f34da886cb"
 }

@@ -66,3 +66,15 @@ Para retomar: `python frente_ocsvm/d1_disputa.py envia --so <nome>` pula o que j
 | 18/10 18:35 | cnn1d_mensal_jan_vib | 892e93c1698149aebc4e84817217755b | in_progress |
 | 18/10 21:27 | cnn1d_mensal_jan_vib | 892e93c1698149aebc4e84817217755b | completed |
 | 18/10 21:27 | — | — | fila do D1 concluída |
+| 18/10 23:16 | — | — | D3b (score do CNN-1D mensal), commit 77f09c4: fila cnn1d_mensal_jan_sc_temp, _vib, _oleo, 1 por vez |
+| 18/10 23:17 | cnn1d_mensal_jan_sc_temp | ffe9825c0be149b38942e7f694f0226e | enfileirada |
+| 18/10 23:18 | cnn1d_mensal_jan_sc_temp | ffe9825c0be149b38942e7f694f0226e | in_progress |
+| 18/10 23:47 | cnn1d_mensal_jan_sc_oleo | de4e996396bf4358bada36f0e7a5ecbd | enfileirada em paralelo com a temp (pedido do usuário); vib fica por último, sozinha |
+| 18/10 23:48 | cnn1d_mensal_jan_sc_temp | ffe9825c0be149b38942e7f694f0226e | in_progress |
+| 19/10 00:43 | cnn1d_mensal_jan_sc_temp | ffe9825c0be149b38942e7f694f0226e | completed |
+| 19/10 00:43 | cnn1d_mensal_jan_sc_oleo | de4e996396bf4358bada36f0e7a5ecbd | in_progress |
+| 19/10 01:34 | cnn1d_mensal_jan_sc_oleo | de4e996396bf4358bada36f0e7a5ecbd | completed |
+| 19/10 01:37 | cnn1d_mensal_jan_sc_vib | dc73ba2413f94b2680da39f34da886cb | enfileirada |
+| 19/10 01:38 | cnn1d_mensal_jan_sc_vib | dc73ba2413f94b2680da39f34da886cb | in_progress |
+| 19/10 04:29 | cnn1d_mensal_jan_sc_vib | dc73ba2413f94b2680da39f34da886cb | completed |
+| 19/10 04:29 | — | — | fila do D1 concluída |

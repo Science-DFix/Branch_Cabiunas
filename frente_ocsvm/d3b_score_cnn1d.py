@@ -16,6 +16,15 @@ PASSA = LOEO 8/8 e, com o corte escolhido nos 8, 3/3 fora com FP/mês fora <= 2,
 Expectativa: nulo na Etapa 1, como na OCSVM (AUC entre 0,4 e 0,6): a D2 mostrou que CNN-1D e OCSVM acendem nos
 mesmos episódios, e a D3 que os FP têm score tão alto e persistente quanto os trips -> NÃO.
 
+RESULTADO (19/10/2026, depois do pré-registro 77f09c4): NÃO SEPARA -> NÃO (Etapa 2 não roda).
+Tasks: temp ffe9825c, óleo de4e9963 (em paralelo com a temp, a pedido do usuário), vib dc73ba24 (sozinha, por
+último). Reprodução da 1d exata: 8 detecções, 45 FP, 23 inconclusivos desde 01/2025, mesmas antecedências.
+  F   med det  med FP  AUC    p      AUC fora (3 trips, descritivo)
+  F1  2,63     3,40    0,341  0,92   0,253
+  F2  0,251    0,632   0,391  0,84   0,556
+  F3  4,21     11,86   0,395  0,18   0,375
+Nas três, os FP ficam do lado "trip" mais que as detecções (AUC < 0,5). Expectativa certa (nulo).
+
 Uso: python frente_ocsvm/d3b_score_cnn1d.py
 """
 from __future__ import annotations
