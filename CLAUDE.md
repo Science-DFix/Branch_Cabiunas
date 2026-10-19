@@ -9,7 +9,8 @@ sinal**, integrada ao ClearML (dataset, tracking e execução remota no Cica).
 
 - **Pipeline vigente:** 3 canais OCSVM isolados, um por grupo de sinal (EXP33 temperatura de mancal, EXP34 vibração,
   EXP38 pressão de óleo) + canal 4 de proximidade a alarme (5 tags do catálogo, janela de 24 h). Decisão: voto ≥ 2
-  de 4, filtro de 45 min, refratário de 48 h → 8/8 trips, 2,88 FP/mês.
+  de 4, filtro de 45 min, refratário de 48 h, regra de falha de comunicação (E5, 19/10/2026) → 8/8 trips,
+  2,82 FP/mês. Cada episódio sai com a causa provável (`describe_alert_context`).
 - **Documento vivo:** `DIARIO_DE_BORDO.md` (estado, regras de trabalho, o que já foi testado, registro). `README.md`
   e `docs/` são histórico de consulta.
 - **Não reintroduzir** modelo único: a arquitetura é um modelo por grupo de sinal + camada de decisão. Desde 15/10/2026

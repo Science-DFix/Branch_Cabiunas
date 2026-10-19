@@ -14,6 +14,13 @@ Não é uma regra de custo (o ganho previsto é ~5%), é de HIGIENE. ADOTA se: 8
 Expectativa: some 1-2 FP (os de 14 e 17/01/2026; no período inteiro pode haver mais algum de 2024), trips intactos,
 FP/mês 2,885 -> ~2,82 -> ADOTA.
 
+RESULTADO (19/10/2026, depois do pré-registro d2cf017): ADOTA.
+  6 h: 8/8, fora 3/3, antecedências iguais; FP 42 -> 41 (2,885 -> 2,816/mês; fora 2,877 -> 2,752). Somem os FP de
+  14/01/26 18:57 e 17/01/26 01:00, mas aparece um em 15/01/26 12:56: o refratário do de 14/01 deixa de cobri-lo.
+  Sensibilidade: 1 h -> 41 FP; 24 h -> 40 FP. Expectativa certa.
+  Implementada em scripts/pipeline_unificada_final.py (compute_comm_fail_mask em scoring.py); a pipeline real
+  reproduz 8/8 e 2,82.
+
 Uso: python frente_ocsvm/e5_falha_comunicacao.py
 """
 from __future__ import annotations

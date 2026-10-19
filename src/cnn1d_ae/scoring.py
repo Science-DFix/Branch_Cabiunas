@@ -620,6 +620,77 @@ def apply_frozen_sensor_veto(df_point: pd.DataFrame, frozen_mask: pd.Series) -> 
     return df_point
 
 
+def compute_comm_fail_mask(df_raw: pd.DataFrame, window_hours: float) -> pd.Series:
+    """True quando QUALQUER coluna de `df_raw` (lida como texto, sem
+    converter) teve valor nao numerico -- "Comm Fail"/"Out of Serv" no
+    lugar da medida -- nas ultimas `window_hours`. Causal (rolling
+    trailing). Adotado na camada de decisao em 19/10/2026 com 6 h: o
+    canal do modelo nao vota enquanto o seu grupo esteve em falha --
+    ver frente_ocsvm/e5_falha_comunicacao.py."""
+    texto = df_raw.notna() & df_raw.apply(pd.to_numeric, errors="coerce").isna()
+    dt_seconds = df_raw.index.to_series().diff().dt.total_seconds().median()
+    if not np.isfinite(dt_seconds) or dt_seconds <= 0:
+        dt_seconds = 30.0
+    w_samples = max(1, int(round((float(window_hours) * 3600.0) / dt_seconds)))
+    return texto.any(axis=1).astype(int).rolling(w_samples, min_periods=1).max().astype(bool)
+
+
+def describe_alert_context(
+    episodes: pd.DataFrame,
+    operational_state: pd.Series,
+    model_channels: dict,
+    alarms: pd.DataFrame,
+    channel4_tags: list,
+    temperature_alarm_tags: list,
+    comm_fail: pd.Series | None = None,
+    alert_delay_minutes: float = 45.0,
+) -> pd.DataFrame:
+    """Causa provavel de cada episodio, so com dados ate o momento do
+    alerta (inicio + `alert_delay_minutes`, o filtro de duracao do voto).
+    Nao suprime nada: e contexto para o operador, a partir da triagem
+    dos FP (relatorio_falsos_positivos/, E1). `alarms` tem colunas t/tag
+    (ativacoes do catalogo). Colunas devolvidas:
+      modelos_acesos, tags_canal4 (24 h antes), h_desde_partida,
+      alarmes_canal4_7d, alertas_anteriores_7d, rajada_temperatura_24h
+      (>= 5 tags de temperatura em 10 min), falha_comunicacao_6h e
+      contexto (a 1a que se aplica, em ordem de prioridade)."""
+    on = operational_state.eq("on").values
+    t_idx = operational_state.index
+    partidas = t_idx[on & ~np.r_[False, on[:-1]]]
+    a4 = alarms[alarms["tag"].isin(channel4_tags)].sort_values("t")
+    at = alarms[alarms["tag"].isin(temperature_alarm_tags)].sort_values("t")
+    rows = []
+    for _, e in episodes.iterrows():
+        ta = e["start"] + pd.Timedelta(minutes=alert_delay_minutes)
+        acesos = [k for k, s in model_channels.items() if s.loc[e["start"]:ta].any()]
+        tags4 = sorted(set(a4.loc[(a4["t"] > ta - pd.Timedelta(hours=24)) & (a4["t"] <= ta), "tag"]))
+        p = partidas[partidas <= ta]
+        h_part = (ta - p[-1]).total_seconds() / 3600.0 if len(p) else np.nan
+        n4 = int(((a4["t"] > ta - pd.Timedelta(days=7)) & (a4["t"] <= ta)).sum())
+        n_ant = int(((episodes["start"] < e["start"]) & (episodes["start"] >= e["start"] - pd.Timedelta(days=7))).sum())
+        w = at[(at["t"] > ta - pd.Timedelta(hours=24)) & (at["t"] <= ta)]
+        rajada = any(w.loc[(w["t"] >= t0) & (w["t"] <= t0 + pd.Timedelta(minutes=10)), "tag"].nunique() >= 5
+                     for t0 in w["t"])
+        falha = bool(comm_fail is not None and comm_fail.loc[ta - pd.Timedelta(hours=6):ta].any())
+        if falha:
+            ctx = "falha de comunicacao"
+        elif np.isfinite(h_part) and h_part <= 2.0 + alert_delay_minutes / 60.0:
+            ctx = "pos-partida"
+        elif rajada:
+            ctx = "rajada de alarmes de temperatura"
+        elif n_ant > 0:
+            ctx = f"repeticao ({n_ant} alerta(s) em 7 d)"
+        elif n4 >= 10:
+            ctx = "alarme cronico"
+        else:
+            ctx = "sem contexto conhecido"
+        rows.append({"modelos_acesos": "+".join(acesos), "tags_canal4": ",".join(tags4),
+                     "h_desde_partida": round(h_part, 1), "alarmes_canal4_7d": n4,
+                     "alertas_anteriores_7d": n_ant, "rajada_temperatura_24h": rajada,
+                     "falha_comunicacao_6h": falha, "contexto": ctx})
+    return pd.DataFrame(rows, index=episodes.index)
+
+
 def apply_min_duration_filter(df_point: pd.DataFrame, min_duration_minutes: float) -> pd.DataFrame:
     """Suprime episodios CONTINUOS de `is_anom_point` mais curtos que
     `min_duration_minutes` -- aplicado logo apos a mascara operacional,

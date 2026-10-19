@@ -127,6 +127,7 @@ modelos (C).
 | **E2** | Novidade do alarme do canal 4 | o canal 4 aceso há pouco tempo (N1) ou poucas ativações em 7 dias (N2) separam trip de FP? | não | **feito 19/10: NÃO SEPARA** (AUC 0,55 / 0,34; fora 0,49 / 0,54) |
 | **E3** | Curva de compromisso trips × FP/mês | quanto FP se economiza aceitando perder trips (sensibilidade r ≥ k; envelope da grade A3)? | não | **feito 19/10 (descritivo):** k=3 → 7/8, −19% (fora −9%); k=4–12 → 6/8, −27% (fora −13%); A3 só PI+PAL 8/8 −17% (otimista) |
 | **E4** | Adiar o alerta após a partida | votos não contam nas primeiras h horas depois da partida; corta FP sem perder trip? | não | **feito 19/10: NÃO** (h=1: −5%, fora 0%; LOEO 7/8; 15 de 17 FP de partida só são adiados) |
+| **E5** | Regra de falha de comunicação (higiene) | ignorar o canal do modelo com Comm Fail no grupo nas últimas 6 h mantém 8/8 sem subir FP? | não | **feito 19/10: ADOTADA** (8/8, FP 42 → 41; na pipeline final + contexto do alerta) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -141,6 +142,19 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 19/10/2026 — E5, regra de falha de comunicação, e contexto do alerta — ADOTADOS
+- **Pedido do usuário:** "vamos de item 2". Pré-registro `d2cf017`, script `frente_ocsvm/e5_falha_comunicacao.py`.
+- **E5:** com 6 h, 8/8 e antecedências iguais; FP 42 → 41 (2,885 → 2,816/mês). Somem os FP de 14 e 17/01/2026, mas
+  surge um em 15/01, que o refratário do de 14/01 cobria.
+- **Na pipeline final** (`scripts/pipeline_unificada_final.py`):
+  - a regra entra antes do voto (`compute_comm_fail_mask`);
+  - `describe_alert_context` grava a causa provável de cada episódio, só com dados até o momento do alerta.
+  - Rodada real: 8/8, 2,82 FP/mês, 25 inconclusivos. Testes: 20/20.
+- **Contexto na produção:** pós-partida aparece em 3 det, 16 FP e 10 inc; repetição em 5 det, 16 FP e 10 inc.
+  Descreve, mas não separa.
+  - Sem ordem de prioridade, há "outro alerta nos 7 dias antes" em 6/8 trips e 22/41 FP. É uma hipótese para dados novos.
+- **README:** nova seção "Falsos positivos: o que sabemos e o que explorar", com os pontos para retreino.
 
 ### 19/10/2026 — E4, adiar o alerta após a partida — NÃO
 - **Pedido do usuário:** "vamos de item 1". Pré-registro `f7a2895`, script `frente_ocsvm/e4_adia_partida.py`.

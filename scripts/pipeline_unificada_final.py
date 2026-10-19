@@ -43,6 +43,8 @@ from src.cnn1d_ae.scoring import (
     classify_episodes_regua,
     compute_regua_metrics,
     compute_operational_period_days,
+    compute_comm_fail_mask,
+    describe_alert_context,
 )
 
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runs_pipeline_unificada_final")
@@ -108,6 +110,22 @@ MIN_VOTES_GRID = [2, 3]
 # reduz FP/mes de 6.59 para 2.88 (-56%).
 MIN_VOTE_DURATION_MINUTES = 45.0
 
+# Regra de falha de comunicacao (adotada em 19/10/2026, E5 em
+# frente_ocsvm/e5_falha_comunicacao.py): o canal do modelo nao vota se
+# algum sensor do seu grupo teve "Comm Fail"/"Out of Serv" no lugar da
+# medida nas ultimas 6 h. Mantem 8/8 e as antecedencias; FP 42 -> 41.
+SENSORS_FILE = "sensores_full_2024_2026_30s.csv"  # mesmo Dataset do catalogo
+GROUP_SENSORS = {
+    "temperatura": ["TC382_03_A", "T5_AVG_A"],
+    "vibracao": [f"TV_35{i}{e}_A" for i in range(1, 6) for e in "XY"],
+    "oleo_pressao": ["954005_624_PI_0308", "954005_624_PDIT_0305"],
+}
+COMM_FAIL_WINDOW_HOURS = 6.0
+# contexto do alerta (so descreve, nao suprime): tags de temperatura
+# usadas para detectar rajada de alarmes de instrumentacao
+TEMPERATURE_ALARM_TAGS = ["TC382_01_A", "TC382_02_A", "TC382_03_A", "TC382_04_A", "TC382_05_A", "TC382_06_A",
+                          "TI_6240315", "TI_6240317", "T5_AVG_A"]
+
 FALHAS_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "dataset_francisco_lara", "alarmes_francisco_falhas.csv")
 
 
@@ -169,6 +187,17 @@ def main() -> None:
     failure_times = falhas.loc[falhas["Tag Alarme"] == "FALHA_CURADA", "Data da Ocorrência"].sort_values()
     ft = failure_times.loc[(failure_times >= idx.min()) & (failure_times <= idx.max())]
 
+    print("carregando sensores brutos (regra de falha de comunicacao)...", flush=True)
+    cols = ["data_datetime"] + [c for v in GROUP_SENSORS.values() for c in v]
+    raw = pd.read_csv(os.path.join(root, SENSORS_FILE), usecols=cols, dtype=str)
+    raw.index = pd.to_datetime(raw.pop("data_datetime"))
+    raw = raw.sort_index()
+    comm_fail = {g: compute_comm_fail_mask(raw[s], COMM_FAIL_WINDOW_HOURS).reindex(idx, fill_value=False)
+                 for g, s in GROUP_SENSORS.items()}
+    canal_temp = canal_temp & ~comm_fail["temperatura"]
+    canal_vib = canal_vib & ~comm_fail["vibracao"]
+    canal_oleo = canal_oleo & ~comm_fail["oleo_pressao"]
+
     canais = {
         "temperatura": canal_temp,
         "vibracao": canal_vib,
@@ -220,6 +249,15 @@ def main() -> None:
         "operational_state": op_state,
     }, index=idx)
 
+    ctx = describe_alert_context(
+        cls, op_state, {k: canais[k] for k in GROUP_SENSORS},
+        alarm.rename(columns={"Data da Ocorrencia": "t", "Tag": "tag"})[["t", "tag"]],
+        ALARM_CHANNEL_TAGS, TEMPERATURE_ALARM_TAGS,
+        comm_fail=pd.concat(comm_fail, axis=1).any(axis=1), alert_delay_minutes=MIN_VOTE_DURATION_MINUTES)
+    cls = pd.concat([cls, ctx], axis=1)
+    print("\ncontexto dos episodios por classe:")
+    print(pd.crosstab(cls["contexto"].str.replace(r" \(.*", "", regex=True), cls["classe"]).to_string())
+
     df_final.to_csv(os.path.join(OUT_DIR, "point_anomalies_final.csv"))
     cls.to_csv(os.path.join(OUT_DIR, "episodios_classificados.csv"), index=False)
     with open(os.path.join(OUT_DIR, "metrics.json"), "w", encoding="utf-8") as f:
@@ -234,6 +272,7 @@ def main() -> None:
                 "n_canais": 4,
                 "min_vote_duration_minutes": MIN_VOTE_DURATION_MINUTES,
                 "refractory_hours": REFRACTORY_HOURS,
+                "comm_fail_window_hours": COMM_FAIL_WINDOW_HOURS,
                 "temp_task_id": TID_TEMP,
                 "vib_task_id": TID_VIB,
                 "oleo_task_id": TID_OLEO,
