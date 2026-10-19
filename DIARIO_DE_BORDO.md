@@ -125,6 +125,7 @@ modelos (C).
 | **D3b** | Score contínuo do CNN-1D mensal | idem D3, com CNN-1D mensal desde 01/2025 | **sim (Cica)** | **feito 19/10: NÃO SEPARA** (AUC 0,34–0,40; fora 0,25–0,56) |
 | **E1** | Triagem dos FP por causa (descritiva) | qualidade de dado, partida, rajada, regime pós-27/02 ou alarme crônico explicam FP que nenhum trip tem? | não | **feito 19/10:** qualidade de dado explica só 2 FP; metade dos FP começa na 1ª–2ª h após a partida, mas 3 trips também → candidato a E2 (adiar, não descartar) |
 | **E2** | Novidade do alarme do canal 4 | o canal 4 aceso há pouco tempo (N1) ou poucas ativações em 7 dias (N2) separam trip de FP? | não | **feito 19/10: NÃO SEPARA** (AUC 0,55 / 0,34; fora 0,49 / 0,54) |
+| **E3** | Curva de compromisso trips × FP/mês | quanto FP se economiza aceitando perder trips (sensibilidade r ≥ k; envelope da grade A3)? | não | **feito 19/10 (descritivo):** k=3 → 7/8, −19% (fora −9%); k=4–12 → 6/8, −27% (fora −13%); A3 só PI+PAL 8/8 −17% (otimista) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -139,6 +140,17 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 19/10/2026 — E3, curva de compromisso — DESCRITIVO
+- **Pedido do usuário:** "vamos para item 3". Script `frente_ocsvm/e3_curva_compromisso.py`, figura
+  `relatorio_ocsvm_cnn1d_mensal/figs/curva_compromisso.png`, subseção nova no relatório.
+- **Sensibilidade** (canal do modelo só conta se score/limiar ≥ k):
+  - k = 3: 7/8 (perde T2), 2,335 FP/mês (−19%); fora 3/3 e −9%.
+  - k = 4–12: 6/8, −27%; fora −13%.
+  - k = 16: 5/8, −36%; fora −13%.
+  - Voto ≥ 3: 0/8.
+- **Envelope A3** (otimista, LOEO 5/8): 8/8 só com PI_6240319_AL + PAL_6240315 dá 2,404 (−17%), fora −22%.
+- **Leitura:** não há ponto de graça. Fora da amostra os trips resistem até k = 16, mas os FP também. O ponto é decisão da operação.
 
 ### 19/10/2026 — E2, novidade do alarme do canal 4 — NÃO SEPARA
 - **Pedido do usuário:** "vamos para item 2". Pré-registro `208f86d`, script `frente_ocsvm/e2_novidade_alarme.py`.
