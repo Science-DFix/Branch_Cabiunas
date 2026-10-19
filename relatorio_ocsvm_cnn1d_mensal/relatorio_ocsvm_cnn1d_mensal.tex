@@ -769,61 +769,13 @@ mudança de carga & 4,2 & 11,9 & 0,40 & 0,18 & 0,38 \\
 Com o CNN-1D o quadro é o mesmo, ou mais claro. Os FP têm score \emph{maior} e \emph{mais persistente} que os trips.
 Nenhuma das duas famílias traz, no score, a informação que separaria trip de FP.
 
-\subsection*{Atualização: causas dos FP (E1) e novidade do alarme (E2)}
+\subsection*{Atualização: relatório dedicado aos falsos positivos}
 
-\textbf{E1, triagem por causa} (\tg{frente_ocsvm/e1_triagem_fp.py}, descritiva). Uma causa só serve para regra se
-nenhum trip a tiver.
-\begin{itemize}
-  \item \tg{Comm Fail}/\tg{Out of Serv} nos sensores do grupo aceso explica só 2 FP, e nenhum trip.
-  \item Sensor interpolado, sensor parado, rajada de temperatura e alarme crônico não explicam FP: ou não ocorrem nos
-        episódios, ou também aparecem em trips.
-  \item Metade dos FP começa nas primeiras 1--2~h depois de a máquina voltar a operar. Mas T4, T6 e T7 também começam
-        ali, com antecedência de 20, 14 e 8~h.
-\end{itemize}
+A triagem dos FP por causa (E1), o teste da novidade do alarme (E2) e a curva de compromisso trips $\times$ FP/mês
+(E3) estão no relatório ``De onde vêm os falsos positivos da detecção de trips da TC-33003A''
+(\tg{relatorio_falsos_positivos/}).
 
-\textbf{E2, novidade do alarme} (\tg{frente_ocsvm/e2_novidade_alarme.py}, pré-registro \tg{208f86d}). Foram medidos
-o tempo em que o canal 4 já estava aceso e o número de ativações das 5 tags em 7 dias. Nenhum dos dois separa (AUC
-0,55 e 0,34). Os trips não chegam com alarme ``novo'': acontecem em semanas com \emph{mais} alarme.
-
-\subsection*{Atualização: curva de compromisso (E3)}
-
-Como nada separa trip de FP, a última alternativa com os dados atuais é escolher quanto trip se aceita perder em troca
-de menos FP (\tg{frente_ocsvm/e3_curva_compromisso.py}, Figura~\ref{fig:compromisso}). Foram usados dois botões.
-\begin{itemize}
-  \item \textbf{Sensibilidade:} o canal de cada modelo só conta se o score passar $k$ vezes o limiar.
-  \item \textbf{Camada de decisão:} o envelope da grade do A3. Ele foi escolhido olhando os trips, então é um teto
-        otimista.
-\end{itemize}
-
-\begin{table}[H]
-\centering\small
-\caption{E3 -- pontos da curva (OCSVM de produção). Fora = desde 01/07/2025, 3 trips.}
-\begin{tabular}{lllll}
-\toprule
-ponto & trips & FP/mês (todo o período) & fora & FP/mês fora \\
-\midrule
-produção ($k=1$) & 8/8 & 2,885 & 3/3 & 2,877 \\
-$k=3$ & 7/8 (perde T2) & 2,335 ($-19\%$) & 3/3 & 2,627 ($-9\%$) \\
-$k=4$ a $12$ & 6/8 (T2, T4) & 2,06--2,13 ($-27\%$) & 3/3 & 2,502 ($-13\%$) \\
-$k=16$ & 5/8 & 1,854 ($-36\%$) & 3/3 & 2,502 ($-13\%$) \\
-A3: só PI + PAL (otimista) & 8/8 & 2,404 ($-17\%$) & 3/3 & 2,251 ($-22\%$) \\
-A3: 7 trips (otimista) & 7/8 & 1,923 ($-33\%$) & 3/3 & 2,251 ($-22\%$) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{curva_compromisso.png}
-\caption{Curva de compromisso: trips detectados $\times$ FP/mês, no período inteiro e fora da amostra.}
-\label{fig:compromisso}
-\end{figure}
-
-Não há ponto ``de graça''. No período inteiro, cada trip a menos economiza cerca de 0,2--0,3 FP/mês. Fora da amostra,
-os 3 trips resistem até $k=16$, porque o score deles fica bem acima do limiar. Os FP de fora, porém, também resistem,
-e o corte de FP para em $-13\%$. A escolha do ponto é da operação: quanto custa um FP (uma inspeção) comparado a um
-trip não previsto.
-
+%=====================================================================
 \appendix
 
 %=====================================================================

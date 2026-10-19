@@ -1,0 +1,126 @@
+{
+ "categorias": {
+  "OCSVM": {
+   "partida (≤ 2 h)": 16,
+   "série de vibração 31/01–14/02/26": 5,
+   "sem causa identificada": 4,
+   "alarme crônico": 4,
+   "regime pós-27/02/26": 4,
+   "falha de comunicação": 2,
+   "rajada de temperatura": 1
+  },
+  "CNN-1D mensal": {
+   "partida (≤ 2 h)": 16,
+   "sem causa identificada": 11,
+   "série de vibração 31/01–14/02/26": 6,
+   "alarme crônico": 5,
+   "regime pós-27/02/26": 3,
+   "rajada de temperatura": 2,
+   "falha de comunicação": 2
+  }
+ },
+ "classes": {
+  "OCSVM": {
+   "falso_positivo": 36,
+   "inconclusivo": 18,
+   "deteccao": 8
+  },
+  "CNN-1D mensal": {
+   "falso_positivo": 45,
+   "inconclusivo": 23,
+   "deteccao": 8
+  }
+ },
+ "causas": {
+  "OCSVM": {
+   "falha_txt": {
+    "deteccao": 0,
+    "falso_positivo": 2,
+    "inconclusivo": 0
+   },
+   "reta": {
+    "deteccao": 0,
+    "falso_positivo": 0,
+    "inconclusivo": 0
+   },
+   "constante": {
+    "deteccao": 1,
+    "falso_positivo": 8,
+    "inconclusivo": 1
+   },
+   "partida": {
+    "deteccao": 3,
+    "falso_positivo": 18,
+    "inconclusivo": 10
+   },
+   "rajada": {
+    "deteccao": 1,
+    "falso_positivo": 5,
+    "inconclusivo": 1
+   },
+   "pos_2702": {
+    "deteccao": 0,
+    "falso_positivo": 6,
+    "inconclusivo": 0
+   },
+   "cronico": {
+    "deteccao": 4,
+    "falso_positivo": 13,
+    "inconclusivo": 8
+   }
+  },
+  "CNN-1D mensal": {
+   "falha_txt": {
+    "deteccao": 0,
+    "falso_positivo": 2,
+    "inconclusivo": 0
+   },
+   "reta": {
+    "deteccao": 0,
+    "falso_positivo": 0,
+    "inconclusivo": 0
+   },
+   "constante": {
+    "deteccao": 3,
+    "falso_positivo": 16,
+    "inconclusivo": 9
+   },
+   "partida": {
+    "deteccao": 2,
+    "falso_positivo": 20,
+    "inconclusivo": 13
+   },
+   "rajada": {
+    "deteccao": 1,
+    "falso_positivo": 5,
+    "inconclusivo": 1
+   },
+   "pos_2702": {
+    "deteccao": 0,
+    "falso_positivo": 5,
+    "inconclusivo": 0
+   },
+   "cronico": {
+    "deteccao": 4,
+    "falso_positivo": 15,
+    "inconclusivo": 10
+   }
+  }
+ },
+ "partida_1h_fp": {
+  "OCSVM": 15,
+  "CNN-1D mensal": 15
+ },
+ "novidade_mediana": {
+  "N1": {
+   "deteccao": 3.75,
+   "falso_positivo": 14.58,
+   "inconclusivo": 12.52
+  },
+  "N2": {
+   "deteccao": 9.5,
+   "falso_positivo": 7.5,
+   "inconclusivo": 11.0
+  }
+ }
+}

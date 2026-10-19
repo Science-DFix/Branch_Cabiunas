@@ -141,6 +141,16 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 19/10/2026 — Relatório dedicado aos FP
+- **Pedido do usuário:** juntar o levantamento dos FP num segundo LaTeX, com título informativo.
+- **Pasta:** `relatorio_falsos_positivos/` ("De onde vêm os falsos positivos da detecção de trips da TC-33003A").
+  Figuras em `gera_figuras_fp.py`; usa `frente_ocsvm/dados/e1_triagem.csv` e algumas figuras do primeiro relatório.
+- **Conteúdo:** composição dos episódios, as 9 hipóteses já testadas, triagem por causa com a categoria principal de
+  cada FP, curva de compromisso, dados faltantes e apêndice com os 36 FP da OCSVM.
+  - Categorias da OCSVM: partida (≤ 2 h) 16; série de vibração 01–02/2026 5; regime pós-27/02 4; crônico 4;
+    Comm Fail 2; rajada 1; sem causa 4.
+- **Primeiro relatório:** as subseções E1–E3 saíram de lá; ficou só uma remissão para o relatório novo.
+
 ### 19/10/2026 — E3, curva de compromisso — DESCRITIVO
 - **Pedido do usuário:** "vamos para item 3". Script `frente_ocsvm/e3_curva_compromisso.py`, figura
   `relatorio_ocsvm_cnn1d_mensal/figs/curva_compromisso.png`, subseção nova no relatório.
