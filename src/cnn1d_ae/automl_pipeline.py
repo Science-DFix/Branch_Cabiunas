@@ -702,11 +702,13 @@ def run_automl_group(
                     # meses quando testado assim; aqui o percentil e
                     # recalculado a cada periodo desde o inicio, por design.
                     anomaly_flags = np.zeros(len(all_index), dtype=int)
+                    wf_ratio = np.full(len(all_index), np.nan)  # score / limiar do proprio periodo (NaN antes do 1o)
                     threshold = None
                     for p in walkforward_periods:
                         threshold = float(np.percentile(p["train_err"], pct))
                         pos = all_index.get_indexer(p["index"])
                         anomaly_flags[pos] = (p["score_err"] > threshold).astype(int)
+                        wf_ratio[pos] = np.asarray(p["score_err"]) / threshold
                 else:
                     threshold = float(np.percentile(train_err, pct))
                     anomaly_flags = (all_err > threshold).astype(int)
@@ -780,10 +782,13 @@ def run_automl_group(
                         # is_anom_point) -- necessario pra construir canais de
                         # decisao com persistencia/CUSUM proprios (ver
                         # docs/analise_automl_exp10.md, secao "Camada de
-                        # decisao multi-canal"). None no caso walk-forward
-                        # (score vem por periodo, nao um array unico).
-                        best_all_err = None if walkforward_periods is not None else np.asarray(all_err).copy()
-                        best_threshold_value = threshold
+                        # decisao multi-canal"). No walk-forward cada periodo
+                        # tem o proprio limiar: salva score/limiar do periodo,
+                        # com limiar 1 (D3b, 18/10).
+                        if walkforward_periods is not None:
+                            best_all_err, best_threshold_value = wf_ratio.copy(), 1.0
+                        else:
+                            best_all_err, best_threshold_value = np.asarray(all_err).copy(), threshold
 
     if best_trial is None:
         return {"group": group_name, "sensors": sensors, "skipped": True, "reason": "no_valid_trials"}

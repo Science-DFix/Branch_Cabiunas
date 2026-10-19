@@ -122,6 +122,7 @@ modelos (C).
 | **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025) feita 18/10: 8/8 nos 3 grupos, mas +25% FP: **NÃO PASSA** (`docs/cnn1d_mensal_por_grupo.md`) |
 | **D2** | CNN-1D de vibração como canal extra | somar (A) ou exigir concordância com a OCSVM na vibração (B) corta FP mantendo 8/8? | não | **feito 18/10: NÃO PASSA** (A +64% FP; B −6%, 8/8, antecedência intacta) |
 | **D3** | Score contínuo no momento do alerta | magnitude, persistência ou carga separam trip de FP? | não | **feito 18/10: NÃO SEPARA** (AUC 0,40–0,47; fora 0,40–0,61) |
+| **D3b** | Score contínuo do CNN-1D mensal | idem D3, com CNN-1D mensal desde 01/2025 | **sim (Cica)** | **pré-registrado 18/10** (`d3b_score_cnn1d.py`), enviando |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -136,6 +137,17 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 18/10/2026 — D3b, score contínuo do CNN-1D mensal — PRÉ-REGISTRADO, ENVIANDO
+- **Pedido do usuário:** "faça para CNN1D".
+- **Código:** o walk-forward passa a salvar `sequence_scores_all.csv` com r = score/limiar do próprio mês (limiar 1;
+  `automl_pipeline.py`). As flags não mudam.
+  - Teste mínimo local: iforest em 6 meses, só o grupo de temperatura. O CSV sai a partir do início do
+    walk-forward, e os 137 pontos marcados têm r > 1. pytest 15/15.
+- **Braço:** `cnn1d_mensal_jan_sc` tem config idêntica ao `cnn1d_mensal_jan` (diff vazio) e é rodado de novo neste
+  commit. São 3 tasks, uma por vez, ~8 h.
+- **Script:** `frente_ocsvm/d3b_score_cnn1d.py`. As medidas, a Etapa 1, a Etapa 2 e o critério são os da D3, no
+  recorte de 01/2025 ao fim. Expectativa: nulo → NÃO.
 
 ### 18/10/2026 — D3, o score contínuo separa trip de FP? — NÃO SEPARA
 - **Script:** `frente_ocsvm/d3_score_continuo.py` (pré-registro no docstring, commitado antes de rodar). Local, sem

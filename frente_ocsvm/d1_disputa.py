@@ -111,6 +111,8 @@ MODELOS = {  # variante: mudanças sobre o config de produção
     "cnn1d_mensal_jan": dict(CNN1D, ENABLE_WALKFORWARD_RETRAIN=True, WALKFORWARD_RETRAIN_FREQ="MS",
                              ENABLE_MIN_DURATION_FILTER=False, WALKFORWARD_START_DATE="2025-01-01"),
 }
+# D3b (18/10): mesma config do cnn1d_mensal_jan, rodada de novo só para salvar score/limiar do walk-forward
+MODELOS["cnn1d_mensal_jan_sc"] = dict(MODELOS["cnn1d_mensal_jan"])
 PROD = {c: v[1] for c, v in CANAIS.items()}
 REF_FP = {"total": 2.885, "fora": 2.877}  # FP/mês da produção (A0, A1)
 CORTE = 0.75
