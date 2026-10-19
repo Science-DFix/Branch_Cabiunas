@@ -124,6 +124,7 @@ modelos (C).
 | **D3** | Score contínuo no momento do alerta | magnitude, persistência ou carga separam trip de FP? | não | **feito 18/10: NÃO SEPARA** (AUC 0,40–0,47; fora 0,40–0,61) |
 | **D3b** | Score contínuo do CNN-1D mensal | idem D3, com CNN-1D mensal desde 01/2025 | **sim (Cica)** | **feito 19/10: NÃO SEPARA** (AUC 0,34–0,40; fora 0,25–0,56) |
 | **E1** | Triagem dos FP por causa (descritiva) | qualidade de dado, partida, rajada, regime pós-27/02 ou alarme crônico explicam FP que nenhum trip tem? | não | **feito 19/10:** qualidade de dado explica só 2 FP; metade dos FP começa na 1ª–2ª h após a partida, mas 3 trips também → candidato a E2 (adiar, não descartar) |
+| **E2** | Novidade do alarme do canal 4 | o canal 4 aceso há pouco tempo (N1) ou poucas ativações em 7 dias (N2) separam trip de FP? | não | **feito 19/10: NÃO SEPARA** (AUC 0,55 / 0,34; fora 0,49 / 0,54) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -138,6 +139,14 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 19/10/2026 — E2, novidade do alarme do canal 4 — NÃO SEPARA
+- **Pedido do usuário:** "vamos para item 2". Pré-registro `208f86d`, script `frente_ocsvm/e2_novidade_alarme.py`.
+- **Medidas** no momento do alerta (OCSVM de produção, período inteiro, 8 det × 42 FP):
+  - N1: há quanto tempo o canal 4 está aceso. Mediana 3,8 h nas detecções e 14,6 h nos FP; AUC 0,55, p 0,35.
+  - N2: quantas ativações das 5 tags em 7 dias. Mediana 9,5 nas detecções e 7,5 nos FP; AUC 0,34, ou seja, contra a hipótese.
+- **Leitura:** os trips não chegam com alarme "novo". Três deles (16/03/2025, 27/04/2025 e 03/11/2025) têm o canal 4 aceso
+  há 26–74 h. Expectativa certa (nulo); a Etapa 2 não roda.
 
 ### 19/10/2026 — E1, triagem dos FP por causa — DESCRITIVO
 - **Pedido do usuário:** "comece pelo item 1" (descobrir por que cada FP aconteceu, sem olhar os trips para escolher regra).

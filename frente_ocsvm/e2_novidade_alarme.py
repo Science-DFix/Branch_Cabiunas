@@ -21,6 +21,14 @@ Expectativa: NULO. O E1 já mostrou (descritivo, desde 01/2025) que as detecçõ
 (mediana de 9,5 contra 6,5 alarmes da tag do canal 4 em 7 dias), e 4 dos 8 trips caem em alarme crônico. Espero AUC
 de N2 <= 0,5 e N1 entre 0,4 e 0,6 -> Etapa 2 não roda -> NÃO.
 
+RESULTADO (19/10/2026, depois do pré-registro 208f86d): NÃO SEPARA -> NÃO (Etapa 2 não roda). Referência = A0 (8/42/25).
+  N   med det  med FP  AUC    p      AUC fora (3 trips, descritivo)
+  N1  3,75 h   14,6 h  0,546  0,35   0,493
+  N2  9,5      7,5     0,341  0,92   0,543
+N1 vai na direção da hipótese (o canal 4 dos trips está aceso há menos tempo), mas fraco e sem fora; 2 trips (16/03 e
+27/04/2025) e 1 de fora (03/11/2025) têm canal 4 aceso há 26-74 h. N2 vai contra: trips caem em semanas de MAIS alarme.
+Expectativa certa (nulo).
+
 Uso: python frente_ocsvm/e2_novidade_alarme.py
 """
 from __future__ import annotations
