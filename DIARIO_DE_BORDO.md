@@ -119,7 +119,7 @@ modelos (C).
 | **C1** | Retreino mensal (walk-forward) | o −19% de FP do EXP10c se repete nos canais separados? | **sim (Cica)** | **feito 14/10: REPROVADO** (perde 26/02/26, FP fora +3 episódios; vib duty cai à metade) |
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
-| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025, os 8 trips) pré-registrada 18/10 (`45b8b6c`), enviando |
+| **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025) feita 18/10: 8/8 nos 3 grupos, mas +25% FP: **NÃO PASSA** (`docs/cnn1d_mensal_por_grupo.md`) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -135,7 +135,7 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
-### 18/10/2026 — D1 rodada 1d, CNN-1D mensal desde 01/2025 (os 8 trips) — PRÉ-REGISTRADA, ENVIANDO
+### 18/10/2026 — D1 rodada 1d, CNN-1D mensal desde 01/2025 (os 8 trips) — NÃO PASSA
 - **Pergunta do usuário:** o CNN-1D mensal pega os 8 trips com antecedência? Na 1c o walk-forward começava em
   01/07/2025, então só os 3 trips fora eram julgáveis (antes disso o braço não emite flag).
 - **Pré-registro:** docstring de `frente_ocsvm/d1_disputa.py`, commit `45b8b6c` (antes do código e do envio).
@@ -147,6 +147,19 @@ pré-registro, resultado, decisão.
   mudam) e no `run_automl_group`. pytest 15/15; as 3 configs carregam com 16 retreinos mensais.
 - **Envio:** temp, vib, óleo, 1 por vez; IDs em `frente_ocsvm/d1_envios.md`. Tempo estimado: vib ~3,5 h, temp e
   óleo ~1,5 h cada.
+- **Execução:** temp `bbc71b16` (1h10), óleo `aab72b80` (3h45, enviado em paralelo com a vib, com ok do usuário),
+  vib `892e93c1` (2h50, sozinha). A 1ª vib, `f0701a16`, ficou `completed` mas sem artefatos do grupo: o filho do
+  walk-forward morreu no 16º mês ("process pool terminated abruptly"). Os 4 workers são a mesma máquina e a mesma
+  GPU; o paralelo com o óleo é a causa provável. Regra: CNN-1D nunca em paralelo, e conferir os artefatos do grupo
+  depois do `completed`.
+- **Resultado** (`d1_jan.py`; tabela trip a trip em `docs/cnn1d_mensal_por_grupo.md`, seção 7): **nenhuma passa**.
+  - Recorte 01/2025→ (OCSVM 8/8, 36 FP, 3,051): todos 8/8, 45 (3,814); só vib 8/8, 42 (3,560); só óleo 8/8, 36
+    (= produção); só temp **7/8** (perde 29/04/2025), 44 (3,729).
+  - Fora: todos 3/3, 26 FP; só vib 24; só óleo 23; só temp 27. Corte 2,288 / 2,158.
+  - **Pergunta respondida:** o CNN-1D mensal pega os 8 trips com antecedência, também os 5 de 2025 fora da amostra.
+    Ganha em 09/12/2025 (8,4 → 21,1 h) e perde em 07/04 (43,2 → 31,4 h) e 29/04/2025 (36,7 → 12,4 h), mas tem +25% de FP.
+- **Decisão:** a OCSVM segue em produção. O D1 fecha também para o CNN-1D mensal; reduzir FP fica para a camada de
+  decisão. Documentação separada do CNN-1D: `docs/cnn1d_mensal_por_grupo.md`.
 
 ### 18/10/2026 — D1 rodada 2, PCA por grupo — NENHUMA COMBINAÇÃO PASSA
 - **Pré-registro:** docstring de `frente_ocsvm/d1_disputa.py`, commit `e026b73` (antes do fitter e do envio).

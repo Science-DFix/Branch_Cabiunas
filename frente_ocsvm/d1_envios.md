@@ -51,3 +51,18 @@ Para retomar: `python frente_ocsvm/d1_disputa.py envia --so <nome>` pula o que j
 | 18/10 12:42 | pca_mensal_oleo | 37a895cc62f042579b636129f6e6fc01 | in_progress |
 | 18/10 12:44 | pca_mensal_oleo | 37a895cc62f042579b636129f6e6fc01 | completed |
 | 18/10 12:44 | — | — | fila do D1 concluída |
+| 18/10 — | — | — | rodada 1d (CNN-1D mensal desde 01/2025), commit 4773a46: fila cnn1d_mensal_jan_temp, _vib, _oleo |
+| 18/10 13:21 | cnn1d_mensal_jan_temp | bbc71b16f97842dcb429bafda2d89c32 | enfileirada |
+| 18/10 13:22 | cnn1d_mensal_jan_temp | bbc71b16f97842dcb429bafda2d89c32 | in_progress |
+| 18/10 14:31 | cnn1d_mensal_jan_temp | bbc71b16f97842dcb429bafda2d89c32 | completed |
+| 18/10 14:35 | cnn1d_mensal_jan_vib | f0701a1675444a6fb406043c4e7257a4 | enfileirada |
+| 18/10 14:36 | cnn1d_mensal_jan_vib | f0701a1675444a6fb406043c4e7257a4 | in_progress |
+| 18/10 16:17 | cnn1d_mensal_jan_oleo | aab72b804b4e4e228e83d9ca77cea99a | enfileirada em paralelo com a vib (ok do usuário; 3 workers livres) |
+| 18/10 17:38 | cnn1d_mensal_jan_vib | f0701a1675444a6fb406043c4e7257a4 | completed |
+| 18/10 17:38 | cnn1d_mensal_jan_oleo | aab72b804b4e4e228e83d9ca77cea99a | in_progress |
+| 18/10 18:27 | cnn1d_mensal_jan_oleo | aab72b804b4e4e228e83d9ca77cea99a | completed |
+| 18/10 18:27 | — | — | fila do D1 concluída |
+| 18/10 18:34 | cnn1d_mensal_jan_vib | f0701a1675444a6fb406043c4e7257a4 | FALHA silenciosa: status completed, mas o grupo morreu no 16º período ('process pool terminated abruptly' no filho, 9º trial) e não gerou point_anomalies. Rodou em paralelo com o óleo na mesma máquina/GPU (provável falta de memória). Removida do d1_tasks.json para reenvio sozinha |
+| 18/10 18:35 | cnn1d_mensal_jan_vib | 892e93c1698149aebc4e84817217755b | in_progress |
+| 18/10 21:27 | cnn1d_mensal_jan_vib | 892e93c1698149aebc4e84817217755b | completed |
+| 18/10 21:27 | — | — | fila do D1 concluída |
