@@ -123,6 +123,7 @@ modelos (C).
 | **D2** | CNN-1D de vibração como canal extra | somar (A) ou exigir concordância com a OCSVM na vibração (B) corta FP mantendo 8/8? | não | **feito 18/10: NÃO PASSA** (A +64% FP; B −6%, 8/8, antecedência intacta) |
 | **D3** | Score contínuo no momento do alerta | magnitude, persistência ou carga separam trip de FP? | não | **feito 18/10: NÃO SEPARA** (AUC 0,40–0,47; fora 0,40–0,61) |
 | **D3b** | Score contínuo do CNN-1D mensal | idem D3, com CNN-1D mensal desde 01/2025 | **sim (Cica)** | **feito 19/10: NÃO SEPARA** (AUC 0,34–0,40; fora 0,25–0,56) |
+| **E1** | Triagem dos FP por causa (descritiva) | qualidade de dado, partida, rajada, regime pós-27/02 ou alarme crônico explicam FP que nenhum trip tem? | não | **feito 19/10:** qualidade de dado explica só 2 FP; metade dos FP começa na 1ª–2ª h após a partida, mas 3 trips também → candidato a E2 (adiar, não descartar) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -137,6 +138,20 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 19/10/2026 — E1, triagem dos FP por causa — DESCRITIVO
+- **Pedido do usuário:** "comece pelo item 1" (descobrir por que cada FP aconteceu, sem olhar os trips para escolher regra).
+- **Script:** `frente_ocsvm/e1_triagem_fp.py` (local, usa o `cache.pkl` do relatório). Tabela por episódio em
+  `frente_ocsvm/dados/e1_triagem.csv` (fora do git).
+- **Resultado** (desde 01/2025; OCSVM 36 FP | CNN-1D 45 FP):
+  - "Comm Fail"/"Out of Serv" nos sensores do grupo aceso: 2 | 2 FP, nenhum trip. É a única causa de dado limpa, mas é pequena.
+  - Trecho de reta (interpolação): nenhum episódio. Sensor parado ≥ 10 min: não limpa (o PDIT_0305 fica parado 32% do tempo).
+  - **Partida:** 18 | 20 FP começam até 6 h depois de a máquina voltar a "on", 15 | 15 deles na 1ª hora. Mas T4, T6 e T7
+    também (1,1 / 0,6 / 0,0 h após a partida, com antecedência de 20 / 14 / 8 h).
+  - Rajada de temperatura e alarme crônico não são limpas. Os 6 | 5 FP depois de 27/02/2026 não são testáveis (não há trip depois do T8).
+  - Sem causa nenhuma: 9 | 17, concentrados na série de vibração de 31/01–14/02/2026.
+- **Decisão:** nenhuma regra sai daqui. Candidato a teste pré-registrado (E2): **adiar** o alerta nas primeiras horas
+  após a partida (sem descartar); o trip só se mantém se o voto continuar aceso depois da janela.
 
 ### 18–19/10/2026 — D3b, score contínuo do CNN-1D mensal — NÃO SEPARA
 - **Pedido do usuário:** "faça para CNN1D".
