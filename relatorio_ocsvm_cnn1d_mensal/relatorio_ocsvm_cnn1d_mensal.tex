@@ -710,6 +710,41 @@ Com os dados atuais, ainda há três caminhos que valem a pena:
 
 \textbf{Recomendação:} o caminho 2, deixando o 1 pronto para quando houver dados novos.
 
+\subsection*{Atualização: caminho 2 testado (D3) -- não separa}
+
+O caminho 2 foi pré-registrado (\tg{frente_ocsvm/d3_score_continuo.py}, commit \tg{eef43f6}) e rodado com a OCSVM de
+produção. Ela é a única família com score contínuo salvo: o CNN-1D mensal descarta o score no walk-forward. No momento
+em que o alerta sairia (início do voto + 45~min, só com dados até ali), foram medidas três coisas:
+\begin{itemize}
+  \item \textbf{magnitude:} mediana de score/limiar no voto;
+  \item \textbf{persistência:} fração das 6~h anteriores acima do limiar;
+  \item \textbf{carga:} mudança do \tg{T5_AVG_A} em relação às 24~h anteriores.
+\end{itemize}
+
+\begin{table}[H]
+\centering\small
+\caption{D3 -- 8 detecções $\times$ 42 FP (período inteiro). Mann-Whitney unilateral, Bonferroni 0,05/3. AUC $>$ 0,5
+= a medida está do lado ``trip'' nas detecções.}
+\begin{tabular}{llllll}
+\toprule
+medida & mediana detecções & mediana FP & AUC & $p$ & AUC fora (3 trips, descritivo) \\
+\midrule
+magnitude & 26,1 & 43,9 & 0,41 & 0,78 & 0,56 \\
+persistência & 0,21 & 0,41 & 0,40 & 0,83 & 0,61 \\
+mudança de carga & 5,1 & 11,4 & 0,47 & 0,40 & 0,40 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Resultado:} nenhuma medida separa trip de FP. Os FP têm score tão alto e tão persistente quanto os
+        trips, e às vezes mais. O score contínuo da OCSVM não traz a informação que faltava.
+  \item \textbf{A posteriori:} a persistência é baixa nos 5 trips de dentro da amostra e alta nos 3 de fora, o mesmo
+        padrão do B3. Fora da amostra, porém, os FP também são persistentes.
+  \item \textbf{Consequência:} reforça a Seção~\ref{sec:mais-dados}. Com os 8 trips atuais, nem alarmes nem o score
+        separam o que é trip do que não é.
+\end{itemize}
+
 \appendix
 
 %=====================================================================

@@ -26,6 +26,16 @@ ETAPA 2 (só para F que separar): portão no início de cada trecho de voto (dep
 Expectativa: nenhuma separa na Etapa 1 (F1 e F3 nulos; F2 com AUC até ~0,7, sem passar Bonferroni), porque os 5 trips
 de dentro estão no treino da OCSVM (o B3 mostrou que ali os modelos acendem menos). Etapa 2 não roda -> NÃO.
 
+RESULTADO (18/10/2026, depois do pré-registro eef43f6): NÃO SEPARA -> NÃO (Etapa 2 não roda).
+  F   med det  med FP  AUC    p      AUC fora (3 trips x 23 FP, descritivo)
+  F1  26,1     43,9    0,413  0,78   0,561
+  F2  0,209    0,406   0,396  0,83   0,608
+  F3  5,09     11,44   0,469  0,40   0,397
+Nas três, os FP ficam do lado "trip" tanto ou mais que as detecções. Expectativa certa (nulo); errei o F2 (previ AUC
+~0,7; deu 0,40 no total). A posteriori: F2 é baixo nos 5 trips de dentro (0,03-0,31) e alto nos 3 de fora (0,5-1,0),
+o mesmo padrão do B3 (trecho pré-trip de dentro entrou no treino como normal); fora, porém, os FP também têm F2 alto
+(AUC 0,61). Correção depois da 1ª execução: a coluna AUC fora saía NaN (faltava dropna); não muda critério nem veredito.
+
 Uso: python frente_ocsvm/d3_score_continuo.py
 """
 from __future__ import annotations
@@ -111,7 +121,8 @@ def main():
         alt = "greater" if lado == "maior" else "less"
         u, p = mannwhitneyu(d, fp, alternative=alt)
         auc = u / (len(d) * len(fp))
-        df_, ff = E.loc[(E.classe == "deteccao") & E.fora, f], E.loc[(E.classe == "falso_positivo") & E.fora, f]
+        df_ = E.loc[(E.classe == "deteccao") & E.fora, f].dropna()
+        ff = E.loc[(E.classe == "falso_positivo") & E.fora, f].dropna()
         auc_f = mannwhitneyu(df_, ff, alternative=alt)[0] / (len(df_) * len(ff)) if len(df_) and len(ff) else np.nan
         L.append(dict(F=f, lado_trip=lado, n_det=len(d), n_fp=len(fp), med_det=round(d.median(), 3),
                       med_fp=round(fp.median(), 3), AUC=round(auc, 3), p=round(p, 4), separa=p < ALFA,

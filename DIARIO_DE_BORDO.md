@@ -121,7 +121,7 @@ modelos (C).
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
 | **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025) feita 18/10: 8/8 nos 3 grupos, mas +25% FP: **NÃO PASSA** (`docs/cnn1d_mensal_por_grupo.md`) |
 | **D2** | CNN-1D de vibração como canal extra | somar (A) ou exigir concordância com a OCSVM na vibração (B) corta FP mantendo 8/8? | não | **feito 18/10: NÃO PASSA** (A +64% FP; B −6%, 8/8, antecedência intacta) |
-| **D3** | Score contínuo no momento do alerta | magnitude, persistência ou carga separam trip de FP? | não | **pré-registrado 18/10** (`d3_score_continuo.py`) |
+| **D3** | Score contínuo no momento do alerta | magnitude, persistência ou carga separam trip de FP? | não | **feito 18/10: NÃO SEPARA** (AUC 0,40–0,47; fora 0,40–0,61) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -137,7 +137,7 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
-### 18/10/2026 — D3, o score contínuo separa trip de FP? — PRÉ-REGISTRADO
+### 18/10/2026 — D3, o score contínuo separa trip de FP? — NÃO SEPARA
 - **Script:** `frente_ocsvm/d3_score_continuo.py` (pré-registro no docstring, commitado antes de rodar). Local, sem
   treino, com a OCSVM de produção, a única família com score contínuo salvo. O CNN-1D mensal descarta o score no
   walk-forward.
@@ -150,6 +150,16 @@ pré-registro, resultado, decisão.
   - Etapa 1: Mann-Whitney, 8 detecções × 42 FP, Bonferroni 0,05/3.
   - Etapa 2, só para o que separar: portão por trecho de voto, com corte escolhido por LOEO.
 - **Expectativa:** nada separa na Etapa 1 → NÃO.
+- **Resultado** (pré-registro `eef43f6`): nenhuma medida separa; a Etapa 2 não roda.
+  - Magnitude: AUC 0,41 (p 0,78), mediana de score/limiar 26 nas detecções contra 44 nos FP.
+  - Persistência: AUC 0,40 (p 0,83).
+  - Carga: AUC 0,47 (p 0,40).
+  - Fora da amostra (descritivo, 3 trips): AUC 0,56, 0,61 e 0,40.
+- **Leitura:** os FP têm score tão alto e tão persistente quanto os trips. O score contínuo da OCSVM não traz a
+  informação que faltava.
+  - A posteriori: a persistência é baixa nos 5 trips de dentro e alta nos 3 de fora, o mesmo padrão do B3. Mesmo
+    fora, os FP também são persistentes.
+  - A coluna AUC fora saiu NaN na 1ª execução (faltava dropna). Foi corrigida, e o veredito não muda.
 
 ### 18/10/2026 — Relatório LaTeX: OCSVM × CNN-1D mensal e o limite dos dados
 - **Arquivo:** `relatorio_ocsvm_cnn1d_mensal/relatorio_ocsvm_cnn1d_mensal.pdf` (24 p.). Figuras, tabelas e números
