@@ -120,7 +120,7 @@ modelos (C).
 | **C2** | OCSVM + iforest como votos extras no mesmo canal | somar (não substituir) muda o voto? | **sim (Cica)** | a fazer |
 | **C3** | Limiares dos portões por LOEO | o −32% de FP do EXP10c se repete? | **sim (Cica)** | a fazer |
 | **D1** | Disputa entre modelos por grupo de sinal | com a camada de decisão congelada, outro modelo (iforest, AE denso, CNN-1D AE, PCA) mantém 8/8 com ≥ 25% menos FP que a OCSVM? | **sim (Cica)** | **pré-registrado 16/10** (`d1_disputa.py`); **rodadas 1, 1b e 1c feitas 18/10: NENHUMA PASSA** (12 tasks, IDs em `frente_ocsvm/d1_envios.md`); rodada 2 (PCA) feita 18/10: **NENHUMA PASSA** (melhor com 8/8: PCA só na temp, −5%). D1 encerrado no critério; **rodada 1d** (CNN-1D mensal desde 01/2025) feita 18/10: 8/8 nos 3 grupos, mas +25% FP: **NÃO PASSA** (`docs/cnn1d_mensal_por_grupo.md`) |
-| **D2** | CNN-1D de vibração como canal extra | somar (A) ou exigir concordância com a OCSVM na vibração (B) corta FP mantendo 8/8? | não | **pré-registrado 18/10** (`d2_canal_extra.py`) |
+| **D2** | CNN-1D de vibração como canal extra | somar (A) ou exigir concordância com a OCSVM na vibração (B) corta FP mantendo 8/8? | não | **feito 18/10: NÃO PASSA** (A +64% FP; B −6%, 8/8, antecedência intacta) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -136,7 +136,7 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
-### 18/10/2026 — D2, CNN-1D de vibração como canal extra da OCSVM — PRÉ-REGISTRADO
+### 18/10/2026 — D2, CNN-1D de vibração como canal extra da OCSVM — NÃO PASSA
 - **Script:** `frente_ocsvm/d2_canal_extra.py` (pré-registro no docstring, commitado antes de rodar). Local, sem
   treino: usa `cnn1d_mensal_jan_vib` (`892e93c1`) somado à produção.
 - **Pedido do usuário:** testar o CNN-1D de vibração como canal extra, não como substituto.
@@ -147,6 +147,12 @@ pré-registro, resultado, decisão.
 - **Braços:** A = 5º canal, voto ≥ 2 de 5; B = a vibração só vota se OCSVM e CNN-1D acenderem juntos. Critério da
   D1, no recorte de 01/2025 ao fim e fora da amostra.
 - **Expectativa:** A mantém 8/8 e sobe o FP; B corta FP, mas arrisca o trip de 26/02/2026. Os dois provavelmente NÃO.
+- **Resultado** (commit do pré-registro `37e0ca1`): ref 8/8, 36 FP (3,051) e fora 3/3, 23 FP (2,877).
+  **A:** 8/8, 59 FP (5,001) e fora 39 FP: +64%. **B:** 8/8, 34 FP (2,882) e fora 21 FP (2,627): −6% e −9%, com as
+  antecedências idênticas à produção. Corte: 2,288 e 2,158. **Nenhum passa.**
+- **Leitura:** somar um canal só soma votos. A confirmação é segura (não perde trip nem antecedência), mas corta
+  pouco, porque as duas famílias concordam na vibração. Errei em B: o 26/02 sobreviveu, e o corte ficou bem menor
+  que o previsto.
 
 ### 18/10/2026 — D1 rodada 1d, CNN-1D mensal desde 01/2025 (os 8 trips) — NÃO PASSA
 - **Pergunta do usuário:** o CNN-1D mensal pega os 8 trips com antecedência? Na 1c o walk-forward começava em

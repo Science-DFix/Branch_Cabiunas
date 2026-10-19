@@ -27,6 +27,15 @@ B corta FP (~20-30%), mas arrisca perder o trip de 26/02/2026 (CNN quase apagado
 Ressalva: a votação 2-de-2 entre famílias da era EXP10c (modelo único) foi refutada; B é a versão por grupo, com o
 canal 4 mantido.
 
+RESULTADO (18/10/2026, depois do pré-registro 37e0ca1): NENHUM PASSA.
+  braço  recorte 01/2025->         fora 07/2025->
+  ref    8/8, 36 FP (3,051/mês)    3/3, 23 FP (2,877)
+  A      8/8, 59 FP (5,001)        3/3, 39 FP (4,878)   +64% de FP; antecedência 43,2->32,8 h (07/04) e 36,7->12,4 h
+                                                        (29/04), 8,4->21,2 h (09/12)
+  B      8/8, 34 FP (2,882)        3/3, 21 FP (2,627)   -6% / -9%; antecedências idênticas à produção
+Expectativa: acertei A. Em B errei o trip (o 26/02/2026 sobrevive, pelo óleo + canal 4) e superestimei o corte
+(previ 20-30%, deu 6-9%). O CNN-1D quase sempre concorda com a OCSVM de vibração, então exigir os dois tira poucos FP.
+
 Uso: python frente_ocsvm/d2_canal_extra.py
 """
 from __future__ import annotations
