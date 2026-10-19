@@ -136,6 +136,22 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 18/10/2026 — Relatório LaTeX: OCSVM × CNN-1D mensal e o limite dos dados
+- **Arquivo:** `relatorio_ocsvm_cnn1d_mensal/relatorio_ocsvm_cnn1d_mensal.pdf` (24 p.). Figuras, tabelas e números
+  vêm de `relatorio_ocsvm_cnn1d_mensal/gera_figuras.py`, que não treina nada.
+- **Conteúdo:**
+  - canais, períodos e treino das duas famílias, com o C1, as rodadas 1b/1c/1d e a D2;
+  - série temporal conjunta e zoom dos 8 trips;
+  - diagnóstico dos 62 episódios: 60 nascem de PI_6240319_AL/PAL_6240315 + 1 modelo, e trips e FP têm a mesma
+    composição;
+  - problemas dos dados e o que é preciso obter.
+- **Achados novos registrados no relatório:**
+  - a antecedência de 3,8 h do T8 é efeito do refratário: um episódio que começou 51,8 h antes (inconclusivo)
+    bloqueou alertas até 26/02 11:47;
+  - PI_6240319_AL para de alarmar depois de 27/02/2026;
+  - há 19 rajadas de alarmes de temperatura no mesmo segundo, uma delas perto do T4;
+  - o CSV traz valores "Comm Fail"/"Out of Serv" no lugar da medida, e ~17% do PI_0308 está em trechos interpolados.
+
 ### 18/10/2026 — D2, CNN-1D de vibração como canal extra da OCSVM — NÃO PASSA
 - **Script:** `frente_ocsvm/d2_canal_extra.py` (pré-registro no docstring, commitado antes de rodar). Local, sem
   treino: usa `cnn1d_mensal_jan_vib` (`892e93c1`) somado à produção.
