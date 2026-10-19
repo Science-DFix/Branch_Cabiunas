@@ -134,8 +134,8 @@ cada linha, para não influenciar a resposta.
 
 \begin{itemize}
   \item \textbf{Tipo de partida:} verificar se os alertas pós-partida sem trip vêm de partidas normais, e os trips de
-        partidas após problema ou manutenção. Se sim, a informação vira um canal do modelo. Se não, ensinamos ao
-        modelo o regime das primeiras horas de operação, que hoje ele não conhece.
+        partidas após problema ou manutenção. Se sim, a informação vira um canal do modelo. Ajustar o modelo às
+        primeiras horas de operação, sem essa informação, já foi testado e só corta 10\% dos alertas sem trip.
   \item \textbf{Alertas classificados:} separar os alertas de instrumento dos de processo. Os de instrumento podem ser
         filtrados com regra; os de processo sem falha medem o custo real do modelo.
   \item \textbf{Causa das paradas:} 25 alertas hoje são ``inconclusivos'' porque foram seguidos de parada sem causa

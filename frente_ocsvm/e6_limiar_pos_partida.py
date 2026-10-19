@@ -30,6 +30,27 @@ EXPECTATIVA REGISTRADA: L_pos > limiar de produção nos 3 canais (o regime é m
 20-35% dos FP no período inteiro. Arrisca T4, T6 e T7, que começam a 1,1 / 0,6 / 0,0 h da partida: prevejo perder
 1 ou 2 deles -> NÃO, por perda de trip. Se não perder nenhum, pode passar.
 
+1ª RODADA INVÁLIDA (19/10/2026): a conferência falhou (percentil do normal = 13,58 / 0,705 / 32,11 contra limiar de
+produção 10,50 / 0,176 / 29,67). Causa: na produção o train_err sai dos pontos de treino clipados pelos quantis do
+próprio normal (`clip_q_low/high` do normalization_stats), e o alerta, da série inteira clipada pelos quantis dela.
+A 1ª rodada tirou L_pos do score com o clipping da série inteira. Corrigido para o clipping do treino; a regra não
+muda. Os números da rodada inválida não contam (para registro: H = 6 h deu 8/8, 35 FP, fora 2,502).
+
+RESULTADO (19/10/2026, 2ª rodada, conferência OK: o percentil do normal dá 10,5045 / 0,17573 / 29,6747, iguais aos
+limiares da produção): NÃO.
+  H      det  fora  FP  FP/mês  FP fora  FP/mês fora  inconcl.
+  0      8    3/3   41  2,816   22       2,752        25   (produção com E5)
+  6      8    3/3   37  2,541   21       2,627        17   -10% / -5% (limite 2,158)
+  3, 12  iguais a H = 6 (antecedência do T6 cai para 11,3 h com H = 3)
+  L_pos / limiar de produção (H = 6): temperatura 3,07x, vibração 73,7x, óleo 1,05x. O regime pós-partida tem
+  score muito mais alto que o resto da operação, sobretudo na vibração.
+  Dos 16 FP a <= 2 h da partida, 8 somem e 8 continuam. As antecedências ficam iguais (T4 19,8 -> 19,6 h).
+Expectativa: certa no veredito (NÃO) e no sentido de L_pos (> limiar); errada no motivo (previ perder T4/T6/T7, não
+perdeu nenhum) e no tamanho (previ -20 a -35%, deu -10%).
+Leitura: nem com um limiar dezenas de vezes maior nas primeiras horas o grupo de partida some. Metade desses FP
+segue acesa por outro canal ou depois da janela. Retreinar reforçando o regime ficaria aquém deste limiar, que é o caso
+extremo, então não vale gastar Cica com isso sem informação nova (tipo de partida).
+
 Uso: python frente_ocsvm/e6_limiar_pos_partida.py   (~30 min na 1ª vez; o score fica em cache em dados/e6/)
 """
 from __future__ import annotations
@@ -95,23 +116,33 @@ def main():
         arq = CACHE / f"score_{g}.npy"
         err = np.load(arq) if arq.exists() else None
         print(f"[{g}] {'score em cache' if err is not None else 'pontuando a OCSVM (lento)'}...", flush=True)
-        p0, _ = F.pontua_grupo(cfg, df_raw, modelo, norm, hp, cong, err=err)
+        p0, _ = F.pontua_grupo(cfg, df_raw, modelo, norm, hp, cong[g], err=err)
         if err is None:
             err = p0["score"].values.astype(np.float32)
             np.save(arq, err)
         state = p0["operational_state"]
         normal = normal_de_treino(cfg, df_raw.set_index(cfg.TIME_COL), state, catalogo)
+        # o train_err da produção vem dos pontos de treino clipados pelos quantis do PRÓPRIO normal
+        # (clip_q_low/high), não pelos da série inteira que gera o alerta: pontua de novo com esse clipping
+        arq_tr = CACHE / f"score_treino_{g}.npy"
+        if arq_tr.exists():
+            err_tr = np.load(arq_tr)
+        else:
+            print(f"[{g}] pontuando com o clipping do treino (lento)...", flush=True)
+            c_tr = dict(cong[g], clip_low=norm["clip_q_low"], clip_high=norm["clip_q_high"])
+            err_tr = F.pontua_grupo(cfg, df_raw, modelo, norm, hp, c_tr)[0]["score"].values.astype(np.float32)
+            np.save(arq_tr, err_tr)
         pct = hp["threshold_percentile"]
-        conf = float(np.percentile(err[normal], pct))
+        conf = float(np.percentile(err_tr[normal], pct))
         print(f"[{g}] conferência: percentil {pct} do normal de treino = {conf:.6g}; produção = {hp['threshold']:.6g}")
         hpart = horas_desde_partida(state)
         pontos[0.0][g] = p0
         for h in Hs[1:]:
             reg = hpart < h
-            L = float(np.percentile(err[normal & reg], pct))
+            L = float(np.percentile(err_tr[normal & reg], pct))
             limiares.append(dict(canal=g, H=h, L_prod=hp["threshold"], L_pos=L, razao=L / hp["threshold"],
                                  pts_treino=int((normal & reg).sum()), frac_treino=(normal & reg).sum() / normal.sum()))
-            pontos[h][g], _ = F.pontua_grupo(cfg, df_raw, modelo, norm, hp, cong, err=err,
+            pontos[h][g], _ = F.pontua_grupo(cfg, df_raw, modelo, norm, hp, cong[g], err=err,
                                              limiar=np.where(reg, L, hp["threshold"]))
         del df_raw
 

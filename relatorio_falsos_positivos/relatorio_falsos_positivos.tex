@@ -313,8 +313,18 @@ partida, e o alerta só sai se o voto seguir aceso por 45~min depois disso. Com 
 detectados com antecedência quase igual, mas os FP caem só 5\% (0\% fora da amostra). Com $h \geq 3$~h perde-se o T4.
 O motivo é o achado mais útil: \textbf{dos 17 FP de partida, 15 apenas reaparecem} até 8~h depois. A anomalia
 pós-partida não é um pico de transitório. É um \emph{regime} de várias horas que os modelos veem como fora do
-normal. Para atacá-lo, é preciso mexer no modelo: incluir esse regime no normal de treino, ou usar um limiar próprio
-para ele.
+normal.
+
+\paragraph{Limiar próprio para o regime (E6) -- também não basta.} O regime pós-partida \emph{já está} no normal de
+treino: das horas 1--3 depois da partida, 67\% entram no treino de temperatura e vibração e 100\% no de óleo, a
+mesma proporção do resto da operação. Mas ele é raro (as primeiras 6~h são cerca de 6\% do treino), e a OCSVM deixa o
+mais raro fora da fronteira. Por isso, incluir esse trecho no treino não mudaria nada. O E6
+(\tg{frente_ocsvm/e6_limiar_pos_partida.py}, pré-registro \tg{6944f8a}) deu a ele o próprio limiar, sem retreino: o
+mesmo percentil da produção, calculado só sobre o normal de treino das primeiras 6~h. Os limiares sobem muito
+(temperatura $3{,}1\times$, vibração $74\times$, óleo $1{,}05\times$), e mesmo assim os 8 trips continuam detectados.
+Mas o FP cai só 10\% (41 $\to$ 37) e 5\% fora da amostra. Dos 16 FP de partida, 8 somem e 8 continuam. O resultado
+é o mesmo com 3 ou 12~h. Também se mediu que \tg{PI_6240319_AL} aparece a até 3~h de 52\% das partidas (contra 9,6\%
+de janelas quaisquer em operação) e \tg{PAL_6240315} em 66\% (contra 6,2\%): o canal 4 acende na partida.
 
 \begin{figure}[H]
 \centering
@@ -431,9 +441,10 @@ todos & trips novos com a pipeline congelada: cada trip novo vale mais que qualq
 %=====================================================================
 
 \begin{enumerate}
-  \item \textbf{Tratar o regime pós-partida no modelo.} O adiamento (E4) não funcionou porque a anomalia dura horas.
-        O próximo passo é incluir as horas pós-partida no normal de treino, ou dar a elas um limiar próprio. Exige
-        retreino no Cica e pré-registro. O risco está nos T4, T6 e T7, que começam na partida.
+  \item \textbf{Regime pós-partida: testado, não basta.} Nem o adiamento (E4, $-5\%$) nem um limiar próprio para
+        as primeiras horas (E6, $-10\%$, $-5\%$ fora) chegam ao corte de 25\%. O regime já está no normal de treino;
+        um retreino que o reforçasse ficaria abaixo do limiar próprio, que já é o caso extremo. O próximo passo
+        depende do tipo de partida (pedido de dados).
   \item \textbf{Regra de falha de comunicação: adotada} (E5, \tg{frente_ocsvm/e5_falha_comunicacao.py}). O canal
         do modelo não vota se algum sensor do grupo teve \tg{Comm Fail}/\tg{Out of Serv} nas últimas 6~h. Mantém
         8/8 com as mesmas antecedências, e o FP cai de 42 para 41 (2,885 $\to$ 2,816 por mês). Está na pipeline

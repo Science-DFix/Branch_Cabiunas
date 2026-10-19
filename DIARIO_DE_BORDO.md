@@ -94,6 +94,7 @@ Detalhes no histórico (`docs/analise_automl_exp10.md`).
 | Tirar o canal 4 / tirar as tags de utilidade | 0/8 / 3/8 |
 | Votação 2-de-2 entre famílias (era EXP10c) | refutada |
 | Filtro de duração adaptativo / com walk-forward | refutado |
+| Limiar próprio para as primeiras horas após a partida (E6) | 8/8, mas só −10% de FP |
 
 ---
 
@@ -142,6 +143,42 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 19/10/2026 — E6, limiar próprio para o regime pós-partida — NÃO
+- **Pedido do usuário:** "pode seguir" (item 4 do plano, o regime pós-partida no modelo).
+- **Script:** `frente_ocsvm/e6_limiar_pos_partida.py`, pré-registro `6944f8a`. Local, com os modelos congelados do F1.
+- **Medido antes do pré-registro:**
+  - O regime pós-partida **já está** no normal de treino: 67% das horas 1–3 após a partida (temperatura e vibração),
+    100% no óleo. Mas é raro (~6% do treino nas primeiras 6 h). "Incluir no treino", o plano original, não muda nada.
+  - O canal 4 acende na partida: `PI_6240319_AL` a ≤ 3 h de 52% das 83 partidas (base 9,6%); `PAL_6240315`, 66%
+    (base 6,2%).
+- **Tratamento:** nas primeiras H = 6 h após a partida, o limiar de cada canal vira o mesmo percentil da produção,
+  calculado só sobre o normal de treino desse trecho.
+- **1ª rodada inválida:** a conferência dos limiares falhou. Na produção, o score de treino usa o clipping do próprio
+  normal, e o alerta usa o da série inteira. Corrigido; a regra não mudou.
+- **Resultado:** os limiares sobem 3,1× (temperatura), 74× (vibração) e 1,05× (óleo).
+  - 8/8 e 3/3, com antecedências iguais.
+  - FP 41 → 37 (−10%); fora da amostra 2,752 → 2,627 (−5%; limite 2,158). Iguais com H = 3 e 12 h.
+  - Dos 16 FP de partida, 8 somem.
+- **Expectativa:** acertei o veredito; errei o motivo (previ perder T4/T6/T7, não perdeu nenhum) e o tamanho.
+- **Decisão:** não adotar. Retreino reforçando o regime ficaria aquém deste limiar, que é o caso extremo. Não gastar
+  Cica com isso sem o tipo de partida.
+
+### 19/10/2026 — F1, pipeline congelada para dados novos — FERRAMENTA PRONTA, HIPÓTESES PRÉ-REGISTRADAS
+- **Pedido do usuário:** "pode seguir" (passo 2 do plano). Script `frente_ocsvm/f1_congelado.py`, commit `3d10b16`.
+- **O que faz:** aplica os 3 modelos de produção (`model.pkl`, normalização e limiar das tasks b494d457 / 9c344688 /
+  fc4123fb; configs do commit `6842ac7`) e a camada de decisão com E5 a qualquer série, sem retreino.
+  - As duas estatísticas que a produção tira da série inteira ficam congeladas em `frente_ocsvm/f1_congelado.json`:
+    os quantis de clipping e o limiar de transiente do RUNNING_A.
+- **Conferência:** CONFERE. 0 instantes divergentes nos 3 canais (alerta e estado); 8/8, 41 FP, 25 inconclusivos.
+  ~27 min e ~7 GB.
+- **Pré-registrado para os dados depois de 20/04/2026:**
+  - P1 (≥ 75% dos trips novos) e P2 (FP/mês ≤ 4,3).
+  - S1: canal 4 sem `PI_6240319_AL`.
+  - S2: prioridade "dois modelos".
+  - S3: prioridade "alerta repetido em 7 d".
+  - D2-B fica fora: precisa de retreino do CNN-1D.
+- **Mudança em `src/`:** `build_operational_state` ganhou `transient_diff_abs_threshold` (opcional; o padrão não muda).
 
 ### 19/10/2026 — Pedido de dados (item 3) — PRONTO, A ENVIAR
 - **Pedido do usuário:** "passe para item 3".

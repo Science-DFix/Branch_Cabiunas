@@ -28,7 +28,12 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
   | Sem causa | 4 |
 
 - **Pós-partida não é transitório (E4):** adiar o alerta depois da partida só reduz FP em 5%, porque 15 de 17 desses FP
-  reaparecem horas depois. É um regime de horas que o modelo não conhece. T4, T6 e T7 também começam na partida.
+  reaparecem horas depois. É um regime de horas, e T4, T6 e T7 também começam na partida.
+- **Limiar próprio para o regime pós-partida (E6):** com o modelo congelado, o mesmo percentil da produção sobre o
+  normal de treino das primeiras 6 h. O limiar sobe 3× na temperatura e 74× na vibração. Mantém 8/8, mas o FP cai só
+  10% (−5% fora da amostra); dos 16 FP de partida, 8 continuam. Não passa.
+- O canal 4 acende na partida: `PI_6240319_AL` aparece a ≤ 3 h de 52% das 83 partidas (base 9,6%) e `PAL_6240315`
+  em 66% (base 6,2%).
 - Perder trips compra pouco FP (E3): 7/8 dá −19% (−9% fora da amostra); 6/8 dá −27% (−13% fora).
 - `PI_6240319_AL`, o alarme que mais sustenta o canal 4, é "Falha PI Gás p/ Motor de Partida". O alarme de que o
   modelo mais depende é ligado à partida, o mesmo momento do maior grupo de FP.
@@ -54,23 +59,35 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
 Substitui a planilha de 15/10, que não foi enviada.
 
 **O que explorar a partir do retreino** (cada item com pré-registro antes de enviar ao Cica)
-1. **Regime pós-partida no modelo:** incluir as primeiras horas depois da partida no normal de treino, hoje fora por
-   `TRANSIENT_PADDING_MINUTES` e pela máscara operacional, ou dar a esse regime um limiar próprio. É o maior grupo de
-   FP (16 de 36). Risco: T4, T6 e T7 começam na partida. Com o tipo de partida da planilha, testar separar partidas
-   normais das que vêm depois de trip ou manutenção (canal ou estratificação do treino).
+1. **Regime pós-partida no modelo:** é o maior grupo de FP (16 de 36). Correção de 19/10: esse regime **já está** no
+   normal de treino. Das horas 1–3 após a partida, 67% entram no treino de temperatura e vibração e 100% no de óleo;
+   só os 60 min do transiente ficam fora. Mas é pouco (as primeiras 6 h são ~6% do treino), e a OCSVM (nu = 0,05)
+   deixa o mais raro fora da fronteira. "Incluir no treino" não muda nada.
+   - O limiar próprio (E6) já é o caso extremo e só deu −10%. Um retreino que reforce o regime na subamostra de 50 mil
+     pontos ficaria aquém dele: **não vale gastar Cica com isso** sem informação nova.
+   - O que falta é o tipo de partida (planilha): testar se os FP vêm de partidas normais e os trips de partidas
+     após trip ou manutenção. Se sim, a informação vira canal ou estratificação do treino.
+   - Achado de passagem do E6: na produção, o limiar sai do score dos pontos de treino clipados pelos quantis do
+     próprio normal, e o alerta sai da série clipada pelos quantis dela mesma. São dois clippings diferentes. Não
+     muda nada hoje (o E6 reproduz os limiares), mas um retreino que padronize o clipping mudaria a calibração.
 2. **Canal 4 depois de 27/02/2026:** só `PAL_6240315` sustenta o canal. Revalidar com trips novos e pedir o motivo da
    mudança do `PI_6240319_AL`.
 3. **Alerta repetido em 7 dias como prioridade:** 6 de 8 trips têm outro alerta nos 7 dias anteriores, contra 22 de 41
    FP. É fraco com 8 trips; vale como hipótese para dados novos, junto com o B3 (2 modelos juntos).
 4. **Retreino mensal com score salvo:** desde `77f09c4`, o walk-forward grava score/limiar do mês. Qualquer retreino
    novo já serve para análises de score.
-5. **Trips depois de 20/04/2026 com a pipeline congelada:** o único teste limpo de tudo acima.
+5. **Trips depois de 20/04/2026 com a pipeline congelada:** o único teste limpo de tudo acima. A ferramenta está
+   pronta e conferida: `frente_ocsvm/f1_congelado.py` aplica os 3 modelos de produção (`model.pkl`, normalização,
+   limiar) e a camada de decisão a dados novos, sem retreino. No período de referência, reproduz a produção com 0
+   divergências (8/8, 41 FP). As hipóteses (P1, P2, S1–S3) estão pré-registradas no docstring. D2-B fica de fora,
+   porque precisaria do CNN-1D mensal retreinado nos meses novos (Cica).
 
 Já reprovados no retreino, não repetir sem informação nova:
 - descontaminar o treino (A5);
 - retreino mensal da OCSVM (C1) e do CNN-1D (1d: 8/8, mas +25% FP);
 - trocar a família de modelo (D1);
-- deslocar o corte do treino (A4: frágil).
+- deslocar o corte do treino (A4: frágil);
+- regime pós-partida: adiar (E4) e limiar próprio (E6), sem retreino.
 
 ## ClearML
 
