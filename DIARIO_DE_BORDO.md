@@ -143,6 +143,21 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 19/10/2026 — Pedido de dados (item 3) — PRONTO, A ENVIAR
+- **Pedido do usuário:** "passe para item 3".
+- **Documento:** `pedido_de_dados/pedido_de_dados.pdf`, 3 páginas: por que pedimos, os 7 pedidos por prioridade e o que
+  faremos com cada resposta.
+- **Planilha:** `frente_ocsvm/revisao/pedido_dados_TC33003A.xlsx`, gerada por `frente_ocsvm/pedido_dados.py`. Revisão
+  cega: nada indica o que o modelo acha de cada linha.
+  - Abas: 83 partidas (tipo), 31 paradas (causa), 41 alertas sem trip da pipeline final com E5 (o que houve), 8
+    perguntas pontuais e os 8 trips como referência.
+  - Substitui a `paradas_para_revisao.xlsx` de 15/10, que não foi enviada.
+- **Achados de passagem:**
+  - `PI_6240319_AL` = "Falha PI Gás p/ Motor de Partida" (`PAH_6240319` é do mesmo gás). O principal alarme do canal 4
+    é ligado à partida.
+  - A falha de comunicação de 14/01/2026 16:18 coincide com a rajada de alarmes de temperatura do mesmo minuto.
+- **Falta:** o usuário enviar à equipe da planta.
+
 ### 19/10/2026 — E5, regra de falha de comunicação, e contexto do alerta — ADOTADOS
 - **Pedido do usuário:** "vamos de item 2". Pré-registro `d2cf017`, script `frente_ocsvm/e5_falha_comunicacao.py`.
 - **E5:** com 6 h, 8/8 e antecedências iguais; FP 42 → 41 (2,885 → 2,816/mês). Somem os FP de 14 e 17/01/2026, mas

@@ -30,6 +30,10 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
 - **Pós-partida não é transitório (E4):** adiar o alerta depois da partida só reduz FP em 5%, porque 15 de 17 desses FP
   reaparecem horas depois. É um regime de horas que o modelo não conhece. T4, T6 e T7 também começam na partida.
 - Perder trips compra pouco FP (E3): 7/8 dá −19% (−9% fora da amostra); 6/8 dá −27% (−13% fora).
+- `PI_6240319_AL`, o alarme que mais sustenta o canal 4, é "Falha PI Gás p/ Motor de Partida". O alarme de que o
+  modelo mais depende é ligado à partida, o mesmo momento do maior grupo de FP.
+- A falha de comunicação de 14/01/2026 16:18 cai no mesmo minuto de uma rajada de alarmes de temperatura. Indício de que
+  as rajadas são eventos do sistema de aquisição.
 
 **O que já entrou na pipeline final** (`scripts/pipeline_unificada_final.py`)
 - **Regra de falha de comunicação (E5):** o canal do modelo não vota se algum sensor do grupo teve "Comm Fail"/"Out of
@@ -38,10 +42,22 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
   `modelos_acesos`, `tags_canal4`, `h_desde_partida`, `alarmes_canal4_7d`, `alertas_anteriores_7d`,
   `rajada_temperatura_24h` e `falha_comunicacao_6h` (`describe_alert_context` em `src/cnn1d_ae/scoring.py`).
 
+**Pedido de dados (19/10/2026, a enviar):** `pedido_de_dados/pedido_de_dados.pdf` com a planilha
+`frente_ocsvm/revisao/pedido_dados_TC33003A.xlsx` (gerada por `frente_ocsvm/pedido_dados.py`). Pede:
+- tipo de cada uma das 83 partidas;
+- causa das 31 paradas sem alarme crítico;
+- o que houve nos 41 alertas sem trip;
+- 8 perguntas pontuais;
+- dados depois de 20/04/2026;
+- ordens de serviço, histórico de alarmes e eventos do sistema de aquisição.
+
+Substitui a planilha de 15/10, que não foi enviada.
+
 **O que explorar a partir do retreino** (cada item com pré-registro antes de enviar ao Cica)
 1. **Regime pós-partida no modelo:** incluir as primeiras horas depois da partida no normal de treino, hoje fora por
    `TRANSIENT_PADDING_MINUTES` e pela máscara operacional, ou dar a esse regime um limiar próprio. É o maior grupo de
-   FP (16 de 36). Risco: T4, T6 e T7 começam na partida.
+   FP (16 de 36). Risco: T4, T6 e T7 começam na partida. Com o tipo de partida da planilha, testar separar partidas
+   normais das que vêm depois de trip ou manutenção (canal ou estratificação do treino).
 2. **Canal 4 depois de 27/02/2026:** só `PAL_6240315` sustenta o canal. Revalidar com trips novos e pedir o motivo da
    mudança do `PI_6240319_AL`.
 3. **Alerta repetido em 7 dias como prioridade:** 6 de 8 trips têm outro alerta nos 7 dias anteriores, contra 22 de 41

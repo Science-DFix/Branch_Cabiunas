@@ -1,0 +1,6 @@
+cache.pkl
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
