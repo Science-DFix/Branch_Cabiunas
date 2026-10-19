@@ -53,11 +53,11 @@ CAUSAS = ["falha_txt", "reta", "constante", "partida", "rajada", "pos_2702", "cr
 SAIDA = C.AQUI / "dados" / "e1_triagem.csv"
 
 
-def sensores():
+def sensores(inicio="2024-12-25"):
     cols = ["data_datetime"] + sorted({s for v in GRUPO.values() for s in v})
     raw = pd.read_csv(CSV, usecols=cols, dtype=str).set_index("data_datetime")
     raw.index = pd.to_datetime(raw.index)
-    raw = raw.loc[pd.Timestamp("2024-12-25"):].sort_index()
+    raw = raw.loc[pd.Timestamp(inicio):].sort_index()
     num = raw.apply(pd.to_numeric, errors="coerce")
     txt = num.isna() & raw.notna()
     return num, txt
