@@ -307,6 +307,15 @@ regra que descartasse alertas da primeira hora mataria os três. Esses trips, po
 início do episódio. Isso abre uma possibilidade que ainda não foi testada: \textbf{adiar} o alerta nas primeiras
 horas após a partida em vez de descartá-lo, e alertar só se a anomalia continuar depois da janela.
 
+\paragraph{Teste do adiamento (E4) -- não funciona.} O adiamento foi pré-registrado e testado
+(\tg{frente_ocsvm/e4_adia_partida.py}, commit \tg{f7a2895}): os votos deixam de contar nas primeiras $h$ horas após a
+partida, e o alerta só sai se o voto seguir aceso por 45~min depois disso. Com $h = 1$~h, os 8 trips continuam
+detectados com antecedência quase igual, mas os FP caem só 5\% (0\% fora da amostra). Com $h \geq 3$~h perde-se o T4.
+O motivo é o achado mais útil: \textbf{dos 17 FP de partida, 15 apenas reaparecem} até 8~h depois. A anomalia
+pós-partida não é um pico de transitório. É um \emph{regime} de várias horas que os modelos veem como fora do
+normal. Para atacá-lo, é preciso mexer no modelo: incluir esse regime no normal de treino, ou usar um limiar próprio
+para ele.
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{partida.png}
@@ -422,11 +431,9 @@ todos & trips novos com a pipeline congelada: cada trip novo vale mais que qualq
 %=====================================================================
 
 \begin{enumerate}
-  \item \textbf{Adiar o alerta logo após a partida} (teste novo, local, com pré-registro). Os alertas nascidos nas
-        primeiras $h$ horas depois da partida só saem se o voto continuar aceso depois da janela, com
-        $h \in \{1, 2, 4, 6\}$ escolhido por LOEO. É o único caminho com os dados atuais que ataca o maior grupo de FP
-        sem precisar que o trip ``seja diferente''. O risco está nos T6 e T7, que são de fora da amostra e começam na
-        partida.
+  \item \textbf{Tratar o regime pós-partida no modelo.} O adiamento (E4) não funcionou porque a anomalia dura horas.
+        O próximo passo é incluir as horas pós-partida no normal de treino, ou dar a elas um limiar próprio. Exige
+        retreino no Cica e pré-registro. O risco está nos T4, T6 e T7, que começam na partida.
   \item \textbf{Regra de falha de comunicação}, fisicamente justificada e de baixo risco. O ganho é pequeno (2 FP).
   \item \textbf{Escolha de ponto da curva} pela operação, se o custo dos FP atuais for alto demais.
   \item \textbf{Pedido de dados} da Seção~\ref{sec:dados}, sobretudo o registro de partidas e de manutenção.

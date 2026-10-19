@@ -19,6 +19,21 @@ Expectativa: h = 1-2 mantém 8/8 (T7 é o mais frágil: começa na partida e tem
 FP no período inteiro e menos fora (fora tem 6 FP de partida em 23). Prevejo NÃO pelo critério de custo fora, por
 pouco; LOEO 7/8 a 8/8.
 
+RESULTADO (19/10/2026, depois do pré-registro f7a2895): NÃO.
+  h     det  fora  FP   FP/mês  FP/mês fora
+  0     8    3/3   42   2,885   2,877   (produção)
+  1     8    3/3   40   2,747   2,877
+  2     8    3/3   40   2,747   2,752
+  3-4   7    3/3   36   2,473   2,502   perde T4
+  6     7    3/3   35   2,404   2,502   perde T4
+  LOEO 7/8 (sem o T4, escolhe h = 6 e o perde). h final = 1 h: -5% no período inteiro, 0% fora. Antecedências quase
+  intactas (T6 13,7 -> 13,3 h; T7 8,4 -> 7,4 h).
+  MECANISMO: dos 17 FP da produção a <= 2 h da partida, 15 só são ADIADOS (o FP reaparece até 8 h depois) e 2 somem.
+  A anomalia pós-partida não é transitório: continua acesa por horas.
+Expectativa: errada no tamanho (previ -15 a -25%; deu -5%) e certa no veredito (NÃO) e no LOEO (7/8).
+Leitura: os FP "de partida" são um REGIME de horas depois da partida que os modelos veem como anômalo, não um pico
+da partida. Adiar não resolve; o caminho é no modelo (normal de treino sem esse regime, ou limiar próprio para ele).
+
 Uso: python frente_ocsvm/e4_adia_partida.py
 """
 from __future__ import annotations

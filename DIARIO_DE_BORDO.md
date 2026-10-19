@@ -126,6 +126,7 @@ modelos (C).
 | **E1** | Triagem dos FP por causa (descritiva) | qualidade de dado, partida, rajada, regime pós-27/02 ou alarme crônico explicam FP que nenhum trip tem? | não | **feito 19/10:** qualidade de dado explica só 2 FP; metade dos FP começa na 1ª–2ª h após a partida, mas 3 trips também → candidato a E2 (adiar, não descartar) |
 | **E2** | Novidade do alarme do canal 4 | o canal 4 aceso há pouco tempo (N1) ou poucas ativações em 7 dias (N2) separam trip de FP? | não | **feito 19/10: NÃO SEPARA** (AUC 0,55 / 0,34; fora 0,49 / 0,54) |
 | **E3** | Curva de compromisso trips × FP/mês | quanto FP se economiza aceitando perder trips (sensibilidade r ≥ k; envelope da grade A3)? | não | **feito 19/10 (descritivo):** k=3 → 7/8, −19% (fora −9%); k=4–12 → 6/8, −27% (fora −13%); A3 só PI+PAL 8/8 −17% (otimista) |
+| **E4** | Adiar o alerta após a partida | votos não contam nas primeiras h horas depois da partida; corta FP sem perder trip? | não | **feito 19/10: NÃO** (h=1: −5%, fora 0%; LOEO 7/8; 15 de 17 FP de partida só são adiados) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -140,6 +141,13 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 19/10/2026 — E4, adiar o alerta após a partida — NÃO
+- **Pedido do usuário:** "vamos de item 1". Pré-registro `f7a2895`, script `frente_ocsvm/e4_adia_partida.py`.
+- **Resultado:** com h = 1 h, 8/8 e −5% de FP/mês (fora 0%); LOEO 7/8. Com h ≥ 3 h, perde T4.
+- **Mecanismo:** dos 17 FP de partida, 15 reaparecem até 8 h depois. A anomalia pós-partida é um regime de horas, não um transitório.
+- **Expectativa:** errada no tamanho (previ −15 a −25%), certa no veredito.
+- **Próximo:** se o usuário pedir, atacar no modelo (incluir no normal de treino as horas pós-partida, ou um limiar próprio para elas), com retreino no Cica.
 
 ### 19/10/2026 — Relatório dedicado aos FP
 - **Pedido do usuário:** juntar o levantamento dos FP num segundo LaTeX, com título informativo.
