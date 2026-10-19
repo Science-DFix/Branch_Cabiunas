@@ -447,6 +447,7 @@ def build_operational_state(
     transient_diff_quantile: float = 0.99,
     secondary_series: pd.Series | None = None,
     secondary_off_abs_threshold: float | None = None,
+    transient_diff_abs_threshold: float | None = None,
 ) -> pd.Series:
     """`sensor_series` (tipicamente OPERATIONAL_REF_SENSOR, ex: RUNNING_A) e a
     referencia primaria de liga/desliga. `secondary_series`/
@@ -458,7 +459,11 @@ def build_operational_state(
     TC382_03_A caiu para ~28-32C (nivel ambiente, fisicamente incompativel
     com operacao) -- a mascara baseada so em RUNNING_A nao detectava esse
     periodo como off, respondendo por 65% do normal_alert_rate do EXP7
-    item1+2. Ver docs/analise_automl_exp9_planejamento.md."""
+    item1+2. Ver docs/analise_automl_exp9_planejamento.md.
+
+    `transient_diff_abs_threshold` (opcional) fixa o limiar de |diff| do
+    transiente em vez de tira-lo do quantil da serie inteira -- usado para
+    aplicar o modelo congelado a dados novos (frente_ocsvm/f1_congelado.py)."""
     s = pd.to_numeric(sensor_series.reindex(index), errors="coerce").ffill().bfill()
     state = pd.Series("on", index=index, dtype=object)
 
@@ -497,7 +502,7 @@ def build_operational_state(
 
     diff_abs = s.diff().abs().fillna(0.0)
     dq = float(np.clip(transient_diff_quantile, 0.5, 0.9999))
-    diff_thr = float(diff_abs.quantile(dq))
+    diff_thr = float(diff_abs.quantile(dq)) if transient_diff_abs_threshold is None else float(transient_diff_abs_threshold)
     if np.isfinite(diff_thr) and diff_thr > 0:
         high_diff = diff_abs >= diff_thr
         state.loc[high_diff & (state == "on")] = "transiente"
