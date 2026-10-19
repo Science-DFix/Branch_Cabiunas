@@ -112,9 +112,10 @@ def le_sensores(cfg: PipelineConfig, caminho: str, colunas: list[str], fim: str 
     return df.reset_index(drop=True)
 
 
-def pontua_grupo(cfg, df_raw, modelo, norm, hp, cong: dict | None):
+def pontua_grupo(cfg, df_raw, modelo, norm, hp, cong: dict | None, err=None, limiar=None):
     """O mesmo caminho de `run_automl_group` para o trial vencedor, sem treino. `cong` = estatísticas
-    congeladas; None = tira da própria série (é como a produção fez) e devolve-as."""
+    congeladas; None = tira da própria série (é como a produção fez) e devolve-as. `err` = score já calculado
+    (pula a OCSVM); `limiar` = limiar por instante (padrão: o da produção, `hp["threshold"]`)."""
     grupo = cfg.SENSOR_GROUPS[0]
     feats = norm["feature_columns"]
     sensores = [s for s in grupo["sensors"] if s in feats]
@@ -148,12 +149,13 @@ def pontua_grupo(cfg, df_raw, modelo, norm, hp, cong: dict | None):
     zidx = df_use.index
     keep = {c: df_use[c] for c in {alvo, cfg.LOAD_GATE_SENSOR, cfg.STEP_CHANGE_GATE_SENSOR} if c in sensores}
     del df_use
-    err = np.empty(len(X), dtype=np.float32)
-    for i in range(0, len(X), 100_000):
-        xb = np.clip(X[i:i + 100_000].astype(np.float64), lo, hi).astype(np.float32).astype(np.float64)
-        err[i:i + 100_000] = ocsvm_error(modelo, ((xb - mu) / sd).astype(np.float32))
+    if err is None:
+        err = np.empty(len(X), dtype=np.float32)
+        for i in range(0, len(X), 100_000):
+            xb = np.clip(X[i:i + 100_000].astype(np.float64), lo, hi).astype(np.float32).astype(np.float64)
+            err[i:i + 100_000] = ocsvm_error(modelo, ((xb - mu) / sd).astype(np.float32))
     del X
-    flags = (err > hp["threshold"]).astype(int)
+    flags = (err > (hp["threshold"] if limiar is None else limiar)).astype(int)
 
     d = int(hp["debounce"])
     df_point = map_seq_to_point_anomalies(flags, zidx, time_steps=1, point_rule="all_of_window",
