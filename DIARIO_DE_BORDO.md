@@ -144,6 +144,20 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 21/10/2026 — FP de partida em detalhe (relatório dos FP, seção 6) — DESCRITIVO
+- **Pedido do usuário:** "explore esses falso positivos em uma pagina do nosso relatorio, tempo médio o porque regras
+  proximo do religamento nao funcionaram tão bem".
+- **Script:** `relatorio_falsos_positivos/gera_partida.py`. Pipeline final com E5 (41 FP) e o score do E6 em cache.
+- **Tempo:** 15 FP a ≤ 2 h de "on" (mediana 1,1 h, ~2 h da ignição). Duram mais que os outros: mediana 1,8 h
+  contra 1,1 h, e até 9,7 h. Na mesma janela começam T4, T6 e T7 (1,9 / 1,3 / 0,8 h).
+- **Por quê:**
+  - O canal 4 fica aceso em 98% das primeiras 6 h, então o voto vira "1 modelo". 70% das partidas fora do
+    refratário geram alerta.
+  - O regime dos modelos dura 3–4 h, por isso adiar não basta (E4).
+  - O score da OCSVM RBF satura: o limiar do E6 fica a 84–97% do teto, e trips e FP de partida ficam perto do teto.
+- **Decisão:** nada adotado. Novos pontos a explorar (README): score sem teto, que exige retreino e deve ser checado
+  antes no PCA do D1, e a regra S1 do canal 4, para os dados novos.
+
 ### 19/10/2026 — E6, limiar próprio para o regime pós-partida — NÃO
 - **Pedido do usuário:** "pode seguir" (item 4 do plano, o regime pós-partida no modelo).
 - **Script:** `frente_ocsvm/e6_limiar_pos_partida.py`, pré-registro `6944f8a`. Local, com os modelos congelados do F1.

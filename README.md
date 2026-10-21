@@ -37,6 +37,13 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
   filtro de 45 min, e o "on" já vem depois de 60 min de padding, então da ignição são cerca de 2 h. Esses FP duram
   mais: mediana 1,8 h (média 2,7 h, até 9,7 h), contra 1,1 h (média 1,7 h) nos outros. 3 dos 8 trips também começam
   a ≤ 2 h (T4 1,9 h; T6 1,3 h; T7 0,8 h).
+- Por que E4 e E6 falham na partida (relatório dos FP, seção 6; `relatorio_falsos_positivos/gera_partida.py`):
+  - O canal 4 (janela de 24 h) fica aceso em 98% das primeiras 6 h após a partida (36% em regime), então o voto
+    ≥ 2 vira "um modelo aceso". O voto ≥ 2 fica aceso 59% do tempo entre 1 e 3 h (4,9% em regime). Fora do
+    refratário, 70% das partidas desde 01/2025 geram alerta (31 de 44).
+  - Os modelos ficam acima do normal por 3 a 4 h depois da partida: adiar só empurra o alerta (E4).
+  - O score da OCSVM RBF tem teto (3,27 / 87,6 / 1,08 × limiar). O limiar do E6 ficou a 84–97% do teto, e os trips e
+    a maior parte dos FP de partida ficam perto dele: não há intensidade que os separe (E6, D3).
 - O canal 4 acende na partida: `PI_6240319_AL` aparece a ≤ 3 h de 52% das 83 partidas (base 9,6%) e `PAL_6240315`
   em 66% (base 6,2%).
 - Perder trips compra pouco FP (E3): 7/8 dá −19% (−9% fora da amostra); 6/8 dá −27% (−13% fora).
@@ -75,6 +82,9 @@ Substitui a planilha de 15/10, que não foi enviada.
    - Achado de passagem do E6: na produção, o limiar sai do score dos pontos de treino clipados pelos quantis do
      próprio normal, e o alerta sai da série clipada pelos quantis dela mesma. São dois clippings diferentes. Não
      muda nada hoje (o E6 reproduz os limiares), mas um retreino que padronize o clipping mudaria a calibração.
+   - Score com teto: na partida, trips e FP batem no teto da OCSVM RBF. Um retreino com *gamma* menor (teto mais
+     alto) ou um score de distância ao normal pós-partida diria *quanto* o episódio foge. Antes de gastar Cica,
+     checar local se trips e FP de partida se separam no score do PCA/T² do D1 (sem teto), olhando só a partida.
 2. **Canal 4 depois de 27/02/2026:** só `PAL_6240315` sustenta o canal. Revalidar com trips novos e pedir o motivo da
    mudança do `PI_6240319_AL`.
 3. **Alerta repetido em 7 dias como prioridade:** 6 de 8 trips têm outro alerta nos 7 dias anteriores, contra 22 de 41

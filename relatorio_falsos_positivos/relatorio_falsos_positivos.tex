@@ -324,7 +324,8 @@ mesmo percentil da produção, calculado só sobre o normal de treino das primei
 (temperatura $3{,}1\times$, vibração $74\times$, óleo $1{,}05\times$), e mesmo assim os 8 trips continuam detectados.
 Mas o FP cai só 10\% (41 $\to$ 37) e 5\% fora da amostra. Dos 16 FP de partida, 8 somem e 8 continuam. O resultado
 é o mesmo com 3 ou 12~h. Também se mediu que \tg{PI_6240319_AL} aparece a até 3~h de 52\% das partidas (contra 9,6\%
-de janelas quaisquer em operação) e \tg{PAL_6240315} em 66\% (contra 6,2\%): o canal 4 acende na partida.
+de janelas quaisquer em operação) e \tg{PAL_6240315} em 66\% (contra 6,2\%): o canal 4 acende na partida. Tempos,
+durações e o porquê de E4 e E6 não funcionarem estão na Seção~\ref{sec:partida-detalhe}.
 
 \begin{figure}[H]
 \centering
@@ -368,6 +369,101 @@ seguidos (do relatório OCSVM $\times$ CNN-1D).}
 \caption{FP de 24/07/2025 com rajada de alarmes de temperatura no mesmo segundo.}
 \label{fig:rajadafp}
 \end{figure}
+
+%=====================================================================
+\newpage
+\section{Os FP de partida em detalhe}
+\label{sec:partida-detalhe}
+%=====================================================================
+
+Esta seção usa a pipeline final, já com a regra de falha de comunicação (E5): são 41 FP e 8 trips no período
+inteiro (07/2024--04/2026). Por isso as contagens diferem um pouco das da triagem do E1, que tinha 36 FP desde
+01/2025. Script: \tg{relatorio_falsos_positivos/gera_partida.py}. Ele é descritivo: lê a saída da pipeline e o
+score dos três OCSVM congelados e não treina nada.
+
+\paragraph{Quando começam e quanto duram.} 15 dos 41 FP começam até 2~h depois de a máquina entrar em ``on'': 6
+até 1~h e 9 entre 1 e 2~h. Três trips começam na mesma janela.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lccc}
+\toprule
+ & FP de partida ($\leq 2$~h) & demais FP & trips de partida \\
+\midrule
+episódios & 15 & 26 & 3 (T4, T6, T7) \\
+início após ``on'' (h) & mediana 1,1 (0,8--2,0) & -- & 1,9 / 1,3 / 0,8 \\
+duração do voto (h) & mediana 1,8; média 2,7; máx.\ 9,7 & mediana 1,1; média 1,7; máx.\ 4,5 & 1,9 / 1,6 / 6,2 \\
+só 1 modelo aceso & 47\% & 62\% & 1 de 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dois detalhes do relógio: o estado ``on'' só começa depois de 60~min de padding após o transitório, e nenhum
+episódio pode começar antes de 0,8~h porque o voto precisa ficar aceso 45~min. Contado a partir da ignição, portanto,
+o FP típico de partida aparece cerca de 2~h depois e dura perto de 2~h. É mais longo que um FP qualquer. Dois deles
+passam de 8~h (24/07/2025, só temperatura; 15/11/2025, só vibração).
+
+\paragraph{Por que tantos: na partida, o canal 4 já está votando.} O canal 4 olha alarmes numa janela de 24~h. Os
+alarmes da parada e da partida (\tg{PAL_6240315} em 13 dos 15 FP, \tg{PI_6240319_AL} em 11) o deixam aceso em
+\textbf{98\% do tempo nas primeiras 6~h}, contra 36\% depois de 24~h (Figura~\ref{fig:partidaregime}a). Com o canal
+4 garantido, a regra ``voto $\geq 2$'' vira, na prática, ``um modelo acima do limiar''. E os modelos estão acima do
+limiar com frequência nas primeiras horas: a vibração fica acesa 43--47\% do tempo entre 1 e 3~h após a partida
+(contra 10\% depois de 24~h), e a temperatura 23--25\% (contra 1\%). Resultado: o voto $\geq 2$ fica aceso
+\textbf{59\% do tempo} entre 1 e 3~h após a partida, contra 4,9\% em regime.
+
+Isso aparece em cada partida. Desde 01/2025 houve 66. Em 31 sai um episódio nas 6~h seguintes (18 FP, 10
+inconclusivos, 3 trips). Das outras 35, 22 estavam no refratário de um alerta anterior e só 13 não tiveram voto de
+45~min. Fora do refratário, \textbf{70\% das partidas geram alerta}: para a pipeline, a partida em si já é quase um
+alarme.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{partida_regime.png}
+\caption{(a) Fração do tempo ``on'' com cada canal aceso, por hora após a partida (desde 01/2025). O pontilhado é o
+nível depois de 24~h. O canal 4 fica perto de 100\% no primeiro dia, e os modelos ficam 3 a 4~h acima do normal. (b)
+Voto aceso em cada FP (vermelho) e trip (verde) que começa a $\leq 2$~h da partida, com o rótulo dos modelos acesos.
+Tracejado: o adiamento do E4 ($h = 1$~h) e a janela do limiar próprio do E6 ($H = 6$~h).}
+\label{fig:partidaregime}
+\end{figure}
+
+\paragraph{Por que adiar o alerta (E4) não funcionou.} A anomalia de partida não é um pico curto. Os modelos ficam
+acima do normal por 3 a 4~h (Figura~\ref{fig:partidaregime}a), e o voto dos FP dura em mediana 1,8~h. Adiar 1~h só
+empurra o alerta: o voto continua aceso depois da linha de 1~h (Figura~\ref{fig:partidaregime}b), e 15 dos 17 FP de
+partida reapareceram no E4. Adiar 3~h ou mais já perde o T4, que começa a 1,9~h e acaba a 3,8~h da partida. Não há
+tempo de espera que passe o regime de partida sem atravessar a janela dos trips.
+
+\paragraph{Por que o limiar próprio (E6) não funcionou: o score tem teto.} A OCSVM com kernel RBF \textbf{satura}:
+longe de todos os vetores de suporte, o score fica constante no valor máximo. Em múltiplos do limiar de produção, o
+teto é 3,27 na temperatura, 87,6 na vibração e 1,08 no óleo. O limiar do E6 para as primeiras 6~h ficou em 3,07,
+73,7 e 1,05: \textbf{84 a 97\% do teto}. Ou seja, o próprio normal de treino pós-partida já bate no teto com
+frequência. Na primeira hora, o score está no teto em 13\% do tempo na temperatura e 11\% na vibração, contra 0,3\%
+e 0,4\% em regime. Os trips de partida e a maior parte dos FP de partida ficam perto do teto
+(Figura~\ref{fig:partidascore}; na vibração, os FP vão de 46\% a 100\% dele). O T4 está no teto, e o T6 e o T7 a 98\% dele. Subir o limiar só remove os
+FP mais fracos. Seis dos 15 FP ficam acima do limiar do E6 em $\geq 90\%$ do episódio, e entre esse limiar e o teto
+não sobra espaço. Para o modelo, um FP de partida e um trip de partida são ``igualmente anômalos''. É a mesma razão
+de o score contínuo (D3) não separar trip de FP.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{partida_score.png}
+\caption{Percentil 90 do score de cada canal de modelo aceso, durante cada episódio a $\leq 2$~h da partida, em
+múltiplos do limiar de produção (escala log). Tracejado: limiar próprio do E6. Pontilhado: teto do score da OCSVM.
+Os trips e a maioria dos FP estão perto do teto, e o limiar do E6 está logo abaixo dele.}
+\label{fig:partidascore}
+\end{figure}
+
+\paragraph{O que isso sugere.} Com estes sensores, a partida não separa trip de FP, nem pela hora do alerta (E4)
+nem pela intensidade do score (E6, D3). Os caminhos que restam mudam a informação, não o limiar:
+\begin{itemize}
+  \item \textbf{Tipo de partida} (pedido de dados): saber se os FP vêm de partidas normais e os trips de partidas
+        após falha ou intervenção.
+  \item \textbf{Canal 4 sem os alarmes da sequência de partida}: hoje ele está aceso por construção no primeiro dia.
+        É a regra S1 pré-registrada para os dados novos (F1): o canal 4 sem \tg{PI_6240319_AL}.
+  \item \textbf{Um score sem teto} (para retreino): uma OCSVM com \emph{gamma} menor ou uma distância ao normal
+        pós-partida diria \emph{quanto} o episódio foge do normal. Ainda não se sabe se trips e FP de partida se
+        separam nessa medida; o PCA/T$^2$ do D1 não tem teto e não passou no agregado, mas não foi olhado só na
+        partida.
+\end{itemize}
 
 %=====================================================================
 \section{A curva de compromisso}
