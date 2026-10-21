@@ -32,6 +32,11 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
 - **Limiar próprio para o regime pós-partida (E6):** com o modelo congelado, o mesmo percentil da produção sobre o
   normal de treino das primeiras 6 h. O limiar sobe 3× na temperatura e 74× na vibração. Mantém 8/8, mas o FP cai só
   10% (−5% fora da amostra); dos 16 FP de partida, 8 continuam. Não passa.
+- Tempo dos FP de partida (pipeline final com E5, 41 FP; `h_desde_partida` de `episodios_classificados.csv`):
+  15 dos 41 começam até 2 h depois de entrar em "on" (5 em < 1 h, 10 em 1–2 h), mediana 1,1 h. O mínimo é 0,8 h por causa do
+  filtro de 45 min, e o "on" já vem depois de 60 min de padding, então da ignição são cerca de 2 h. Esses FP duram
+  mais: mediana 1,8 h (média 2,7 h, até 9,7 h), contra 1,1 h (média 1,7 h) nos outros. 3 dos 8 trips também começam
+  a ≤ 2 h (T4 1,9 h; T6 1,3 h; T7 0,8 h).
 - O canal 4 acende na partida: `PI_6240319_AL` aparece a ≤ 3 h de 52% das 83 partidas (base 9,6%) e `PAL_6240315`
   em 66% (base 6,2%).
 - Perder trips compra pouco FP (E3): 7/8 dá −19% (−9% fora da amostra); 6/8 dá −27% (−13% fora).
