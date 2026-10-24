@@ -8,6 +8,8 @@ de produção como estão? Normalização, clipping (`f1_congelado.json`), limia
 como a camada de decisão com E5 e a régua. É o caminho do F1 (`f1_congelado.pontua_grupo`); só as janelas mudam.
 Artefatos do cache local (Cica fora do ar), identificados como no G1. O estado operacional é o do F1. Os trechos são
 os pedaços contínuos desse estado, e o script confere que o estado devolvido pelo F1 é o mesmo usado nos trechos.
+  (24/10, antes de qualquer resultado: a 1ª execução parou na premissa "sem OFF_TARGET_ABS_THRESHOLD", que não vale
+  para a temperatura. O estado passou a usar o sensor-alvo, como o F1; a conferência contra o F1 continua.)
 Base: o mesmo caminho com o score de produção em cache (E6); tem de dar 8/8, 41 FP e 2,816 FP/mês, senão nada vale.
 
 LIMITE DA PRÉVIA: o modelo foi treinado com as features antigas. As features novas só diferem nas primeiras 24 h de
@@ -44,12 +46,15 @@ LIM_FORA = 0.75 * 2.877
 
 def estado_f1(cfg, df_raw, cong) -> pd.Series:
     """O estado operacional que `f1_congelado.pontua_grupo` calcula (mesmos argumentos)."""
-    s0 = cfg.SENSOR_GROUPS[0]["sensors"][0]
-    idx = build_group_dataframe(replace(cfg, ENABLE_DERIVED_FEATURES=False), df_raw, df_raw, [s0])[0].index
+    grupo = cfg.SENSOR_GROUPS[0]
+    alvo = grupo.get("target_sensor") if grupo.get("target_sensor") in grupo["sensors"] else None
+    s0 = alvo or grupo["sensors"][0]
+    d = build_group_dataframe(replace(cfg, ENABLE_DERIVED_FEATURES=False), df_raw, df_raw, [s0])[0]
     ref = build_sensor_dataframe(cfg, df_raw, df_raw, cfg.OPERATIONAL_REF_SENSOR)[0][cfg.OPERATIONAL_REF_SENSOR]
-    assert cfg.OFF_TARGET_ABS_THRESHOLD is None
     return build_operational_state(
-        index=idx, sensor_series=ref, off_value_quantile=cfg.OFF_VALUE_QUANTILE,
+        index=d.index, sensor_series=ref, off_value_quantile=cfg.OFF_VALUE_QUANTILE,
+        secondary_series=d[alvo] if (cfg.OFF_TARGET_ABS_THRESHOLD is not None and alvo) else None,
+        secondary_off_abs_threshold=cfg.OFF_TARGET_ABS_THRESHOLD,
         off_abs_threshold=cfg.OFF_ABS_THRESHOLD, off_long_min_hours=cfg.OFF_LONG_MIN_HOURS,
         transient_padding_minutes=cfg.TRANSIENT_PADDING_MINUTES, transient_diff_quantile=cfg.TRANSIENT_DIFF_QUANTILE,
         transient_diff_abs_threshold=cong["diff_thr"])
