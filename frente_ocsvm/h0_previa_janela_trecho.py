@@ -25,6 +25,26 @@ EXPECTATIVA REGISTRADA: os FP de partida caem para 8 ou menos de 15. Aparecem FP
 tendência e textura em 0 fora do normal de treino, e por isso o total cai menos: 41 -> 33-38. O veredito indicativo é
 NÃO PROMISSOR por FP, com 8/8 mantido.
 
+RESULTADO (24/10/2026, 4ª execução; as 3 primeiras pararam antes de qualquer resultado). A base reproduz a produção com
+E5: 8/8, 41 FP. O score muda em 43,5% (temperatura), 34,9% (vibração) e 61,9% (óleo) dos instantes, nas primeiras 24 h
+de cada um dos 423/501/553 trechos. INDICATIVO: NÃO PROMISSOR, por perda de trip.
+    braço          det  fora  FP  FP/mês  FP fora  FP/mês fora  FP partida  inconcl.  duty temp vib óleo
+    base           8    3/3   41  2,816   22       2,752        16          25        0,023 0,105 0,005
+    janela_trecho  5    1/3   30  2,061   18       2,251        3           14        0,015 0,089 0,003
+  - Somem 16 FP da base, 13 deles de partida (de 16). Aparecem 5 FP novos, nenhum a <= 2 h da partida.
+  - Perde EXATAMENTE os 3 trips que começam na partida: T4 (11/04/25), T6 (04/11/25) e T7 (09/12/25). Os outros 5
+    ficam com score e antecedência idênticos. Instantes acima do limiar na janela da detecção, base -> nova:
+      T4  temperatura 1,00 -> 0,00
+      T6  vibração 1,00 -> 0,75, temperatura 0,10 -> 0,02
+      T7  vibração 1,00 -> 0,00, temperatura 0,11 -> 0,00
+Expectativa: certa nos FP de partida (<= 8; deu 3) e nos FP novos (deu 5). Errada no total (previ 33-38; deu 30) e nos
+trips (previ 8/8; deu 5/8).
+Leitura: com o modelo congelado, o voto do modelo nos 3 trips de partida é o mesmo artefato que gera os FP de partida:
+as janelas de 4 h e 24 h atravessando a parada. Nesses 3 casos, o que o modelo "vê" é a partida, não um precursor
+diferente do das partidas comuns. Dois deles estão fora da amostra, então o 3/3 fora depende do artefato. Os 3 trips
+caem 8 a 21 h depois de uma partida: a partida é o período de risco, e o par "partida + canal 4" acerta esses trips
+ao custo dos ~13 FP de partida. Isto é prévia sem retreino; o H1 (Cica) é o teste que decide.
+
 Uso: python frente_ocsvm/h0_previa_janela_trecho.py   (~30-40 min, ~7 GB; score novo em dados/h0/)
 """
 from __future__ import annotations

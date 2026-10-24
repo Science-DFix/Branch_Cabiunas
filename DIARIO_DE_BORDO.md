@@ -130,6 +130,8 @@ modelos (C).
 | **E4** | Adiar o alerta após a partida | votos não contam nas primeiras h horas depois da partida; corta FP sem perder trip? | não | **feito 19/10: NÃO** (h=1: −5%, fora 0%; LOEO 7/8; 15 de 17 FP de partida só são adiados) |
 | **E5** | Regra de falha de comunicação (higiene) | ignorar o canal do modelo com Comm Fail no grupo nas últimas 6 h mantém 8/8 sem subir FP? | não | **feito 19/10: ADOTADA** (8/8, FP 42 → 41; na pipeline final + contexto do alerta) |
 | **G1** | Sinal que manda em cada grupo (oclusão por sensor e família, AUC por feature, janelas na partida) | que sensor/feature acende cada canal nos FP de partida, nos trips e nas partidas normais? | não | **feito 24/10 (descritivo):** nenhum sensor dita temp/vib; óleo pelo PDIT; **FP de partida = janelas de 4 h/24 h atravessando a parada** (92% parada vs 27%) → próximo: janelas que reiniciam na partida (Cica) |
+| **H0** | Prévia local das janelas por trecho (modelos congelados) | sem o artefato da janela, o FP de partida some sem perder trip? | não | **feito 24/10: NÃO PROMISSOR** (5/8, fora 1/3; FP 41 → 30, de partida 16 → 3): **os 3 trips de partida (T4, T6, T7) eram pegos pelo mesmo artefato** |
+| **H1** | Retreino com janelas por trecho | idem H0, com o modelo treinado nas features novas | **sim (Cica)** | **pré-registrado 24/10** (`h1_janela_trecho.py`, `ce9f96f`); aguardando o Cica |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -144,6 +146,27 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 24/10/2026 — H0, prévia local das janelas por trecho (modelos congelados) — NÃO PROMISSOR: PERDE OS 3 TRIPS DE PARTIDA
+- **Pedido do usuário:** "deixe guardado para o cica e vamos testar localmente".
+- **Script:** `frente_ocsvm/h0_previa_janela_trecho.py`, pré-registro `ce9f96f`. As correções `4fcc195` (estado com o
+  sensor-alvo) e `09f9922` (memória) vieram antes de qualquer resultado.
+- **O que faz:** os 3 OCSVM de produção, sem retreino, recebem as features com janelas que não atravessam a troca de
+  estado (`DERIVED_RESET_AT_STATE_CHANGE`). Normalização, limiar, portões e decisão com E5 ficam iguais. A base
+  reproduz 8/8 e 41 FP.
+- **Resultado:** 5/8 (fora 1/3), 30 FP, 2,061 FP/mês (fora 2,251).
+  - FP de partida: 16 → 3. Aparecem 5 FP novos, nenhum na partida.
+  - Perde exatamente T4, T6 e T7, os 3 trips que começam na partida. O canal que votava neles apaga: T4 temperatura
+    1,00 → 0,00; T6 vibração 1,00 → 0,75; T7 vibração 1,00 → 0,00. Os outros 5 trips ficam idênticos.
+- **Leitura:**
+  - Nos 3 trips de partida, o voto do modelo é o mesmo artefato dos FP de partida: o modelo vê a partida, não um
+    precursor diferente.
+  - Dois desses trips estão fora da amostra, então o 3/3 fora depende do artefato.
+  - Os 3 trips caem 8–21 h depois da partida. A partida é o período de risco, e "partida + canal 4" acerta esses 3 ao
+    custo de ~13 FP.
+- **Expectativa:** certa nos FP de partida e nos FP novos; errada no total (previ 33–38) e nos trips (previ 8/8).
+- **Decisão:** nada adotado. O H1 (retreino, Cica) continua guardado, com o pré-registro intacto. Agora se espera
+  que ele também perca T4, T6 e T7.
 
 ### 24/10/2026 — G1, sinal que manda em cada grupo — DESCRITIVO: ARTEFATO DAS JANELAS LONGAS
 - **Pedido do usuário:** "vamos fazer diagnostico local, encontrar nossas galinha dos ovos de ouro em cada sinal!

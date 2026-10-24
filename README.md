@@ -58,6 +58,9 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
   - **Boa parte do FP de partida é artefato da feature:** as janelas móveis contam linhas e atravessam a parada. A
     2 h da partida, a janela de 24 h está 92% parada nos FP de partida (27% nas partidas sem alerta). O |z| das
     escalas de 4 h e 24 h fica 5 a 33 vezes o do regime e só volta em 24 h.
+  - **Os 3 trips de partida também dependem do artefato (H0):** com as janelas por trecho e o modelo congelado, T4,
+    T6 e T7 perdem o voto do modelo. O 3/3 fora da amostra depende de 2 deles. Eles caem 8–21 h depois da partida:
+    a partida é o período de risco, e "partida + canal 4" acerta os 3 ao custo de ~13 FP.
   - Paradas de 12 h ou mais antecedem 11 de 16 FP de partida e 12 de 49 partidas sem alerta (descritivo, a
     posteriori). Também antecedem um trip, o de 04/11/2025, fora da amostra, depois de 79 h parado. Suprimir não serve.
 
@@ -94,7 +97,11 @@ Substitui a planilha de 15/10, que não foi enviada.
    - Score com teto: na partida, trips e FP batem no teto da OCSVM RBF. Um retreino com *gamma* menor (teto mais
      alto) ou um score de distância ao normal pós-partida diria *quanto* o episódio foge. Antes de gastar Cica,
      checar local se trips e FP de partida se separam no score do PCA/T² do D1 (sem teto), olhando só a partida.
-2. **Janelas que não atravessam a parada (G1):** recalcular as features móveis só com linhas em "on", reiniciando
+2. **Janelas que não atravessam a parada (G1, H0, H1):** a prévia sem retreino (H0, 24/10) corta os FP de partida de
+   16 para 3 (41 → 30 FP), mas perde os 3 trips que começam na partida (T4, T6, T7; 5/8, fora 1/3). Nesses 3, o
+   voto do modelo era o mesmo artefato dos FP de partida. O retreino (H1, `frente_ocsvm/h1_janela_trecho.py`) está
+   pré-registrado e aguarda o Cica.
+   Desenho original: recalcular as features móveis só com linhas em "on", reiniciando
    na partida (ou com `min_periods` e a janela truncada no início). É a correção do artefato, não uma supressão:
    o trip de 04/11/2025, depois de 79 h parado, continua podendo ser detectado. Muda as features, então exige
    retreino dos 3 grupos (Cica, 1 task por vez) com a régua de sempre.
