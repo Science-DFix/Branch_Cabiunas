@@ -8,6 +8,8 @@ de produção como estão? Normalização, clipping (`f1_congelado.json`), limia
 como a camada de decisão com E5 e a régua. É o caminho do F1 (`f1_congelado.pontua_grupo`); só as janelas mudam.
 Artefatos do cache local (Cica fora do ar), identificados como no G1. O estado operacional é o do F1. Os trechos são
 os pedaços contínuos desse estado, e o script confere que o estado devolvido pelo F1 é o mesmo usado nos trechos.
+  (24/10, antes de qualquer resultado: a 2ª execução morreu por memória na vibração; as derivadas passam a float32
+  antes do concat e o texto dos sensores é lido depois dos canais. Na base o score vem do cache, então nada muda.)
   (24/10, antes de qualquer resultado: a 1ª execução parou na premissa "sem OFF_TARGET_ABS_THRESHOLD", que não vale
   para a temperatura. O estado passou a usar o sensor-alvo, como o F1; a conferência contra o F1 continua.)
 Base: o mesmo caminho com o score de produção em cache (E6); tem de dar 8/8, 41 FP e 2,816 FP/mês, senão nada vale.
@@ -26,6 +28,7 @@ NÃO PROMISSOR por FP, com 8/8 mantido.
 Uso: python frente_ocsvm/h0_previa_janela_trecho.py   (~30-40 min, ~7 GB; score novo em dados/h0/)
 """
 from __future__ import annotations
+import gc
 import json
 from dataclasses import replace
 
@@ -41,6 +44,7 @@ from src.cnn1d_ae.preprocess import build_group_dataframe, build_sensor_datafram
 from src.cnn1d_ae.scoring import build_operational_state
 
 SAIDA = C.DADOS / "h0"
+COLS = ["is_anom_point", "operational_state", "score"]
 LIM_FORA = 0.75 * 2.877
 
 
@@ -82,9 +86,20 @@ def main():
     cong = json.loads(F.CONGELADO.read_text())
     sens = str(G.SENS)
     cat = F.le_catalogo(G.CACHE_CLEARML / "datasets" / f"ds_{F.P.ALARM_CATALOG_DATASET_ID}" / F.P.ALARM_CATALOG_FILE)
-    txt = F.le_texto(sens)
     ft = F.le_trips(C.DADOS / "alarmes_francisco_falhas.csv")
     base, nova = {}, {}
+    orig = F.build_group_dataframe
+
+    def construtor(trechos):
+        """build_group_dataframe com as derivadas em float32 (memória: a vibração estoura os 7 GB em float64).
+        Na base o score vem do cache, então isso não muda nada; no braço novo muda o score em ~1e-7."""
+        def f(c, a, b, s):
+            d = orig(c, a, b, s, segments=trechos)[0]
+            der = [k for k in d.columns if k not in s]
+            d[der] = d[der].astype(np.float32)
+            return d, None
+        return f
+
     for g in F.CANAIS:
         cfg = G.config(g)
         norm, hp, modelos = G.artefatos_cache(cfg, g)
@@ -93,14 +108,18 @@ def main():
                       | {c for c in [cfg.LOAD_GATE_SENSOR, cfg.STEP_CHANGE_GATE_SENSOR] if c})
         df_raw = F.le_sensores(cfg, sens, cols, cfg.DATA_END_DATE)
         print(f"[{g}] base (score de produção em cache)...", flush=True)
-        base[g], _ = F.pontua_grupo(cfg, df_raw, modelos[0], norm, hp, cong[g], err=err0)
+        F.build_group_dataframe = construtor(None)
+        try:
+            base[g] = F.pontua_grupo(cfg, df_raw, modelos[0], norm, hp, cong[g], err=err0)[0][COLS]
+        finally:
+            F.build_group_dataframe = orig
+        gc.collect()
 
         estado = estado_f1(cfg, df_raw, cong[g])
         assert estado.reindex(base[g].index).fillna("on").equals(base[g]["operational_state"]), f"[{g}] estado difere do F1"
         trechos = estado.ne(estado.shift()).cumsum()
         print(f"[{g}] {int(trechos.iloc[-1])} trechos; pontuando com janelas por trecho...", flush=True)
-        orig = F.build_group_dataframe
-        F.build_group_dataframe = lambda c, a, b, s: orig(c, a, b, s, segments=trechos)
+        F.build_group_dataframe = construtor(trechos)
         try:
             # o modelo certo entre os de mesma dimensão: o que reproduz o score de produção (como no G1)
             m = modelos[0] if len(modelos) == 1 else None
@@ -120,7 +139,7 @@ def main():
                 m = modelos[int(np.argmin(erros))]
                 assert min(erros) < 1e-3 * float(np.max(np.abs(err0[k]))), erros
                 del d0
-            nova[g], _ = F.pontua_grupo(cfg, df_raw, m, norm, hp, cong[g], err=err1)
+            nova[g] = F.pontua_grupo(cfg, df_raw, m, norm, hp, cong[g], err=err1)[0][COLS]
         finally:
             F.build_group_dataframe = orig
         assert nova[g]["operational_state"].equals(base[g]["operational_state"]), g
@@ -129,6 +148,8 @@ def main():
         mudou = (nova[g]["score"].values != err0)
         print(f"[{g}] instantes com score diferente: {mudou.mean():.3%}", flush=True)
         del df_raw
+        gc.collect()
+    txt = F.le_texto(sens)
 
     L, Ps, FPs = [], {}, {}
     for nome, pts in (("base", base), ("janela_trecho", nova)):
