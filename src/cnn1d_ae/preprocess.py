@@ -29,7 +29,8 @@ def _downcast_float32(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _build_derived_features(
-    df: pd.DataFrame, sensor: str, windows: List[int], include_texture: bool = True
+    df: pd.DataFrame, sensor: str, windows: List[int], include_texture: bool = True,
+    segments: pd.Series | None = None,
 ) -> pd.DataFrame:
     """Features derivadas em multiplas escalas de tempo (uma passada por
     janela em `windows`), alem do delta instantaneo (1 passo, independente
@@ -48,20 +49,29 @@ def _build_derived_features(
     onde a motivacao fisica de "impulsividade" nao se aplica, controlando
     o crescimento de dimensionalidade ao incorporar sensores
     correlacionados extras. Ver docs/analise_automl_exp7_planejamento.md
-    e docs/analise_automl_exp9_planejamento.md."""
+    e docs/analise_automl_exp9_planejamento.md.
+
+    `segments` (opcional): rotulo do trecho de cada linha; as janelas nao
+    atravessam a troca de trecho (DERIVED_RESET_AT_STATE_CHANGE). None = a
+    serie inteira e um trecho so (comportamento anterior)."""
     out = df.copy()
-    out[f"{sensor}__delta_1"] = out[sensor].diff().fillna(0.0)
+    x = out[sensor]
+
+    def seg(s: pd.Series, fn):
+        return fn(s) if segments is None else s.groupby(segments, sort=False).transform(fn)
+
+    out[f"{sensor}__delta_1"] = seg(x, lambda s: s.diff()).fillna(0.0)
     for window in windows:
         w = max(2, int(window))
-        out[f"{sensor}__roll_med_{w}"] = out[sensor].rolling(w, min_periods=1).median()
-        out[f"{sensor}__roll_std_{w}"] = out[sensor].rolling(w, min_periods=1).std().fillna(0.0)
-        out[f"{sensor}__trend_{w}"] = (out[sensor] - out[sensor].shift(w)).fillna(0.0)
+        out[f"{sensor}__roll_med_{w}"] = seg(x, lambda s: s.rolling(w, min_periods=1).median())
+        out[f"{sensor}__roll_std_{w}"] = seg(x, lambda s: s.rolling(w, min_periods=1).std()).fillna(0.0)
+        out[f"{sensor}__trend_{w}"] = (x - seg(x, lambda s: s.shift(w))).fillna(0.0)
         if w >= TEXTURE_MIN_WINDOW and include_texture:
-            roll = out[sensor].rolling(w, min_periods=max(10, w // 4))
-            out[f"{sensor}__roll_kurt_{w}"] = roll.kurt().fillna(0.0)
-            out[f"{sensor}__roll_skew_{w}"] = roll.skew().fillna(0.0)
-            rms = np.sqrt((out[sensor] ** 2).rolling(w, min_periods=1).mean())
-            peak = out[sensor].abs().rolling(w, min_periods=1).max()
+            mp = max(10, w // 4)
+            out[f"{sensor}__roll_kurt_{w}"] = seg(x, lambda s: s.rolling(w, min_periods=mp).kurt()).fillna(0.0)
+            out[f"{sensor}__roll_skew_{w}"] = seg(x, lambda s: s.rolling(w, min_periods=mp).skew()).fillna(0.0)
+            rms = np.sqrt(seg(x ** 2, lambda s: s.rolling(w, min_periods=1).mean()))
+            peak = seg(x.abs(), lambda s: s.rolling(w, min_periods=1).max())
             out[f"{sensor}__crest_{w}"] = (peak / rms.replace(0, np.nan)).fillna(0.0)
     return out
 
@@ -350,11 +360,14 @@ def build_group_dataframe(
     df_feat: pd.DataFrame,
     df_raw: pd.DataFrame,
     sensors: List[str],
+    segments: pd.Series | None = None,
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """
     Carrega múltiplos sensores de uma só vez, alinhados no mesmo índice temporal.
     A máscara de gaps longos é a união (OR) de todos os canais — conservadora,
     exclui o ponto se QUALQUER sensor estava ausente por muito tempo.
+    `segments`: trechos que as janelas das features derivadas não atravessam
+    (ver `_build_derived_features`); None = comportamento anterior.
     """
     source = cfg.TRAIN_SOURCE.lower()
     source_df = df_raw if source == "raw" else df_feat
@@ -382,7 +395,8 @@ def build_group_dataframe(
     if cfg.ENABLE_DERIVED_FEATURES:
         windows = _derived_windows(cfg)
         for s in sensors:
-            df_use = _build_derived_features(df_use, sensor=s, windows=windows, include_texture=_texture_enabled(cfg, s))
+            df_use = _build_derived_features(df_use, sensor=s, windows=windows, include_texture=_texture_enabled(cfg, s),
+                                             segments=None if segments is None else segments.reindex(df_use.index))
     if cfg.ENABLE_CHANGEPOINT_FEATURES:
         for s in sensors:
             df_use = _build_changepoint_features(

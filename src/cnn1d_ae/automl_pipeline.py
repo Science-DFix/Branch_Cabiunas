@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import pickle
+from dataclasses import replace
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
@@ -383,6 +384,29 @@ def _save_model(model_type: str, model_obj: Any, out_dirs: Dict[str, str]) -> st
     return path
 
 
+def _compute_operational_state(
+    cfg: PipelineConfig, df_feat: pd.DataFrame, df_raw: pd.DataFrame, df_use: pd.DataFrame,
+    sensors: List[str], target_sensor: str | None,
+) -> pd.Series:
+    ref_sensor = cfg.OPERATIONAL_REF_SENSOR
+    if ref_sensor and ref_sensor not in sensors:
+        df_ref, _ = build_sensor_dataframe(cfg, df_feat, df_raw, ref_sensor)
+        ref_series = df_ref[ref_sensor]
+    else:
+        ref_col = ref_sensor if (ref_sensor and ref_sensor in sensors) else sensors[0]
+        ref_series = df_use[ref_col]
+    secondary_series = None
+    if cfg.OFF_TARGET_ABS_THRESHOLD is not None and target_sensor and target_sensor in df_use.columns:
+        secondary_series = df_use[target_sensor]
+    return build_operational_state(
+        index=df_use.index, sensor_series=ref_series,
+        off_value_quantile=cfg.OFF_VALUE_QUANTILE, off_abs_threshold=cfg.OFF_ABS_THRESHOLD,
+        off_long_min_hours=cfg.OFF_LONG_MIN_HOURS, transient_padding_minutes=cfg.TRANSIENT_PADDING_MINUTES,
+        transient_diff_quantile=cfg.TRANSIENT_DIFF_QUANTILE,
+        secondary_series=secondary_series, secondary_off_abs_threshold=cfg.OFF_TARGET_ABS_THRESHOLD,
+    )
+
+
 def run_automl_group(
     cfg: PipelineConfig,
     df_alarm: pd.DataFrame,
@@ -420,7 +444,18 @@ def run_automl_group(
     with open(os.path.join(out_dirs["csv"], "group_definition.json"), "w", encoding="utf-8") as f:
         json.dump(group, f, indent=2, ensure_ascii=False)
 
-    df_use, long_gap_mask = build_group_dataframe(cfg, df_feat, df_raw, sensors)
+    # Janelas das features que nao atravessam a troca de estado operacional
+    # (G1, 24/10/2026): o estado sai dos valores brutos, antes das derivadas.
+    segments = state_pre = None
+    if cfg.DERIVED_RESET_AT_STATE_CHANGE:
+        if not (cfg.ENABLE_OPERATIONAL_MASK and cfg.ENABLE_DERIVED_FEATURES):
+            raise ValueError("DERIVED_RESET_AT_STATE_CHANGE=true exige ENABLE_OPERATIONAL_MASK e ENABLE_DERIVED_FEATURES.")
+        df_base, _ = build_group_dataframe(replace(cfg, ENABLE_DERIVED_FEATURES=False), df_feat, df_raw, sensors)
+        state_pre = _compute_operational_state(cfg, df_feat, df_raw, df_base, sensors, target_sensor)
+        segments = state_pre.ne(state_pre.shift()).cumsum()
+        del df_base
+
+    df_use, long_gap_mask = build_group_dataframe(cfg, df_feat, df_raw, sensors, segments=segments)
 
     valid_sensors = [s for s in sensors if float(df_use[s].std()) >= cfg.MIN_STD]
     dropped = set(sensors) - set(valid_sensors)
@@ -467,23 +502,9 @@ def run_automl_group(
     # juntos (o "anomalo" virava, em boa parte, so a transicao liga/desliga).
     state = None
     if cfg.ENABLE_OPERATIONAL_MASK:
-        ref_sensor = cfg.OPERATIONAL_REF_SENSOR
-        if ref_sensor and ref_sensor not in sensors:
-            df_ref, _ = build_sensor_dataframe(cfg, df_feat, df_raw, ref_sensor)
-            ref_series = df_ref[ref_sensor]
-        else:
-            ref_col = ref_sensor if (ref_sensor and ref_sensor in sensors) else sensors[0]
-            ref_series = df_use[ref_col]
-        secondary_series = None
-        if cfg.OFF_TARGET_ABS_THRESHOLD is not None and target_sensor and target_sensor in df_use.columns:
-            secondary_series = df_use[target_sensor]
-        state = build_operational_state(
-            index=df_use.index, sensor_series=ref_series,
-            off_value_quantile=cfg.OFF_VALUE_QUANTILE, off_abs_threshold=cfg.OFF_ABS_THRESHOLD,
-            off_long_min_hours=cfg.OFF_LONG_MIN_HOURS, transient_padding_minutes=cfg.TRANSIENT_PADDING_MINUTES,
-            transient_diff_quantile=cfg.TRANSIENT_DIFF_QUANTILE,
-            secondary_series=secondary_series, secondary_off_abs_threshold=cfg.OFF_TARGET_ABS_THRESHOLD,
-        )
+        state = _compute_operational_state(cfg, df_feat, df_raw, df_use, sensors, target_sensor)
+        if segments is not None and not state.equals(state_pre):
+            raise ValueError("DERIVED_RESET_AT_STATE_CHANGE: estado das features difere do estado da mascara.")
 
     # Portao de rampa de carga (EXP10b): suprime is_anom_point durante
     # manobra de carga legitima (rampa alta num proxy de carga, ex:

@@ -59,6 +59,12 @@ class PipelineConfig:
     # DERIVED_ROLLING_WINDOW (que continua sendo o fallback de janela unica).
     # Ver docs/analise_automl_exp7_planejamento.md.
     DERIVED_ROLLING_WINDOWS: Optional[List[int]] = None
+    # true = as janelas moveis das features derivadas nao atravessam mudanca
+    # de estado operacional (cada trecho continuo de "on"/"off"/"transient" e
+    # tratado como o comeco da serie). Sem isso, a janela de 4 h/24 h logo
+    # apos a partida mistura horas de maquina parada (G1, 24/10/2026). So vale
+    # no AutoML (run_automl_group) com ENABLE_OPERATIONAL_MASK=true.
+    DERIVED_RESET_AT_STATE_CHANGE: bool = False
     # Subconjunto opcional de `sensors` (por grupo) que recebe features de
     # "textura" (kurtosis/skew/crest, ver TEXTURE_MIN_WINDOW em
     # preprocess.py) quando ENABLE_DERIVED_FEATURES=true. None = todos os
