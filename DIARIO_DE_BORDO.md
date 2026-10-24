@@ -129,6 +129,7 @@ modelos (C).
 | **E3** | Curva de compromisso trips × FP/mês | quanto FP se economiza aceitando perder trips (sensibilidade r ≥ k; envelope da grade A3)? | não | **feito 19/10 (descritivo):** k=3 → 7/8, −19% (fora −9%); k=4–12 → 6/8, −27% (fora −13%); A3 só PI+PAL 8/8 −17% (otimista) |
 | **E4** | Adiar o alerta após a partida | votos não contam nas primeiras h horas depois da partida; corta FP sem perder trip? | não | **feito 19/10: NÃO** (h=1: −5%, fora 0%; LOEO 7/8; 15 de 17 FP de partida só são adiados) |
 | **E5** | Regra de falha de comunicação (higiene) | ignorar o canal do modelo com Comm Fail no grupo nas últimas 6 h mantém 8/8 sem subir FP? | não | **feito 19/10: ADOTADA** (8/8, FP 42 → 41; na pipeline final + contexto do alerta) |
+| **G1** | Sinal que manda em cada grupo (oclusão por sensor e família, AUC por feature, janelas na partida) | que sensor/feature acende cada canal nos FP de partida, nos trips e nas partidas normais? | não | **feito 24/10 (descritivo):** nenhum sensor dita temp/vib; óleo pelo PDIT; **FP de partida = janelas de 4 h/24 h atravessando a parada** (92% parada vs 27%) → próximo: janelas que reiniciam na partida (Cica) |
 
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
@@ -143,6 +144,28 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 24/10/2026 — G1, sinal que manda em cada grupo — DESCRITIVO: ARTEFATO DAS JANELAS LONGAS
+- **Pedido do usuário:** "vamos fazer diagnostico local, encontrar nossas galinha dos ovos de ouro em cada sinal!
+  devemos usar dados que são usados no cica".
+- **Script:** `frente_ocsvm/g1_sinal_dominante.py`, pré-registro `761e7c1`. A base é a do Cica: Dataset `a97ba56b`,
+  configs `6842ac7`, features de produção e clipping do F1. Os artefatos vêm do cache local, porque o Cica está fora
+  do ar desde 24/10. Conferência com o score do E6: erro 0,0 nos 3 grupos.
+- **Oclusão por sensor:** nenhum sensor dita a temperatura (T5 e TC382 são redundantes) nem a vibração (peso
+  espalhado; o que mais pesa é o `TV_354Y_A`). No óleo, o `PDIT_0305` dita.
+- **Oclusão por família:** manda a textura de 4 h (curtose, assimetria, crista), até na temperatura.
+- **Janelas longas:** atravessam a parada.
+  - A 2 h da partida, a janela de 24 h está 92% fora de "on" nos FP de partida, contra 27% nas partidas sem alerta.
+  - O |z| das escalas de 4 h e 24 h vai a 5–33× o do regime e só volta em 24 h.
+  - A posteriori: parada ≥ 12 h antes de 11 de 16 FP de partida e de 12 de 49 partidas sem alerta. Também antes do
+    trip de 04/11/2025, que veio depois de 79 h parado.
+- **Feature a feature:** 15 da vibração (desvio e crista de 1 h dos mancais 4 e 5) e 12 do óleo (`PDIT_0305`, com só
+  2 trips) passam nos dois AUC ≥ 0,75. Não há controle de múltiplas comparações, então é hipótese.
+- **Expectativa:** certa em 2 de 5. Certa: vibração sem sensor dominante; o artefato existe. Errada: temperatura
+  redundante, óleo pelo PDIT, e muitas features passaram, não no máximo 1.
+- **Decisão:** nada adotado. Próximos itens no README (retreino):
+  - janelas que reiniciam na partida, para corrigir a feature em vez de suprimir;
+  - depois, as features por origem com escolha fixa.
 
 ### 21/10/2026 — FP de partida em detalhe (relatório dos FP, seção 6) — DESCRITIVO
 - **Pedido do usuário:** "explore esses falso positivos em uma pagina do nosso relatorio, tempo médio o porque regras

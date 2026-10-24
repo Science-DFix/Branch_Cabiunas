@@ -52,7 +52,48 @@ EXPECTATIVA REGISTRADA
   - Galinha dos ovos de ouro: no máximo 1 feature passa nos dois AUC, e só num grupo (o D3 não separou trip de FP
     com o score).
 
-Uso: python frente_ocsvm/g1_sinal_dominante.py   (saída em frente_ocsvm/dados/g1/)
+RESULTADO (24/10/2026). Conferência OK: erro 0,0 contra o score do E6 nos 3 grupos. Canal aceso em 3/6/2 trips,
+13/12/2 FPP e 13/22/4 FPO (temperatura/vibração/óleo). A 1ª execução gravou os CSVs e caiu na impressão (`S.sem` é
+método do pandas); corrigido só o resumo (`relata`), sem recalcular.
+  M1  Nenhum sensor dita a temperatura nem a vibração.
+      - Temperatura: os dois sensores são redundantes. Cada um sozinho mantém 84-99% aceso, e tirar qualquer um deixa
+        >= 84%. Nos FPO, T5 pesa mais (sozinho 0,98, contra 0,70 do TC382).
+      - Vibração: espalhada. Sozinho, cada sensor mantém no máximo 0,39 (352X nos trips); sem qualquer um, >= 0,81
+        continuam. O que mais pesa é o TV_354Y_A (sem ele: 0,83 trips, 0,88 FPP, 0,81 FPO).
+      - Óleo: o PDIT_0305 dita os trips (n = 2), os FPO e o PN. Nos FPP, só os dois juntos acendem.
+  M2  A família que manda é a textura (curtose, assimetria e crista) em 4 h, até na temperatura:
+      - temperatura trips: escala 480 sozinha 0,85, sem 480 0,07; textura sozinha 0,81, sem 0,09; FPP: textura 0,93/0,22;
+      - vibração: FPP e PN pela escala 480 (0,74 e 0,72 sozinha); trips por 2880 e textura (0,62 e 0,74 sozinha);
+      - óleo trips: variabilidade de 1 h (0,92/0,22); FPP: escala 480 (0,71/0,04).
+  M4  ARTEFATO DAS JANELAS LONGAS CONFIRMADO nos FPP, na temperatura e na vibração; não no PN nem no óleo.
+      - A 2 h da partida, a janela de 24 h está 92% fora de "on" nos FPP, contra 27% no PN.
+      - |z| da escala 2880 a 2 h: temperatura 1,53 contra 0,30 no NR (5x), vibração 1,49 contra 0,32 (4,7x). No PN:
+        1,3x e 1,6x. Volta ao NR em 24 h.
+      - Escala 480 a 0,5 h nos FPP: |z| 6,35 na temperatura (33x o NR) e 2,67 na vibração (12x).
+  M3  Passam nos dois AUC 15 features da vibração e 12 do óleo; nenhuma da temperatura.
+      - Vibração: um aglomerado nos mancais 4 e 5 (TV_354X/Y, TV_355X/Y), com desvio e crista de 1 h e mediana de 4 h.
+        O z é mais alto nos trips (z de 1 a 2,3) e fica perto de 0 nos FPP e no PN.
+      - Óleo: o PDIT_0305 (desvio de 1 h com z 24,8 nos trips), mas só com 2 trips.
+      - Ressalva: são 6 trips na vibração e 230 features, e as features do mesmo sensor são correlacionadas. Não há
+        controle de múltiplas comparações, então isto é hipótese.
+  CHECAGEM A POSTERIORI (não pré-registrada; descritiva), duração da parada antes de cada partida:
+      - parada >= 12 h: 11 de 16 FPP, 12 de 49 PN, 1 de 3 trips que começam na partida (04/11/2025, 79 h, fora da
+        amostra). Mediana: FPP 48 h, PN 2,5 h.
+      - Quatro FPP vêm depois de paradas de cerca de 2 h. Suprimir depois de parada longa perderia o 04/11.
+Expectativa: certa em 2 de 5.
+  - Certa: na vibração nenhum sensor dita o grupo; o artefato das janelas longas existe.
+  - Errada: na temperatura T5 e TC382 são redundantes; no óleo quem dita é o PDIT, não o PI_0308; e passaram 27
+    features, não no máximo 1 (com n pequeno).
+Leitura:
+  - O FP de partida é em boa parte construído pela feature. As janelas móveis contam linhas e atravessam a parada;
+    depois de paradas longas, as escalas de 4 h e 24 h saem do normal por horas. Isso explica por que adiar (E4) e
+    o limiar próprio (E6) falharam.
+  - A correção natural é a feature, não a regra: janelas que reiniciam na partida (só linhas em "on"). Exige retreino.
+  - A "galinha" da vibração seria variabilidade/crista de 1 h dos mancais 4 e 5, ou o desvio do PDIT no óleo; fica
+    como hipótese.
+
+Uso: python frente_ocsvm/g1_sinal_dominante.py          (saída em frente_ocsvm/dados/g1/)
+     python frente_ocsvm/g1_sinal_dominante.py relata   (só o resumo, a partir dos CSVs)
 """
 from __future__ import annotations
 import json
@@ -277,9 +318,16 @@ def main():
     jf = janela_fora.groupby(["tipo", "h"]).median().reset_index()
     jf.to_csv(SAIDA / "m4_janela_fora_on.csv", index=False)
 
+    relata()
+
+
+def relata():
+    """Imprime o resumo a partir dos CSVs de `dados/g1/` (separado para não recalcular)."""
+    S, Fm, Ft, M4, jf = (pd.read_csv(SAIDA / f"{n}.csv") for n in
+                         ("m1_sensor", "m2_familia", "m3_feature", "m4_partida", "m4_janela_fora_on"))
     pd.set_option("display.width", 220, "display.max_rows", 400)
     print("\nM1 -- fração dos instantes acesos que continua acima do limiar")
-    S["dita"] = (S.sozinho >= 0.5) & (S.sem <= 0.5)
+    S["dita"] = (S["sozinho"] >= 0.5) & (S["sem"] <= 0.5)
     print(S.round(2).to_string(index=False))
     print("\nM2 -- famílias")
     print(Fm.round(2).to_string(index=False))
@@ -296,4 +344,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    relata() if sys.argv[1:2] == ["relata"] else main()

@@ -4,7 +4,7 @@
 
 Pipeline de deteccao de anomalias em series temporais de Cabiunas com um OCSVM por grupo de sinal (temperatura, vibracao, oleo) + canal de alarme, integrado ao ClearML para versionamento de dataset, tracking de tasks e execucao remota via ClearML Agent. O caminho CNN-1D Autoencoder que deu nome ao pacote `src/cnn1d_ae/` e legado.
 
-## Falsos positivos: o que sabemos e o que explorar (atualizado em 19/10/2026)
+## Falsos positivos: o que sabemos e o que explorar (atualizado em 24/10/2026)
 
 Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`DIARIO_DE_BORDO.md`](DIARIO_DE_BORDO.md).
 
@@ -51,6 +51,15 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
   modelo mais depende é ligado à partida, o mesmo momento do maior grupo de FP.
 - A falha de comunicação de 14/01/2026 16:18 cai no mesmo minuto de uma rajada de alarmes de temperatura. Indício de que
   as rajadas são eventos do sistema de aquisição.
+- **Sinal que manda em cada grupo (G1, 24/10, `frente_ocsvm/g1_sinal_dominante.py`):**
+  - Nenhum sensor sozinho dita a temperatura (T5 e TC382 são redundantes) nem a vibração (o peso é espalhado; o que
+    mais pesa é o `TV_354Y_A`). No óleo, o `PDIT_0305` dita.
+  - A família que mais acende é a textura (curtose, assimetria, crista) em 4 h, até na temperatura.
+  - **Boa parte do FP de partida é artefato da feature:** as janelas móveis contam linhas e atravessam a parada. A
+    2 h da partida, a janela de 24 h está 92% parada nos FP de partida (27% nas partidas sem alerta). O |z| das
+    escalas de 4 h e 24 h fica 5 a 33 vezes o do regime e só volta em 24 h.
+  - Paradas de 12 h ou mais antecedem 11 de 16 FP de partida e 12 de 49 partidas sem alerta (descritivo, a
+    posteriori). Também antecedem um trip, o de 04/11/2025, fora da amostra, depois de 79 h parado. Suprimir não serve.
 
 **O que já entrou na pipeline final** (`scripts/pipeline_unificada_final.py`)
 - **Regra de falha de comunicação (E5):** o canal do modelo não vota se algum sensor do grupo teve "Comm Fail"/"Out of
@@ -85,13 +94,23 @@ Substitui a planilha de 15/10, que não foi enviada.
    - Score com teto: na partida, trips e FP batem no teto da OCSVM RBF. Um retreino com *gamma* menor (teto mais
      alto) ou um score de distância ao normal pós-partida diria *quanto* o episódio foge. Antes de gastar Cica,
      checar local se trips e FP de partida se separam no score do PCA/T² do D1 (sem teto), olhando só a partida.
-2. **Canal 4 depois de 27/02/2026:** só `PAL_6240315` sustenta o canal. Revalidar com trips novos e pedir o motivo da
+2. **Janelas que não atravessam a parada (G1):** recalcular as features móveis só com linhas em "on", reiniciando
+   na partida (ou com `min_periods` e a janela truncada no início). É a correção do artefato, não uma supressão:
+   o trip de 04/11/2025, depois de 79 h parado, continua podendo ser detectado. Muda as features, então exige
+   retreino dos 3 grupos (Cica, 1 task por vez) com a régua de sempre.
+3. **Features por origem, a partir do G1 (hipóteses, n pequeno):**
+   - vibração: desvio e crista de 1 h dos mancais 4 e 5 (`TV_354*`, `TV_355*`), altos nos trips e perto de 0 nos FP de
+     partida e nas partidas sem alerta (AUC >= 0,75 nos dois; 6 trips, 230 features);
+   - óleo: desvio de 1 h do `PDIT_0305` (só 2 trips com o canal aceso);
+   - temperatura: nenhuma feature separa; os dois sensores dizem a mesma coisa.
+   Pré-registrar com escolha fixa (sem nova busca nos trips) e testar depois do item 2.
+4. **Canal 4 depois de 27/02/2026:** só `PAL_6240315` sustenta o canal. Revalidar com trips novos e pedir o motivo da
    mudança do `PI_6240319_AL`.
-3. **Alerta repetido em 7 dias como prioridade:** 6 de 8 trips têm outro alerta nos 7 dias anteriores, contra 22 de 41
+5. **Alerta repetido em 7 dias como prioridade:** 6 de 8 trips têm outro alerta nos 7 dias anteriores, contra 22 de 41
    FP. É fraco com 8 trips; vale como hipótese para dados novos, junto com o B3 (2 modelos juntos).
-4. **Retreino mensal com score salvo:** desde `77f09c4`, o walk-forward grava score/limiar do mês. Qualquer retreino
+6. **Retreino mensal com score salvo:** desde `77f09c4`, o walk-forward grava score/limiar do mês. Qualquer retreino
    novo já serve para análises de score.
-5. **Trips depois de 20/04/2026 com a pipeline congelada:** o único teste limpo de tudo acima. A ferramenta está
+7. **Trips depois de 20/04/2026 com a pipeline congelada:** o único teste limpo de tudo acima. A ferramenta está
    pronta e conferida: `frente_ocsvm/f1_congelado.py` aplica os 3 modelos de produção (`model.pkl`, normalização,
    limiar) e a camada de decisão a dados novos, sem retreino. No período de referência, reproduz a produção com 0
    divergências (8/8, 41 FP). As hipóteses (P1, P2, S1–S3) estão pré-registradas no docstring. D2-B fica de fora,
@@ -102,7 +121,7 @@ Já reprovados no retreino, não repetir sem informação nova:
 - retreino mensal da OCSVM (C1) e do CNN-1D (1d: 8/8, mas +25% FP);
 - trocar a família de modelo (D1);
 - deslocar o corte do treino (A4: frágil);
-- regime pós-partida: adiar (E4) e limiar próprio (E6), sem retreino.
+- regime pós-partida: adiar (E4) e limiar próprio (E6), sem retreino; suprimir depois de parada longa perderia o 04/11 (G1).
 
 ## ClearML
 
