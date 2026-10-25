@@ -138,7 +138,7 @@ localmente (entrada de 25/10 na seção 5). Estes itens valem para a nossa:
 
 | # | O que trazer | Por quê / o que dele sustenta | Precisa treinar? |
 |---|---|---|---|
-| **T-a** | Carga na notificação, na definição dele: percentil do T5 nas 2 h do alerta contra os 30 d anteriores de operação estável | É o único discriminante dele que se sustentou fora da amostra (AUC 0,75, p = 0,051). O nosso D3 usou outra definição (AUC 0,40–0,47). É barato: só os 41 FP e os 8 trips da pipeline final | não |
+| **T-a** | Carga na notificação, na definição dele: percentil do T5 nas 2 h do alerta contra os 30 d anteriores de operação estável | É o único discriminante dele que se sustentou fora da amostra (AUC 0,75, p = 0,051). O nosso D3 usou outra definição (AUC 0,40–0,47). É barato: só os 41 FP e os 8 trips da pipeline final | não | **→ feito 25/10: NÃO** (6/8, FP 26; placebo p 0,31; carga baixa = partida na OCSVM)
 | **T-b** | Blackout como **vigilância fechada + estado reiniciado**, não como supressão do alerta | Nele, 6 h levaram 6,06 → 4,35 FP/mês com 8/8. Em nós, a supressão de 6 h e o H0 perdem T4, T6 e T7, que só são pegos pelo artefato de partida. Só vale se um modelo novo pegar esses 3 trips depois de 6 h | sim |
 | **T-c** | Robustez em várias bases + placebo de permutação (suprimir o mesmo número de episódios ao acaso) para qualquer regra de supressão | Foi o que separou "funciona na base vista" de "frágil" no EXP60/62 | não |
 | **T-d** | Rótulos na tela: "nascido na partida" e "carga alta/baixa" | Contexto sem esconder alarme; entra no `describe_alert_context` | não |
@@ -160,6 +160,30 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 25/10/2026 — T-a, carga do Thallys como "atenção" na pipeline OCSVM — NÃO
+- **Pedido do usuário:** "vamos ... levar a carga para a nossa pipeline (T-a) ... e também a combinação com o nosso
+  canal 4".
+- **Script:** `frente_ocsvm/ta_carga_thallys.py`, pré-registro `d7b72dc`.
+  - Base: a pipeline final com E5 (8/8, 41 FP), a partir dos canais de `point_anomalies_final.csv`.
+  - Carga na definição do Thallys, em janela causal [n − 2 h, n], com n = início + 45 min.
+  - V1–V3 passam. A V3 confirma que o L daqui reproduz o `L_de` do EXP 62.
+- **Resultado:**
+  - Braço C (carga): rebaixa 27 de 74 episódios. Fica 6/8, fora 2/3, FP 26 (fora 2,001). Perde T1 (L 0,43) e T7
+    (nasce na partida, L 0,19). Placebo p = 0,310. Vizinhança 0/8.
+  - Braço C4 (carga OU sem canal 4): 6/8, FP 25, p = 0,248. O canal 4 está aceso na notificação em 72 dos 74
+    episódios.
+- **Mecanismo:** 16 dos 27 rebaixados nascem a ≤ 2,3 h da partida, com o T5 ainda na rampa. Na OCSVM, carga baixa é,
+  em boa parte, "acabou de ligar".
+- **Leitura:**
+  - A carga separa os episódios do v2, que nascem em regime por causa do blackout de 6 h, mas não os nossos. É
+    coerente com o D3 (AUC 0,40–0,47).
+  - Não é propriedade dos trips da máquina. É dos episódios de um detector que não olha a partida.
+- **Decisão:** não adotar.
+  - O T-a sai da lista de "trazer do Thallys".
+  - Fica a hipótese de que a carga só serviria na OCSVM depois de resolver a partida (H1, Cica).
+
+_(registrado em 25/10/2026 14:41)_
 
 ### 25/10/2026 — Conclusão da frente Thallys até o T3, e pendência do Cica — NOTA
 - **Pedido do usuário:** "Anote esse último trecho, é importante!"

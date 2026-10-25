@@ -37,6 +37,21 @@ VERIFICAÇÕES: V1 a base reproduz 8/8, 41 FP, 2,816/mês, fora 3/3, 22 FP; V2 s
 V3 o L daqui, com a janela literal e a referência do Thallys, reproduz `L_de` do EXP 62 em 50 instantes sorteados
 (diferença 0).
 
+RESULTADO (25/10/2026; local, pré-registro d7b72dc). V1-V3 PASSAM. NÃO nos dois braços.
+  BRAÇO C (carga): rebaixa 27 de 74 episódios. 8/8 FP 41 -> 6/8, fora 2/3, FP 26 (1,786/mês; fora 2,001). Perde T1
+    (27/02/25: o episódio de 25/02 22:51 tem L 0,43) e T7 (09/12/25: nasce na partida, L 0,19). Placebo p_conj 0,310:
+    rebaixar 27 episódios ao acaso faz igual em quase 1/3 das vezes, ou seja, o ganho não é específico.
+    Vizinhança 0/8: todas perdem T7, T1 ou os dois. A janela de 4 h dá 7/8, 3/3 fora, fora 2,001: perde só o T1.
+  BRAÇO C4 (carga OU sem canal 4): rebaixa 29. 6/8 FP 25 (fora 2,001), perde T1 e T7, p_conj 0,248. Vizinhança 0/8.
+    O canal 4 está aceso na notificação em 72 dos 74 episódios: no nosso voto ele quase nunca falta.
+  MECANISMO: dos 27 rebaixados, 16 nascem a <= 2,3 h da partida, com L na rampa do T5 (0,00-0,47). A carga baixa na
+    OCSVM é, em boa parte, "acabou de ligar", e o T7 cai junto. Fora da partida, o T1 nasce em carga 0,43.
+PLACAR: ACERTEI: perde algum dos trips de partida (~55%; T7); NÃO nos dois braços (~70% e ~75%). ERREI: FP 28-36
+  (~55%; deu 26); não previ perder o T1; o C4 tira só 1 FP a mais que o C (previ 2-6).
+LEITURA: a carga do Thallys separa trip de FP nos episódios do v2, que nascem em regime (blackout de 6 h), mas não nos
+  da OCSVM, em que metade dos episódios nasce na partida. É coerente com o D3 (AUC 0,40-0,47). A carga não é uma
+  propriedade dos trips da máquina, e sim dos episódios de um detector que já não olha a partida.
+
 Uso:  python frente_ocsvm/ta_carga_thallys.py
 """
 from __future__ import annotations

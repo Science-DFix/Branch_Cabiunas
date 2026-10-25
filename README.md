@@ -4,7 +4,7 @@
 
 Pipeline de deteccao de anomalias em series temporais de Cabiunas com um OCSVM por grupo de sinal (temperatura, vibracao, oleo) + canal de alarme, integrado ao ClearML para versionamento de dataset, tracking de tasks e execucao remota via ClearML Agent. O caminho CNN-1D Autoencoder que deu nome ao pacote `src/cnn1d_ae/` e legado.
 
-## Falsos positivos: o que sabemos e o que explorar (atualizado em 24/10/2026)
+## Falsos positivos: o que sabemos e o que explorar (atualizado em 25/10/2026)
 
 Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`DIARIO_DE_BORDO.md`](DIARIO_DE_BORDO.md).
 
@@ -63,6 +63,12 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
     a partida é o período de risco, e "partida + canal 4" acerta os 3 ao custo de ~13 FP.
   - Paradas de 12 h ou mais antecedem 11 de 16 FP de partida e 12 de 49 partidas sem alerta (descritivo, a
     posteriori). Também antecedem um trip, o de 04/11/2025, fora da amostra, depois de 79 h parado. Suprimir não serve.
+
+- **Carga do detector do Thallys (T-a, 25/10, `frente_ocsvm/ta_carga_thallys.py`):** rebaixar a "atenção" o alerta
+  em carga baixa (percentil do T5 contra os 30 d anteriores) corta 9 → 4 FP no detector dele, mas na OCSVM perde T1
+  e T7 (6/8, FP 26), sem ser específica (placebo p = 0,31). 16 dos 27 alertas rebaixados nascem na partida, com o T5
+  ainda subindo. Somar "sem canal 4" não muda nada: o canal 4 está aceso em 72 dos 74 episódios. A carga só
+  separaria depois de resolver a partida. _(registrado em 25/10/2026 14:41)_
 
 **O que já entrou na pipeline final** (`scripts/pipeline_unificada_final.py`)
 - **Regra de falha de comunicação (E5):** o canal do modelo não vota se algum sensor do grupo teve "Comm Fail"/"Out of
