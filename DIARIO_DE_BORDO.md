@@ -174,7 +174,7 @@ pré-registro, resultado, decisão.
   - Com a carga do EXP 62, dá 5/8, FP 6, 1.360 h.
 - **Pré-registro do T2** (comitê de baselines): `frente_thallys/t2_comite_baselines.py`, `d9e1a20`. Ainda não rodou.
 
-_(registrado em 25/10/2026 13:57)_
+_(registrado em 25/10/2026 13:58)_
 
 ### 25/10/2026 — T1 (frente Thallys), nosso canal 4 como confirmação dos episódios do v2 — NÃO
 - **Pedido do usuário:** "pode seguir com o 1, pré-registre antes!"
