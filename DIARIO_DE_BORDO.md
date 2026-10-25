@@ -161,6 +161,30 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 25/10/2026 — T2 (frente Thallys), comitê de baselines — NÃO; a carga se sustenta em 5 bases novas
+- **Pedido do usuário:** "pode rodar".
+- **Script:** `frente_thallys/t2_comite_baselines.py`, pré-registro `d9e1a20`. Os 6 membros foram feitos com o
+  `constroi_bundle.py` do pacote, só variando n e o atraso do baseline. V1–V4 passam.
+- **Membros sozinhos:** o ponto publicado (20 mil, corte no dia 1) é o **melhor dos 6**: 7/8 FP 9. Os outros:
+  - n = 19 mil: 5/8 FP 13;
+  - n = 21 mil: 6/8 FP 12;
+  - atraso de 7, 14 e 21 d: 7/8 com FP 16, 17 e 22.
+  - Os 9 FP são um vale: qualquer desvio do baseline sobe o FP ou derruba a detecção.
+- **Comitê (mediana de 5):** 7/8 FP 11. Na vizinhança, FP de 9 a 15. Não passa no critério.
+- **Secundários pré-registrados:**
+  - A **carga do EXP 62 reduz o FP nos 6 membros**: 13→7, 9→4, 12→5, 16→6, 17→10, 22→13. A detecção só cai num
+    deles (19 mil: 5→4). São 5 bases que o Thallys não viu: a regra de carga é a alavanca estável do v2.
+  - Comitê + carga: 7/8 FP 3.
+  - Comitê + (T1 OU carga): 7/8 FP 1.
+  - Base n = 19.000 + (T1 OU carga): 5/8 FP 3, contra FP 6 só com a carga, sem perder detecção. É a segunda base em
+    que a combinação, vista pós-hoc no T1, aparece.
+- **Para a nossa pipeline:** a lição é a mesma do A4. O número publicado de um detector com retreino precisa vir com
+  a variação ao corte, e ali o publicado era o melhor ponto da vizinhança.
+- **Decisão:** o comitê não se adota. Próximo candidato: pré-registrar "carga OU sem canal 4 → atenção" (T3) e
+  avaliar nos membros, que ainda não foram vistos com a combinação.
+
+_(registrado em 25/10/2026 14:18)_
+
 ### 25/10/2026 — Base n = 19.000 do Thallys regerada localmente — CONFERE
 - **Pedido do usuário:** "regere a base n=19000 e pré-registre o 2".
 - **Script:** `frente_thallys/base_n19000.py` (`c7f6e3c`).

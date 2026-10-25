@@ -38,6 +38,25 @@ VERIFICAÇÕES: V1 os bundles do membro (20.000, 0) são idênticos, byte a byte
 membro (20.000, 0) são idênticos aos do controle (t, p, sp, vb, mask, reset); V3 o comitê de 1 membro (produção) dá
 7/8, FP 9, 1.457 h; V4 vb, mask e reset são idênticos entre os 6 membros.
 
+RESULTADO (25/10/2026; local, pré-registro d9e1a20). V1-V4 PASSAM. NÃO: (a) não, (b) ok, (c) 0/5.
+  MEMBROS SOZINHOS: (19 mil, 0) 5/8 FP 13 | (20 mil, 0) = produção 7/8 FP 9 | (21 mil, 0) 6/8 FP 12 |
+    (20 mil, 7 d) 7/8 FP 16 | (20 mil, 14 d) 7/8 FP 17 | (20 mil, 21 d) 7/8 FP 22.
+    O ponto publicado é o MELHOR dos 6. Qualquer desvio do baseline, em tamanho ou em atraso, sobe o FP (12 a 22) ou
+    derruba a detecção (5-6/8). O 9 FP publicado é o vale de uma região que sobe dos dois lados.
+    Alerta do pacote (folga > 7 d): os 16 meses de 14 d e de 21 d e 1 mês de 7 d. O pré-registro só previa o de 21 d.
+  PRINCIPAL (mediana de 5): 7/8 FP 11 1.577 h (0,986/mês), início 6, banda 5.
+  VIZINHANÇA: só n 7/8 FP 9 | só atraso 8/8 FP 15 | 6 membros 8/8 FP 13 | média 7/8 FP 15 | 3 atrasos 8/8 FP 13.
+    A mediana não corta FP: cada baseline erra em episódios diferentes, e a mediana herda os de quem está no meio.
+  SECUNDÁRIOS (pré-registrados como relato):
+    A carga do EXP 62 reduz o FP em TODOS os 6 membros: 13 -> 7, 9 -> 4, 12 -> 5, 16 -> 6, 17 -> 10, 22 -> 13. A
+      detecção só cai num deles (19 mil: 5 -> 4). São 5 bases que o Thallys não viu: a carga é a alavanca estável.
+    Comitê + carga: 7/8 FP 3 (1.189 h). Comitê + (T1 OU carga): 7/8 FP 1 (1.049 h).
+    Base n = 19.000 + (T1 OU carga): 5/8 FP 3 (1.218 h), contra 5/8 FP 6 só com a carga. Sem perda de detecção, e é a
+      segunda base em que a combinação (vista pós-hoc no T1) aparece.
+PLACAR: ACERTEI: detecção dos membros 5-8 (~70%; 5-7); detecção do principal 6-7 (~65%; 7); (a) não vale (~80%);
+  (b) vale (~50%); veredito NÃO (~50%). ERREI: FP dos membros 8-14 (~60%; 9-22); FP do principal 7-9 (~55%; 11);
+  (c) vale (~55%; 0/5). Não previ que a produção fosse o melhor membro.
+
 Uso:  python frente_thallys/t2_comite_baselines.py membros   # 6 x 16 bundles + 6 replays (~15 min)
       python frente_thallys/t2_comite_baselines.py avalia
 """
