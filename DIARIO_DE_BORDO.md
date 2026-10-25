@@ -147,6 +147,36 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 24/10/2026 — Fonte do relatório do Thallys (9 → 4 FP) — VERIFICADO: `exp/modos-de-falha` + Datasets do ClearML
+- **Pedido do usuário:** "veja se voce consegue averiguar se foi essa branch responsaveis por fonecer essas
+  informações" e "voce consegue checar essas informações aqui mesmo? ou realmente precisa do thallys?".
+- **Objeto:** `Thallys_doc/RELATORIO_9FP_PARA_4FP_TC33003A.pdf` (21/10, 18:27). Clone em
+  `~/FRENTE_THALLYS/repro_thallys_regra_carga_9fp_4fp` (SIMPred-Petrobras/cabiunas-models, `exp/modos-de-falha`,
+  `d77de7d`). Só leitura de git; nada rodado.
+- **A branch é a `exp/modos-de-falha`, não a `feat/pacote-consolidado`:**
+  - Os 6 commits dos EXP60–62 (`06d80b8` … `50eace8`) são de 21/10, entre 14:12 e 15:18, antes do PDF.
+  - Os blocos de RESULTADO de `experiments/60_borda_adiada.py`, `61_carga_na_notificacao.py` e
+    `62_regra_de_carga.py` batem número a número com o PDF.
+  - Os workers 60–62 usam os insumos `86e3990f`, citados no PDF.
+  - A `feat/pacote-consolidado` (08/10) não tem `experiments/`: é o pacote de produção.
+- **A versão do pacote não muda o 9 → 4:**
+  - O Dataset `b71d7c5f` é a pasta `estrutura_pra_prod/Cabiunas` da máquina do Thallys, fora do git.
+  - Entre as branches do pacote, `modelos/` é idêntico (`37d0830c`). As funções `prever`, `_episodios`,
+    `carregar_modelos`, `carregar_dados` e `carregar_trips` também são iguais (comparação da AST, sem comentários).
+  - Só o `preprocessar` muda: a correção do EWMA sobre buraco, `197bff5` de 07/10.
+    - O V3 do EXP54 (rodado localmente em 20/10, "NaN diferentes 0") indica que ele usou a versão com a correção, a
+      mesma da `pacote-consolidado`.
+    - Ressalva: isso pressupõe um buraco nos dados na janela testada.
+  - Os EXP60–62 leem os sinais e o controle prontos dos insumos (`sinais_v2_8ev.parquet` e
+    `controle/serie.csv.gz`). Do pacote, só usam `carregar_modelos` e `_episodios`.
+- **Fora do git:**
+  - O texto do relatório de 21/10.
+  - O conversor para PDF (Chrome headless) só entrou em 22/10 (`exp/sota` `5efc068`, `experiments/sota/pdf.py`).
+  - A tabela dos 9 FP junta o EXP27b (em UTC) com os EXP60/61 (em hora local).
+- **Depende do Cica:** baixar `86e3990f` e `b71d7c5f` e rodar os EXP60–62. Não estão no cache local.
+- **Decisão:** reproduzir com a `exp/modos-de-falha` mais os Datasets, sem consultar o Thallys. Só seria preciso
+  falar com ele para regenerar os sinais do zero.
+
 ### 24/10/2026 — H0, prévia local das janelas por trecho (modelos congelados) — NÃO PROMISSOR: PERDE OS 3 TRIPS DE PARTIDA
 - **Pedido do usuário:** "deixe guardado para o cica e vamos testar localmente".
 - **Script:** `frente_ocsvm/h0_previa_janela_trecho.py`, pré-registro `ce9f96f`. As correções `4fcc195` (estado com o
