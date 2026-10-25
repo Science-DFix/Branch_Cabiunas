@@ -161,6 +161,21 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 25/10/2026 — Base n = 19.000 do Thallys regerada localmente — CONFERE
+- **Pedido do usuário:** "regere a base n=19000 e pré-registre o 2".
+- **Script:** `frente_thallys/base_n19000.py` (`c7f6e3c`).
+  - Os escores são o PCA(0,95) fiel em walk-forward mensal, pelo mesmo caminho do EXP 34, sobre a grade
+    `8b06a98f`. Levam ~6 s.
+  - Substituem t e p no proc, como no `base_n` do EXP 60.
+  - O `lightgbm`, que só é importado, foi trocado por um módulo vazio: o PCA não o usa.
+- **Conferência:** igual ao Thallys nos três números.
+  - n = 20.000 coincide com o controle em 100% dos instantes vigiados.
+  - n = 19.000 dá 5/8, FP 11, 1.505 h.
+  - Com a carga do EXP 62, dá 5/8, FP 6, 1.360 h.
+- **Pré-registro do T2** (comitê de baselines): `frente_thallys/t2_comite_baselines.py`, `d9e1a20`. Ainda não rodou.
+
+_(registrado em 25/10/2026 13:57)_
+
 ### 25/10/2026 — T1 (frente Thallys), nosso canal 4 como confirmação dos episódios do v2 — NÃO
 - **Pedido do usuário:** "pode seguir com o 1, pré-registre antes!"
 - **Script:** `frente_thallys/t1_canal4_no_v2.py`, pré-registro `e0c91dc`. Roda local, sobre o controle refeito com
