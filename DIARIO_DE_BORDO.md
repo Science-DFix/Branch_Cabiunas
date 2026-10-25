@@ -133,6 +133,18 @@ modelos (C).
 | **H0** | Prévia local das janelas por trecho (modelos congelados) | sem o artefato da janela, o FP de partida some sem perder trip? | não | **feito 24/10: NÃO PROMISSOR** (5/8, fora 1/3; FP 41 → 30, de partida 16 → 3): **os 3 trips de partida (T4, T6, T7) eram pegos pelo mesmo artefato** |
 | **H1** | Retreino com janelas por trecho | idem H0, com o modelo treinado nas features novas | **sim (Cica)** | **pré-registrado 24/10** (`h1_janela_trecho.py`, `ce9f96f`); aguardando o Cica |
 
+**Para trazer do detector do Thallys (anotado em 25/10).** O foco agora é reduzir FP na pipeline dele, que reproduz
+localmente (entrada de 25/10 na seção 5). Estes itens valem para a nossa:
+
+| # | O que trazer | Por quê / o que dele sustenta | Precisa treinar? |
+|---|---|---|---|
+| **T-a** | Carga na notificação, na definição dele: percentil do T5 nas 2 h do alerta contra os 30 d anteriores de operação estável | É o único discriminante dele que se sustentou fora da amostra (AUC 0,75, p = 0,051). O nosso D3 usou outra definição (AUC 0,40–0,47). É barato: só os 41 FP e os 8 trips da pipeline final | não |
+| **T-b** | Blackout como **vigilância fechada + estado reiniciado**, não como supressão do alerta | Nele, 6 h levaram 6,06 → 4,35 FP/mês com 8/8. Em nós, a supressão de 6 h e o H0 perdem T4, T6 e T7, que só são pegos pelo artefato de partida. Só vale se um modelo novo pegar esses 3 trips depois de 6 h | sim |
+| **T-c** | Robustez em várias bases + placebo de permutação (suprimir o mesmo número de episódios ao acaso) para qualquer regra de supressão | Foi o que separou "funciona na base vista" de "frágil" no EXP60/62 | não |
+| **T-d** | Rótulos na tela: "nascido na partida" e "carga alta/baixa" | Contexto sem esconder alarme; entra no `describe_alert_context` | não |
+| **T-e** | Lição do refratário fantasma: na dele, um episódio que não chega a alarme arma 72 h de bloqueio e silenciou o 11/04 (n = 19.000) | Na nossa, o filtro de 45 min vem **antes** do refratário (`pipeline_unificada_final.py:213-214`): não temos fantasma. Manter essa ordem | não |
+| **T-f** | Lição do corte do retreino: nele, mudar o dia do corte (1 → 8) leva 8/8 → 5/8, e o n do baseline (20.000 → 19.000) leva 7/8 → 5/8 | Igual ao nosso A4 (frágil ao corte do split). Qualquer número publicado precisa vir com a variação ao corte | — |
+
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
 (`~/REPO_CABIUNAS/cabiunas-models`, mesmo commit `52d705a`) e para o catálogo de alarmes no cache do
@@ -146,6 +158,26 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 25/10/2026 — Detector do Thallys reproduzido localmente, com treino do zero — REPRODUZ
+- **Pedido do usuário:** "nós conseguimos reproduzir localmente?" e "minha ideia é treinar o modelo mensal para os
+  sinais".
+- **Exceção autorizada:** o retreino mensal do v2 é PCA, ~1,5 s por mês, e roda local enquanto o Cica está fora.
+  Não vale para OCSVM nem para rede neural.
+- **Entradas, só locais:**
+  - Bruto: Dataset `a97ba56b` (30 s, UTC, texto → NaN).
+  - Pacote: `git archive` da `feat/pacote-consolidado`.
+  - Registro: `trips_conhecidos` do último bundle (9 trips).
+  - Grade: Dataset `8b06a98f`.
+  - Scripts no scratchpad da sessão `919a7d85`: `gera_sinais.py`, `controle_atual.py`, `exp62_atual.py`.
+- **Resultado:**
+  - Os 16 bundles mensais refeitos com `constroi_bundle.py` são iguais aos do git (diferença máxima ~1e-14).
+  - Sinais: t, p e sp idênticos à impressão digital; vb difere em 2 de 390.762 instantes, por causa do dado de 2024.
+  - Controle: 7/8, 9 FP, 0,807/mês, 1.457 h, igual ao publicado.
+  - EXP62 na base atual: 9 → 4 FP com 7/8 (1.319 h; 0,359/mês), placebo p = 0,018, vizinhança igual à do PDF.
+- **Falta:** as bases G168 e B800, cujo gerador está fora do git, e a n = 19.000, que dá para regerar pelo EXP34.
+- **Decisão:** a redução de FP passa a ser estudada sobre a pipeline dele. O que dá para trazer para a nossa está
+  na seção 4 (T-a a T-f).
 
 ### 24/10/2026 — Fonte do relatório do Thallys (9 → 4 FP) — VERIFICADO: `exp/modos-de-falha` + Datasets do ClearML
 - **Pedido do usuário:** "veja se voce consegue averiguar se foi essa branch responsaveis por fonecer essas
