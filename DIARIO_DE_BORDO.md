@@ -161,6 +161,24 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 25/10/2026 — Conclusão da frente Thallys até o T3, e pendência do Cica — NOTA
+- **Pedido do usuário:** "Anote esse último trecho, é importante!"
+- **Conclusão:**
+  - A regra "carga baixa OU sem alarme de processo → atenção" (T3) é a melhor candidata até agora para reduzir FP no
+    detector do Thallys.
+  - É a primeira que passa no critério completo dele em bases que ele não viu: 2 a 4 FP, 0,18–0,36/mês, abaixo da
+    meta de ~0,5.
+  - A margem é fina: vizinhança, placebo e acréscimo sobre a carga passam exatamente no limite.
+  - Os custos são previsíveis e se repetem: o 17/03/25 cai pela carga e o 26/02/26 cai pelo canal 4.
+- **Uso:** só no modo sombra, na forma "atenção", nunca como supressão.
+- **Pendência:** antes de levar ao Thallys, falta o teste decisivo nas bases G168 e B800, onde a carga dele perdeu o
+  17/03.
+  - Elas só existem no Dataset `86e3990f` do ClearML. O gerador não está em nenhuma branch.
+  - **Depende do Cica voltar:** o Thallys não consegue passá-las por fora.
+  - Decisão do usuário: aguardar o Cica e, enquanto isso, levar a carga para a nossa pipeline (T-a).
+
+_(registrado em 25/10/2026 14:33)_
+
 ### 25/10/2026 — T3 (frente Thallys), carga baixa OU sem canal 4 → atenção — ROBUSTO, RASPANDO
 - **Pedido do usuário:** "pode seguir para T3".
 - **Script:** `frente_thallys/t3_carga_ou_canal4.py`, pré-registro `6886520`.
