@@ -145,6 +145,8 @@ localmente (entrada de 25/10 na seção 5). Estes itens valem para a nossa:
 | **T-e** | Lição do refratário fantasma: na dele, um episódio que não chega a alarme arma 72 h de bloqueio e silenciou o 11/04 (n = 19.000) | Na nossa, o filtro de 45 min vem **antes** do refratário (`pipeline_unificada_final.py:213-214`): não temos fantasma. Manter essa ordem | não |
 | **T-f** | Lição do corte do retreino: nele, mudar o dia do corte (1 → 8) leva 8/8 → 5/8, e o n do baseline (20.000 → 19.000) leva 7/8 → 5/8 | Igual ao nosso A4 (frágil ao corte do split). Qualquer número publicado precisa vir com a variação ao corte | — |
 
+_(registrado em 25/10/2026 13:15)_
+
 **Dados locais (resolvido em 10/10):** `frente_ocsvm/dados/` (fora do git) tem links para
 `point_anomalies_final.csv` e `alarmes_francisco_falhas.csv` do clone antigo
 (`~/REPO_CABIUNAS/cabiunas-models`, mesmo commit `52d705a`) e para o catálogo de alarmes no cache do
@@ -158,6 +160,26 @@ em `de18d60`.
 
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
+
+### 25/10/2026 — T1 (frente Thallys), nosso canal 4 como confirmação dos episódios do v2 — NÃO
+- **Pedido do usuário:** "pode seguir com o 1, pré-registre antes!"
+- **Script:** `frente_thallys/t1_canal4_no_v2.py`, pré-registro `e0c91dc`. Roda local, sobre o controle refeito com
+  treino do zero (`frente_thallys/reproduz.py`).
+- **Regra:** um episódio do v2 sem alarme de processo (as 5 tags do canal 4, janela de 24 h) na janela de notificação
+  vira "atenção". O fuso do catálogo foi conferido antes: lag 0 h contra as 159 partidas.
+- **Resultado:** 7/8 FP 9 → **7/8 FP 7** (0,628/mês); início 6 → 5; banda 5 → 4.
+  - Não passa no critério (FP ≤ 6).
+  - Placebo de permutação: p = 0,246, ou seja, não é específico.
+  - O canal 4 confirma 15 dos 18 episódios, inclusive os 6 FP de borda.
+  - Somem os FP de 26/10/25 e 16/01/26. O episódio que nasce na janela do trip de 26/02/26 é rebaixado: o trip segue
+    detectado pelo episódio travado de 29/01, mas perde o início.
+- **Secundário, pós-hoc:** T1 OU carga do EXP 62 dá 7/8 FP 2. Só vale testar nas outras bases, porque nelas o EXP 62
+  perde o 17/03.
+- **Para a nossa pipeline:** o canal 4 é filtro de custo só onde os modelos acendem sozinhos. No v2 ele quase sempre
+  já está aceso.
+- **Decisão:** não adotar. Próximo da lista: o comitê de baselines (item 2).
+
+_(registrado em 25/10/2026 13:29)_
 
 ### 25/10/2026 — Detector do Thallys reproduzido localmente, com treino do zero — REPRODUZ
 - **Pedido do usuário:** "nós conseguimos reproduzir localmente?" e "minha ideia é treinar o modelo mensal para os
@@ -178,6 +200,8 @@ pré-registro, resultado, decisão.
 - **Falta:** as bases G168 e B800, cujo gerador está fora do git, e a n = 19.000, que dá para regerar pelo EXP34.
 - **Decisão:** a redução de FP passa a ser estudada sobre a pipeline dele. O que dá para trazer para a nossa está
   na seção 4 (T-a a T-f).
+
+_(registrado em 25/10/2026 13:15)_
 
 ### 24/10/2026 — Fonte do relatório do Thallys (9 → 4 FP) — VERIFICADO: `exp/modos-de-falha` + Datasets do ClearML
 - **Pedido do usuário:** "veja se voce consegue averiguar se foi essa branch responsaveis por fonecer essas

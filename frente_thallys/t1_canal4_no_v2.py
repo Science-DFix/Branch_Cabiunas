@@ -42,6 +42,27 @@ VERIFICAÇÕES: V1 sem a regra, 7/8, FP 9, 1.457 h; V2 o `canal_alarme` recalcul
 `canal_alarme_processo` de `point_anomalies_final.csv` (0 instantes diferentes); V3 a regra com tudo confirmado
 devolve a série original.
 
+RESULTADO (25/10/2026; local, pré-registro e0c91dc). V1-V3 PASSAM. NÃO (pelo critério: o principal fica em FP 7).
+  PRINCIPAL: 7/8 FP 9 1.457 h -> 7/8 FP 7 1.316 h (0,628/mês); início 6 -> 5, banda 5 -> 4.
+    O canal 4 confirma 15 dos 18 episódios. Os não confirmados: os FP de 26/10/25 (o de 112 h, que terminou em parada
+    e manutenção) e de 16/01/26, e o episódio de 25/02/26, que nasce na janela do trip de 26/02/26. O trip continua
+    detectado pelo episódio "travado" de 29/01 (~648 h), mas perde o início.
+  P1 permutação: p_conj 0,246. Tirar 2 episódios ao acaso faz igual em 1/4 das vezes: o ganho não é específico.
+  P2 deslocamentos: 0/10 igualam. Deslocar o catálogo derruba a detecção para 3-6/8: o canal 4 está ALINHADO com os
+    episódios de trip (como no nosso A2), mas isso só confirma o que o v2 já acende.
+  VIZINHANÇA 6/8 ok: as variações de tags e de avaliação dão FP 6-7. Janela de 48 h dá FP 8; a de 6 h dá 3/8, FP 3.
+  Os 6 FP de borda (6,5 h após ligar) ficam todos confirmados, como previsto: o canal 4 acende na partida.
+  SECUNDÁRIO (pós-hoc, não conta): T1 OU carga do EXP 62 -> 7/8 FP 2 (1.179 h); sobram os FP de 15/10/25 (135 h) e de
+    08/04/26. Exige as outras bases, porque nelas o EXP 62 perde o 17/03.
+  Correção registrada (antes de qualquer decisão, sem mexer no critério): o rótulo trip/FP da tabela secundária usava
+    o nascimento a <= 48 h do trip. Passou a usar a sobreposição com a janela [T - 48 h, T], como a régua. A linha
+    principal passou a mostrar também início e banda.
+PLACAR: ACERTEI: FP 7-8 (~60%), 7/8 mantido (~70%), principal sem FP <= 6 (~80%), P1 >= 0,10 (~60%), veredito NÃO
+  (~75%), FP de borda confirmados. ERREI: nada no veredito; não previ o custo no início do 26/02/26.
+LEITURA: no v2, o canal 4 está aceso em quase todo episódio (15/18), porque o v2 já só acende quando há algo, e a
+  partida acende o canal 4. Na nossa pipeline ele é o filtro de custo porque os OCSVM acendem sozinhos com frequência.
+  Ele não serve de filtro para o v2.
+
 Uso:  python frente_thallys/t1_canal4_no_v2.py
 """
 from __future__ import annotations
@@ -117,7 +138,8 @@ def main():
     m1, conf = roda(PRINC)
     perd = [e for e in m0["ev"] if m0["ev"][e] and not m1["ev"][e]]
     print(f"\nPRINCIPAL (5 tags | 24 h | notificação 2 h): {m0['det']}/8 FP {m0['fp']} {m0['horas']:.0f} h -> "
-          f"{m1['det']}/8 FP {m1['fp']} {m1['horas']:.0f} h  FP/mês {m1['fp_mes']:.3f}  perdidos {perd}")
+          f"{m1['det']}/8 FP {m1['fp']} {m1['horas']:.0f} h  FP/mês {m1['fp_mes']:.3f}  perdidos {perd}  "
+          f"(início {m0['inicio']} -> {m1['inicio']}, banda {m0['banda']} -> {m1['banda']})")
     rng = np.random.default_rng(SEMENTE); c = np.array(conf); cont = 0
     for _ in range(N_PERM):
         mp = R.mede(aplica(al, eps, rng.permutation(c)), vig); cont += (mp["fp"] <= m1["fp"]) and (mp["det"] >= m1["det"])
@@ -141,9 +163,9 @@ def main():
 
     L = carga(eps)
     print("\nSECUNDÁRIO -- por episódio (nascimento UTC, classe, canal 4 na notificação, carga do EXP 62)")
-    tr = R.trips()  # classe só para leitura: o episódio cobre a janela de 48 h antes de um trip
+    tr = R.trips()  # classe só para leitura: o episódio cruza a janela [T - 48 h, T] de algum trip
     for (a_, b_), cf, l in zip(eps, conf, L):
-        trip = any(pd.Timedelta(0) <= t - a_ <= pd.Timedelta(hours=48) or a_ <= t <= b_ for t in tr)
+        trip = any(a_ <= t and b_ >= t - pd.Timedelta(hours=48) for t in tr)
         print(f"   {a_:%d/%m/%y %H:%M}  {'trip' if trip else 'FP  '}  canal4 {'sim' if cf else 'não'}  carga {l:.2f}")
     for nome, f in (("sem c4 OU carga<0,5", lambda cf, l: cf and not (l < 0.5)), ("sem c4 E carga<0,5", lambda cf, l: cf or not (l < 0.5))):
         m = R.mede(aplica(al, eps, [f(cf, l) for cf, l in zip(conf, L)]), vig)
