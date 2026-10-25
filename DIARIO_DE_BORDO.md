@@ -161,6 +161,41 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 25/10/2026 — T3 (frente Thallys), carga baixa OU sem canal 4 → atenção — ROBUSTO, RASPANDO
+- **Pedido do usuário:** "pode seguir para T3".
+- **Script:** `frente_thallys/t3_carga_ou_canal4.py`, pré-registro `6886520`.
+- **Bases:**
+  - Principais: os membros do T2 dentro da faixa validada do pacote (19 mil; 21 mil; atraso de 7 d).
+  - Estresse: atrasos de 14 e 21 d, que o pacote marcaria para revisão.
+  - Já vistas, só relato: publicado, comitê e n = 19.000.
+  - V1–V3 passam.
+- **Resultado** (sem regra → só carga → combinação):
+
+  | Base | Sem regra | Só carga | Combinação | p do placebo |
+  |---|---|---|---|---|
+  | 19 mil | 5/8 · 13 | 4/8 · 7 | **4/8 · 4** | 0,100 |
+  | 21 mil | 6/8 · 12 | 6/8 · 5 | **6/8 · 2** | 0,004 |
+  | atraso 7 d | 7/8 · 16 | 7/8 · 6 | **6/8 · 4** | 0,008 |
+  | (estresse) 14 d | 7/8 · 17 | 7/8 · 10 | 7/8 · 8 | 0,010 |
+  | (estresse) 21 d | 7/8 · 22 | 7/8 · 13 | 6/8 · 12 | 0,124 |
+  | (vista) publicado | 7/8 · 9 | 7/8 · 4 | 7/8 · 2 | — |
+
+- **Critério:**
+  - (a) passa: FP ≤ 6 com perda ≤ 1.
+  - (b) vizinhança 6/8, no limite. Falham θ 0,6 e a janela de 12 h do canal 4.
+  - (c) placebo em 2/3, no limite: o 19 mil dá p = 0,100.
+  - (d) acréscimo sobre a carga em 2/3, no limite.
+- **Custos que se repetem:**
+  - o 17/03/25 cai pela carga (o mesmo do Thallys em G168 e B800);
+  - o 26/02/26 cai pelo canal 4 (o mesmo do T1).
+- **Leitura:** é a primeira regra que passa no critério completo do Thallys em bases que ele não viu, com 2 a 4 FP
+  (0,18–0,36/mês). A margem é fina, e faltam G168 e B800.
+- **Para a nossa pipeline:** a carga na definição do Thallys (T-a) entra como próximo teste local da OCSVM.
+- **Decisão:** candidata para a sombra, na forma "atenção". Não suprimir. Antes de levar ao Thallys, pedir G168 e B800
+  (Dataset `86e3990f`).
+
+_(registrado em 25/10/2026 14:25)_
+
 ### 25/10/2026 — T2 (frente Thallys), comitê de baselines — NÃO; a carga se sustenta em 5 bases novas
 - **Pedido do usuário:** "pode rodar".
 - **Script:** `frente_thallys/t2_comite_baselines.py`, pré-registro `d9e1a20`. Os 6 membros foram feitos com o

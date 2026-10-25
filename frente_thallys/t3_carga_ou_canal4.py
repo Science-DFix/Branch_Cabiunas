@@ -44,6 +44,29 @@ VERIFICAÇÕES: V1 sem regra, as bases reproduzem o T2 (19 mil 5/8 FP 13; 21 mil
   21 d 7/8 FP 22); V2 com o canal 4 desligado na regra (só carga), reproduzem o "+ carga" do T2; V3 a regra sem rebaixar
   nada devolve a série original.
 
+RESULTADO (25/10/2026; local, pré-registro 6886520). V1-V3 PASSAM. ROBUSTO pelo critério, mas RASPANDO: (b), (c) e
+(d) passam exatamente no limite.
+  PRINCIPAIS (sem regra -> só carga -> combinação):
+    19 mil: 5/8 FP 13 -> 4/8 FP 7 -> 4/8 FP 4 (0,359/mês). Perde o 17/03, pela carga (como no G168/B800 do Thallys).
+      p_conj 0,100, ou seja, NÃO < 0,10.
+    21 mil: 6/8 FP 12 -> 6/8 FP 5 -> 6/8 FP 2 (0,179/mês). p_conj 0,004.
+    7 d:    7/8 FP 16 -> 7/8 FP 6 -> 6/8 FP 4 (0,359/mês). Perde o 26/02/26, pelo canal 4 (o mesmo custo do T1).
+      p_conj 0,008.
+  ESTRESSE: 14 d 7/8 FP 17 -> 7/8 FP 8, p 0,010; 21 d 7/8 FP 22 -> 6/8 FP 12 (perde o 26/02), p 0,124.
+  JÁ VISTAS: publicado 7/8 FP 2; comitê 7/8 FP 1; n = 19.000 fiel 5/8 FP 3.
+  VIZINHANÇA 6/8, no limite. Falham θ 0,6 (3-5/8) e o canal 4 com janela de 12 h (o 19 mil cai para 2/8). Aguentam
+    θ 0,4, TC382, referência de 15 d, janela de 48 h e as duas variações de tags (FP médio 3,3-4,3).
+  (d) acréscimo sobre a carga 2/3: 19 mil 7 -> 4 e 21 mil 5 -> 2 com a mesma detecção; no de 7 d, 6 -> 4, mas custa o
+    26/02.
+  CUSTOS QUE SE REPETEM: o 17/03/25 cai pela carga (episódio de 09/03 nasce em carga 0,24, como achou o Thallys) e o
+    26/02/26 cai pelo canal 4, quando o episódio travado de 29/01 não o cobre.
+PLACAR: ACERTEI: a combinação tira 2-3 FP a mais por base (~60%); (a) vale (~55%); (c) vale (~50%); (d) vale (~60%);
+  estresse acima de 6 FP (~70%). ERREI: sem perda além da carga (~65%: o 7 d perde o 26/02); (b) não valeria (dei
+  ~40% para valer); veredito ROBUSTO (dei ~20%).
+LEITURA: é a primeira regra que passa no critério completo do Thallys em bases que ele não viu, com FP de 2 a 4
+  (0,18-0,36/mês). Mas o "robusto" é frágil na margem, tem dois custos conhecidos (17/03 e 26/02) e ainda falta passar
+  em G168 e B800. Candidata para a sombra na forma "atenção", nunca supressão.
+
 Uso:  python frente_thallys/t3_carga_ou_canal4.py
 """
 from __future__ import annotations
