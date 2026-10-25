@@ -179,7 +179,7 @@ pré-registro, resultado, decisão.
   já está aceso.
 - **Decisão:** não adotar. Próximo da lista: o comitê de baselines (item 2).
 
-_(registrado em 25/10/2026 13:29)_
+_(registrado em 25/10/2026 13:27)_
 
 ### 25/10/2026 — Detector do Thallys reproduzido localmente, com treino do zero — REPRODUZ
 - **Pedido do usuário:** "nós conseguimos reproduzir localmente?" e "minha ideia é treinar o modelo mensal para os
