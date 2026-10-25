@@ -41,14 +41,15 @@ def bundles():
                        cwd=pk / "scripts", check=True)
 
 
-def sinais():
+def sinais(saida=None):
+    """Replay causal semanal com os bundles da árvore em NV_DADOS; grava em `saida` (padrão: o controle de referência)."""
     from nv.controle_sinais import sinais_causais
     from worker_verifica_harness import verifica
     x = pd.read_csv(A97, index_col=0, parse_dates=[0], dtype=str, nrows=1_100_000)  # 2024 inteiro = ~1,05 M linhas
     x = x.apply(pd.to_numeric, errors="coerce"); x.index = x.index.tz_localize("UTC")
     x = x.loc["2024-09-01":"2024-12-31 23:59:59"]                                    # o complemento de 2024 do Thallys
     S = sinais_causais(pd.Timestamp("2025-01-08 07:34", tz="UTC"), cache=None, extra=x)
-    S.to_parquet(DADOS / "sinais_v2_8ev_local_treino.parquet")
+    S.to_parquet(saida or DADOS / "sinais_v2_8ev_local_treino.parquet")
     ok, linhas = verifica(S, json.load(open(REPO_T / "scripts" / "ref_sinais_v2_8ev.json")))
     print("\n".join(linhas)); print("impressão digital:", "PASSA" if ok else "FALHA (esperado: só vb, mask e reset por 1-2 instantes)")
 
@@ -98,5 +99,6 @@ def mede(al, vig):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("acao", choices=["bundles", "sinais", "controle"])
-    {"bundles": bundles, "sinais": sinais, "controle": controle}[ap.parse_args().acao]()
+    ap = argparse.ArgumentParser(); ap.add_argument("acao", choices=["bundles", "sinais", "controle"]); ap.add_argument("--saida")
+    a = ap.parse_args()
+    {"bundles": bundles, "sinais": lambda: sinais(a.saida and Path(a.saida)), "controle": controle}[a.acao]()
