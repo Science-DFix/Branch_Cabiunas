@@ -161,6 +161,43 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 25/10/2026 — FECHAMENTO da sessão de 24–25/10 (frente Thallys + T-a) — RESUMO E PENDÊNCIAS
+- **Pedido do usuário:** "anote tudo o que fizemos, vamos fechar essa seção. até a mensagem para o thallys".
+- **O que foi feito**, em ordem. Os detalhes estão nas entradas abaixo e nos docstrings.
+  1. **Fonte do relatório 9 → 4 FP:** a branch `exp/modos-de-falha`, com os Datasets `86e3990f` e `b71d7c5f`. A
+     versão do pacote não muda o resultado.
+  2. **Reprodução local do v2, com treino do zero** (`frente_thallys/reproduz.py`). Os 16 bundles são iguais aos do
+     git, e o controle dá 7/8, 9 FP, 1.457 h. O EXP 62 dá 9 → 4. O retreino local é uma exceção autorizada só para o
+     PCA do v2.
+  3. **T1:** o nosso canal 4 como confirmação. NÃO (FP 9 → 7, placebo p 0,246).
+  4. **Base n = 19.000 regerada** (`base_n19000.py`). Confere com o Thallys.
+  5. **T2:** comitê de baselines. NÃO (7/8 FP 11).
+     - O publicado é o **melhor de 6 retreinos**.
+     - A carga reduz o FP em todos os 6.
+  6. **T3:** carga baixa OU sem canal 4 → atenção. **ROBUSTO, raspando.**
+     - Bases principais: 4/8 FP 4, 6/8 FP 2, 6/8 FP 4.
+     - Custos: 17/03 (carga) e 26/02/26 (canal 4).
+  7. **T-a:** a carga na OCSVM. NÃO (6/8, FP 26, placebo p 0,31). Na OCSVM, carga baixa = partida.
+- **Leituras que ficam:**
+  - O v2 publicado está num vale estreito, tanto no corte do retreino quanto no n.
+  - A carga é a alavanca estável do v2.
+  - Na OCSVM, tudo passa pela partida.
+- **Pendências:**
+  - **G168 e B800**, para o teste decisivo do T3. Estão no Dataset `86e3990f`, que depende do Cica. Mas talvez existam
+    na pasta local do Thallys: `data_local/controle_v2/<base>/serie.csv.gz`, ~2 MB.
+    → mensagem pronta em `frente_thallys/mensagem_thallys_2026-10-25.md`. **Ainda não enviada**; o envio é com o
+    usuário.
+  - **H1** (janelas por trecho na OCSVM): pré-registrado em `ce9f96f`, aguardando o Cica, 1 task por vez.
+  - **Ideias não testadas no v2:** refratário só por alarme notificado; reaviso e encerramento de episódio longo.
+  - **Push:** 21 commits locais na `exp39_validacao_canal4` ainda **sem push** para `cabiunas/exp/ocsvm-validacao`.
+    O push fica para o fluxo combinado, antes de enviar task ao Cica.
+- **Onde está:**
+  - código em `frente_thallys/` e `frente_ocsvm/ta_carga_thallys.py`;
+  - dados em `frente_thallys/dados/`, fora do git (bundles, sinais, membros, logs);
+  - clone do Thallys em `~/FRENTE_THALLYS/repro_thallys_regra_carga_9fp_4fp`.
+
+_(registrado em 25/10/2026 22:30)_
+
 ### 25/10/2026 — T-a, carga do Thallys como "atenção" na pipeline OCSVM — NÃO
 - **Pedido do usuário:** "vamos ... levar a carga para a nossa pipeline (T-a) ... e também a combinação com o nosso
   canal 4".
