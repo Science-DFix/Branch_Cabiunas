@@ -161,6 +161,36 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 05/11/2026 — T3b (frente Thallys), a regra do T3 em G168 e B800 — PASSA
+- **Contexto:** o usuário enviou a mensagem ao Thallys e o e-mail de extração do PI ao Renan. O Thallys avisou que o
+  Cica voltou. As bases G168 e B800 estão no Dataset `86e3990f` (`controle_v2/<base>/serie.csv.gz`).
+- **Pedido do usuário:** "pode seguir local, depois o H1 no cica" (é só reavaliação, sem treino).
+- **Script:** `frente_thallys/t3b_g168_b800.py`, pré-registro `fd66578`. É a regra PRINC do T3, sem mudança.
+- **Verificações:** V1–V3 passam. G168 e B800 batem com o Thallys sem regra (8/8 · 14, 8/8 · 12) e só com a carga (7/8 · 6
+  nas duas).
+- **Resultado** (sem regra → só carga → combinação):
+
+  | Base | Sem regra | Só carga | Combinação | p do placebo |
+  |---|---|---|---|---|
+  | G168 | 8/8 · 14 | 7/8 · 6 | **7/8 · 3** (0,27/mês) | 0,006 |
+  | B800 | 8/8 · 12 | 7/8 · 6 | **7/8 · 4** (0,36/mês) | 0,026 |
+  | (vista) atual | 7/8 · 9 | 7/8 · 4 | 7/8 · 2 | — |
+
+- **Critério:** (a) ok; (c) placebo 2/2; (d) acréscimo sobre a carga 2/2 → **PASSA**. A perda é só o 17/03, pela carga.
+  O canal 4 não custou trip aqui.
+- **Vizinhança (relato):** 6 das 8 variações ficam em 7/8 com FP 2–5. Caem para 6/8 as mesmas do T3: θ 0,6 e janela de
+  12 h no canal 4.
+- **Leitura:** fecha a pendência do T3. A regra se sustenta em 5 bases não vistas, com 2 a 4 FP. Os custos e os pontos
+  frágeis são sempre os mesmos.
+- **Decisão:** levar ao Thallys como candidata para a **sombra**, na forma "atenção" (não suprimir). Ressalva: as 5 tags
+  do canal 4 foram escolhidas nos mesmos 8 trips.
+- **Infra:** o download do `86e3990f` fez o ClearML expulsar do cache o `8b06a98f` e o `a97ba56b`, e 9 links de
+  `dados/` quebraram. Os três Datasets agora ficam em `~/FRENTE_THALLYS/clearml_fixos/` (cópia mutável, fora do
+  cache); os links e o `A97` do `reproduz.py` apontam para lá.
+- **Próximo:** H1 no Cica (pré-registro `ce9f96f`), 1 task por vez.
+
+_(registrado em 05/11/2026 08:40)_
+
 ### 25/10/2026 — FECHAMENTO da sessão de 24–25/10 (frente Thallys + T-a) — RESUMO E PENDÊNCIAS
 - **Pedido do usuário:** "anote tudo o que fizemos, vamos fechar essa seção. até a mensagem para o thallys".
 - **O que foi feito**, em ordem. Os detalhes estão nas entradas abaixo e nos docstrings.

@@ -23,7 +23,7 @@ from pathlib import Path
 AQUI = Path(__file__).resolve().parent
 DADOS = AQUI / "dados"
 REPO_T = Path.home() / "FRENTE_THALLYS" / "repro_thallys_regra_carga_9fp_4fp"
-A97 = Path.home() / ".clearml/cache/storage_manager/datasets/ds_a97ba56ba14840fbb1125c2a82f883c9/sensores_full_2024_2026_30s.csv"
+A97 = Path.home() / "FRENTE_THALLYS/clearml_fixos/ds_a97ba56ba14840fbb1125c2a82f883c9/sensores_full_2024_2026_30s.csv"  # cópia fora do cache
 MESES = [f"{a}-{m:02d}" for a, m in [(2025, m) for m in range(1, 13)] + [(2026, m) for m in range(1, 5)]]
 INICIO8 = "2025-02-01"
 

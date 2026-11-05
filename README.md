@@ -70,6 +70,11 @@ Detalhes em [`relatorio_falsos_positivos/`](relatorio_falsos_positivos/) e no [`
   ainda subindo. Somar "sem canal 4" não muda nada: o canal 4 está aceso em 72 dos 74 episódios. A carga só
   separaria depois de resolver a partida. _(registrado em 25/10/2026 14:41)_
 
+- **No detector do Thallys, carga baixa OU sem canal 4 → atenção (T3 e T3b, `frente_thallys/`):** a regra passa em 5
+  bases que ninguém tinha olhado com ela: 3 retreinos (T3) e as variantes G168 e B800 (T3b: 8/8 · 14 → 7/8 · 3 e
+  8/8 · 12 → 7/8 · 4, placebo p 0,006 e 0,026). Custa sempre o 17/03 (pela carga). É candidata para a sombra do v2,
+  não para a OCSVM (ver T-a acima). _(registrado em 05/11/2026 08:40)_
+
 **O que já entrou na pipeline final** (`scripts/pipeline_unificada_final.py`)
 - **Regra de falha de comunicação (E5):** o canal do modelo não vota se algum sensor do grupo teve "Comm Fail"/"Out of
   Serv" nas últimas 6 h. Mantém 8/8 com as mesmas antecedências; FP/mês cai de 2,885 para 2,816 (42 → 41).

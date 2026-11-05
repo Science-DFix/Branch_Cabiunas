@@ -29,7 +29,21 @@ VERIFICAÇÕES: V1 sem regra, G168 8/8 FP 14 e B800 8/8 FP 12; V2 só carga, 7/8
   `atual` do mesmo Dataset reproduz o controle local (7/8 FP 9; carga 7/8 FP 4; combinação 7/8 FP 2, já vista no T1).
   Se V1 ou V2 falhar, para sem rodar a regra.
 
-RESULTADO: (a preencher depois de rodar)
+RESULTADO (05/11/2026 08:34; local, pré-registro fd66578). V1, V2 e V3 PASSAM (as duas bases e o atual batem com o
+Thallys). PASSA: (a) ok, (c) 2/2, (d) 2/2.
+  Sem regra -> só carga -> combinação:
+    G168: 8/8 FP 14 -> 7/8 FP 6 -> 7/8 FP 3 (995 h, 0,269/mês). Perde o 17/03, pela carga. p_conj 0,006.
+    B800: 8/8 FP 12 -> 7/8 FP 6 -> 7/8 FP 4 (998 h, 0,359/mês). Perde o 17/03, pela carga. p_conj 0,026.
+    atual (já vista): 7/8 FP 9 -> 7/8 FP 4 -> 7/8 FP 2.
+  O canal 4 não custou nenhum trip nessas bases (o 26/02 ficou) e tirou mais 2-3 FP sobre a carga.
+  VIZINHANÇA (relato): 6 das 8 mantêm 7/8 com FP 2-5. Caem para 6/8 as mesmas duas que falharam no T3: θ 0,6 e o canal 4
+    com janela de 12 h.
+PLACAR: ACERTEI: o 17/03 se mantém perdido (~85%); o canal 4 não custa mais trip (~55%); tira mais 1-3 FP (~65%); (a)
+  (~55%); (c) (~55%); (d) (~65%). ERREI o veredito: PASSA tinha ~30%.
+LEITURA: nas 2 bases que faltavam, a combinação passa sem raspar e com folga no placebo. Somando o T3, a regra fica de pé
+  em 5 bases que ninguém tinha olhado com ela (2 a 4 FP, sempre ao custo do 17/03 e, no atraso de 7 d, do 26/02). Os
+  dois pontos frágeis se repetem (θ 0,6 e janela de 12 h). Continua sendo candidata para a sombra, como "atenção";
+  as 5 tags do canal 4 continuam escolhidas nos mesmos 8 trips.
 
 Uso:  python frente_thallys/t3b_g168_b800.py
 """
@@ -45,7 +59,7 @@ import t3_carga_ou_canal4 as T3  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-DS = Path.home() / ".clearml/cache/storage_manager/datasets/ds_86e3990fde354c039ce38aab508f344d/controle_v2"
+DS = Path.home() / "FRENTE_THALLYS/clearml_fixos/ds_86e3990fde354c039ce38aab508f344d/controle_v2"  # cópia fora do cache
 REF0 = {"atual": (7, 9), "G168": (8, 14), "B800": (8, 12)}
 REFC = {"atual": (7, 4), "G168": (7, 6), "B800": (7, 6)}
 NOVAS = ["G168", "B800"]
