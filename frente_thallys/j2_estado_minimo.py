@@ -50,6 +50,37 @@ EXPECTATIVAS: V1 passa (~90%). t, p, sp: a1 difere de ref60 mas com máx |Δ| < 
 LIMITES: 8 trips; o buffer é montado em memória a partir da grade completa (em produção seria uma tabela); a montagem
   do buffer recalcula blocos do vb que ficam fora da janela (custo é teto, não piso); o Cica não é o servidor do SIMPred.
 
+RESULTADO (05/11/2026 20:24; task 31f31a1a, commit c4b7937, 11 min no Cica: Threadripper 7970X, 64 núcleos, 131 GB, 1
+worker de outro usuário ocupado). ref60 a 6 h = 7/8, FP 9 (0,807/mês), mesma régua do J1 (V2 ok).
+  V1: vb do estado = ref60 em 100% dos instantes em a3, a7, a14 e em todas as b; a1 difere em 0,001% com máx 2,4e-9
+  (aquecimento do EWMA, não o buffer). O estado do vb reproduz a referência de 400 h.
+               régua                  t/p/sp/vb diferentes      alarme diferente   células   mediana
+    ref60      7/8 FP 9               --                        --                 1.684.839  0,88 s
+    a1         6/8 FP 45              t 98%, p 97% (EWMA)       17,3%
+    a3         7/8 FP 33              0                         15,2%
+    a7         6/8 FP 23              0                         10,2%              326.599    0,29 s
+    a14        6/8 FP 18              0                          4,3%
+    a7_sem     6/8 FP 28              vb 79%                    15,4%
+    b7         6/8 FP 22              0                          9,9%
+    b14        6/8 FP 16              0                          4,2%              274.765    0,29 s
+    b30        7/8 FP 9 (= ref60)     0                          0,2% (1 FP mais curto, 10/01/2026)
+    b45        7/8 FP 9 (= ref60)     0                          0  (bit a bit)    408.685    0,45 s
+    b60        7/8 FP 9 (= ref60)     0                          0  (bit a bit)    473.485    0,55 s (p95 1,02)
+  a14 e b14 perdem o 26/02/2026 (antecedência 48 h -> sem detecção) e o 07/04/2025 cai de 31,7 para 6,6 h.
+  Pico tracemalloc: 34 MB (ref60) contra 12-15 MB.
+PLACAR: ACERTEI: V1; a3 em diante bit a bit nos sinais; a1 e a3 divergem no alarme; a7_sem pior; b7 e b14 não
+  equivalentes; b30 e b45 equivalentes na operação; b60 bit a bit; b60 abaixo de 1 milhão de células. ERREI: a1 com máx
+  |Δ| < 1e-4 (t chega a 0,13 e p a 0,43: 18 h de aquecimento não bastam para o EWMA de 1 h depois de partida); a7 e a14
+  equivalentes (não: a cadeia do refratário); b60 <= metade do ref60 em tempo (0,55 contra 0,88 s, 62%).
+LEITURA: a memória do v2 tem DUAS partes, e só uma é de dado bruto.
+  (1) Sinais: 3 d de bruto + o buffer de 13.000 linhas estáveis das 10 sondas reproduzem t, p, sp e vb bit a bit.
+  (2) Decisão: o refratário em cadeia faz o alarme depender de ~30-45 d de HISTÓRICO DE SINAIS, não de bruto. Com 14 d
+      o detector perde um trip. Persistindo a saída do `preprocessar` (6 colunas por linha de 2 min), 45 d bastam bit a
+      bit e 30 d na operação.
+  Arquitetura que cabe no limite: bruto de 3 d (84 mil células) + buffer do vb (130 mil) + tabela de 45 d (194 mil) =
+  409 mil células, contra 1,68 milhão de 60 d de bruto; tempo 0,88 -> 0,45 s; pico 34 -> 15 MB. O que persistir: o buffer
+  (append das linhas estáveis, corta nas 13.000) e a tabela (append das linhas novas, corta em 45 d).
+
 Uso:
   python frente_thallys/j2_estado_minimo.py --local --teste     # encanamento local, até 2025-04-15
   python frente_thallys/j2_estado_minimo.py --enqueue           # uma task na fila default

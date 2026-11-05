@@ -161,6 +161,39 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 05/11/2026 — J2 (frente Thallys), estado mínimo do v2 — 3 d DE BRUTO + BUFFER DO vb + 45 d DE SINAIS = BIT A BIT, 409 MIL CÉLULAS
+- **Origem:** perguntas 1 e 4 da engenharia (que componente pede histórico, que estado persistir) e o limite de 1 milhão
+  de células.
+- **Script:** `frente_thallys/j2_estado_minimo.py`, pré-registro `c4b7937`. Task `31f31a1a`, 11 min no Cica.
+  - Mesmos insumos do J1, replay com corte a cada 6 h, referência = 60 d de bruto (ref60, 7/8 FP 9).
+  - O teste local até 15/04/2025 mostrou a cadeia do refratário antes do envio. Daí entraram b30, b45 e b60; está
+    registrado no pré-registro.
+- **Estado A** (janela curta de bruto, com o vb vindo de um buffer de 13.000 linhas estáveis das 10 sondas):
+  - os sinais saem bit a bit desde 3 d;
+  - o alarme NÃO: a14 dá 6/8 FP 18 e perde o 26/02/2026.
+- **Causa:** o refratário é armado só pelos episódios emitidos, então a decisão lembra a cadeia, não só 72 h.
+- **Estado B** (bruto de 3 d + buffer do vb + tabela persistida da saída do `preprocessar`, 6 colunas):
+
+  | Tabela | Régua | Alarme diferente | Células | Mediana |
+  |---|---|---|---|---|
+  | 14 d | 6/8 · FP 16 | 4,2% | 275 mil | 0,29 s |
+  | 30 d | 7/8 · FP 9 | 0,2% | — | — |
+  | 45 d | 7/8 · FP 9 | 0 (bit a bit) | 409 mil | 0,45 s |
+  | 60 d | 7/8 · FP 9 | 0 (bit a bit) | 473 mil | 0,55 s |
+  | ref60 (60 d de bruto) | 7/8 · FP 9 | — | 1,68 milhão | 0,88 s |
+
+- **Leitura:** a memória do v2 tem duas partes, e só uma é de dado bruto.
+  - Os sinais pedem 3 d de bruto mais o buffer do vb.
+  - A decisão pede ~45 d de sinais já calculados (6 colunas), não de bruto.
+  - Para a engenharia: persistir o buffer e a tabela tira o worker do limite de 1 milhão de células, com resultado
+    idêntico, metade do tempo e pico de 15 MB contra 34.
+- **Expectativas erradas:**
+  - a1 quase igual: o EWMA não aquece em 18 h depois de partida;
+  - a7 e a14 equivalentes: a cadeia do refratário;
+  - b60 com metade do tempo do ref60: deu 62%.
+
+_(registrado em 05/11/2026 20:24)_
+
 ### 05/11/2026 — J1 (frente Thallys), janela de entrada do v2: qualidade e custo no Cica — 60 d BIT A BIT, 45 d NA OPERAÇÃO
 - **Origem:** documento da engenharia `tc33003a-janela-historica-e-gargalos-de-inferencia.md` (recebido em 05/11).
 - **Pedido do usuário:** rodar no Cica, porque o cluster se aproxima mais da produção que o PC local.
