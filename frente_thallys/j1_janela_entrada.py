@@ -53,6 +53,37 @@ EXPECTATIVAS: equivalente nos sinais: 90 d (~90%), 60 d (~80%), 45 d (~55%), 35 
 LIMITES: 8 trips; os bundles são os do git (o último decide, como no controle); o Cica não é o servidor do SIMPred e a
   carga dos outros usuários mexe no tempo; tracemalloc mede memória Python/numpy, não o RSS do processo.
 
+RESULTADO (05/11/2026 11:20; task 397a6e11, commit 1a3d2ca, 32 min no Cica: AMD Threadripper 7970X, 64 núcleos,
+131 GB, 1 worker de outro usuário ocupado). V1 PASSA (7/8, FP 9). V2: 96,25% de concordância, e as diferenças estão
+todas em jan/2025 (aquecimento; a série do Thallys começa em 08/01/2025): desde 01/02/2025 é 100%. V3: a referência
+"inf" diária dá 7/8 FP 9, igual ao publicado.
+  PARTE A (contra "inf", desde 01/02/2025):
+    90 d e 60 d: idênticos bit a bit (sinais, máscara e alarme).
+    45 d: t, p, sp idênticos; vb difere em 0,30% dos instantes, máx |Δ| 3,5e-6; alarme idêntico; régua idêntica.
+    35 d: vb difere em 4,7% (máx 29,6); alarme em 2,9%; FP 9 -> 14 (1,256/mês); 26/02/26 com antecedência 48 -> 20,3 h.
+    30 d: vb difere em 9,9%; alarme em 4,6%; FP 9 -> 16 (1,435/mês); o mesmo 26/02.
+    t, p e sp nunca divergem, nem com 30 d: o único componente que pede histórico é a referência de 400 h do vb.
+    Menor janela equivalente: nos sinais, 60 d (bit a bit); na operação, 45 d.
+    Horas estáveis no pior instante: 30 d 140 h; 35 d 218 h; 45 d 279 h (3,2% do tempo abaixo de 400 h, mas acima das
+    100 h mínimas, e o alarme não muda); 60 d 518 h; 90 d 1.152 h.
+  PARTE B (mediana de 20 execuções; preprocessar + prever sobre a grade de 2 min):
+    30 d 0,45 s · 106 MB | 45 d 0,65 s · 160 MB | 60 d 0,93 s (p95 1,10) · 213 MB | 90 d 1,36 s (p95 1,58) · 319 MB.
+    CPU por dia e equipamento, 90 d: 982 s a cada linha de 2 min contra 131 s a cada 15 min; 60 d: 672 s contra 90 s.
+    Reconstruir a grade a partir do bruto de 30 s custa à parte: 9,7 s (60 d) e 14,4 s (90 d) por execução.
+    90 d = 64.801 linhas e 2,53 milhões de células (o limite padrão do worker é 1 milhão).
+  PARTE C (18 episódios, N = 60, cadência de 15 min): o alerta sai ao vivo 2,0 h depois do início em lote (mediana; 1,0 h
+    nos episódios fortes, mín 0,43 h). Nenhum episódio emendado. Antecedência ao vivo = lote - 1 a 2 h; o 11/04/2025 cai
+    de 4,1 h para 2,1 h e sai da banda de 4 h.
+PLACAR: ACERTEI: 90 e 60 d equivalentes nos sinais; 35 e 30 d não; 45 d equivalente na operação; o vb quebra primeiro;
+  atraso de emissão entre 1,5 e 2,5 h (2,0); um trip sai da banda (11/04); 90 d com mediana <= 1,5 s (1,36). ERREI: 45 d
+  bit a bit (vb difere em 0,3%, na 6ª casa); menor N equivalente nos sinais = 45 (é 60); CUSUM entre 35 e 45 d (nunca
+  aparece); pico <= 200 MB (319 MB com 90 d).
+LEITURA: confirma e precisa o Thallys no pacote atual e em todos os instantes. 60 d é o piso bit a bit, 45 d o piso
+  operacional, e o que manda é só a base de 400 h estáveis do vb. Para a engenharia: 90 -> 60 d não muda nada no
+  resultado e corta ~1/3 do custo; rodar a cada 15 min em vez de a cada linha corta 7,5x; nenhum dos dois cabe no limite de
+  1 milhão de células. Ao vivo, o alerta sai ~2 h depois do início que a série em lote mostra: a antecedência operacional
+  é a do lote menos 1-2 h.
+
 Uso:
   python frente_thallys/j1_janela_entrada.py --cria-insumos         # Dataset de insumos (1 vez)
   python frente_thallys/j1_janela_entrada.py --local --teste        # encanamento local, poucos cortes

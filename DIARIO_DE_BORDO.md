@@ -161,6 +161,47 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 05/11/2026 — J1 (frente Thallys), janela de entrada do v2: qualidade e custo no Cica — 60 d BIT A BIT, 45 d NA OPERAÇÃO
+- **Origem:** documento da engenharia `tc33003a-janela-historica-e-gargalos-de-inferencia.md` (recebido em 05/11).
+- **Pedido do usuário:** rodar no Cica, porque o cluster se aproxima mais da produção que o PC local.
+- **Script:** `frente_thallys/j1_janela_entrada.py`, pré-registro `1a3d2ca`.
+  - Insumos: Dataset `f5e1b16b` (pacote da `feat/pacote-consolidado`, `nv` da `exp/modos-de-falha` e controle atual)
+    mais o bruto `a97ba56b`.
+  - Task `397a6e11`, 32 min. Cica: Threadripper 7970X, 64 núcleos, 131 GB.
+- **Verificações:** o V1 refaz o controle publicado (7/8, FP 9). No V2, a série coincide em 100% desde 01/02/2025; as
+  diferenças ficam só no aquecimento de jan/2025.
+- **Qualidade** (replay diário, `preprocessar` + `prever` dentro da janela, contra todo o histórico):
+
+  | Janela | vb diferente | Alarme diferente | Régua | Horas estáveis no pior instante |
+  |---|---|---|---|---|
+  | 90 d | 0 | 0 | 7/8 · FP 9 | 1.152 h |
+  | 60 d | 0 | 0 | 7/8 · FP 9 | 518 h |
+  | 45 d | 0,30% (máx 3,5e-6) | 0 | 7/8 · FP 9 | 279 h |
+  | 35 d | 4,7% | 2,9% | 7/8 · FP 14 | 218 h |
+  | 30 d | 9,9% | 4,6% | 7/8 · FP 16 | 140 h |
+
+  `t`, `p` e `sp` nunca divergem, nem com 30 d. Só a referência de 400 h do `vb` pede histórico.
+- **Custo no Cica** (mediana; `preprocessar` + `prever`):
+  - 60 d: 0,93 s e 213 MB;
+  - 90 d: 1,36 s e 319 MB;
+  - CPU por dia com 90 d: 982 s rodando a cada linha de 2 min, contra 131 s a cada 15 min;
+  - reconstruir a grade a partir do bruto de 30 s custa à parte: 14 s com 90 d;
+  - 90 d somam 2,53 milhões de células, contra o limite de 1 milhão do worker.
+- **Emissão ao vivo** (N = 60, a cada 15 min, 18 episódios):
+  - o alerta sai ~2,0 h depois do início que a série em lote mostra (1,0 h nos episódios fortes);
+  - a antecedência ao vivo é a do lote menos 1–2 h;
+  - o 11/04/2025 cai de 4,1 h para 2,1 h e sai da banda.
+- **Leitura:** confirma o Thallys no pacote atual e em todos os instantes.
+  - 60 d é o piso bit a bit e 45 d o piso operacional.
+  - Para a engenharia: passar de 90 para 60 d não muda o resultado e corta ~1/3 do custo. Rodar a cada 15 min corta 7,5x.
+    Nem uma coisa nem outra resolve o limite de 1 milhão de células.
+  - A antecedência operacional é a do lote menos ~2 h.
+- **Expectativas erradas:** 45 d bit a bit; CUSUM entre 35 e 45 d; pico ≤ 200 MB.
+- **Infra:** o envio do J1 precisa fixar o remoto `Branch_Cabiunas`. O padrão do ClearML pega o `origin` (SIMPred), que não
+  tem o commit. Corrigido em `aaf118b`.
+
+_(registrado em 05/11/2026 11:22)_
+
 ### 05/11/2026 — H1, retreino com janelas que não atravessam a parada — NÃO (longe)
 - **Script:** `frente_ocsvm/h1_janela_trecho.py`, pré-registro `ce9f96f`. Tasks `496409aa` (temperatura), `028cf7eb`
   (vibração) e `a92c0214` (óleo), semente 42, uma por vez. As três completas e com `point_anomalies_all.csv`.
@@ -204,7 +245,8 @@ _(registrado em 05/11/2026 10:58)_
   do canal 4 foram escolhidas nos mesmos 8 trips.
 - **Infra:** o download do `86e3990f` fez o ClearML expulsar do cache o `8b06a98f` e o `a97ba56b`, e 9 links de
   `dados/` quebraram. Os três Datasets agora ficam em `~/FRENTE_THALLYS/clearml_fixos/` (cópia mutável, fora do
-  cache); os links e o `A97` do `reproduz.py` apontam para lá.
+  cache); os links e o `A97` do `reproduz.py` apontam para lá (os links só foram refeitos de fato depois, no J1:
+  o 1º comando não tinha funcionado).
 - **Próximo:** H1 no Cica (pré-registro `ce9f96f`), 1 task por vez.
 
 _(registrado em 05/11/2026 08:40)_
