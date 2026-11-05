@@ -400,6 +400,10 @@ def main():
         t = Task.init(project_name="TesteMLCab", task_name=NOME)
         t.set_base_docker("python:3.11-slim", docker_setup_bash_script=["apt-get update -qq", "apt-get install -y -qq libgomp1"])
         t.set_packages(PACOTES); t.set_parameters({"General/insumos": a.insumos, "General/procs": str(a.procs)})
+        # o padrão do ClearML pega o remoto `origin` (SIMPred), onde este commit não existe: fixa o Branch_Cabiunas
+        import subprocess
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=AQUI, text=True).strip()
+        t.set_script(repository="git@github.com:Science-DFix/Branch_Cabiunas.git", branch="exp/ocsvm-validacao", commit=commit)
         t.execute_remotely(queue_name="default")
     if os.environ.get("CLEARML_TASK_ID"):
         tk = Task.init(project_name="TesteMLCab", task_name=NOME)

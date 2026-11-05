@@ -110,8 +110,10 @@ Substitui a planilha de 15/10, que não foi enviada.
      checar local se trips e FP de partida se separam no score do PCA/T² do D1 (sem teto), olhando só a partida.
 2. **Janelas que não atravessam a parada (G1, H0, H1):** a prévia sem retreino (H0, 24/10) corta os FP de partida de
    16 para 3 (41 → 30 FP), mas perde os 3 trips que começam na partida (T4, T6, T7; 5/8, fora 1/3). Nesses 3, o
-   voto do modelo era o mesmo artefato dos FP de partida. O retreino (H1, `frente_ocsvm/h1_janela_trecho.py`) está
-   pré-registrado e aguarda o Cica.
+   voto do modelo era o mesmo artefato dos FP de partida. O retreino (H1, `frente_ocsvm/h1_janela_trecho.py`, 05/11)
+   deu **NÃO**: 3/8, 81 FP (6,5/mês fora). Os FP de partida caem (16 → 7), mas o AutoML reescolhe o ponto de operação
+   dos 3 canais (óleo p99,9 → p80; vibração p95/d4 → p99,5/d12) e a pipeline vira outra. Ponto de retreino: com
+   features novas, fixar o percentil/debounce de produção para isolar o efeito da feature. _(registrado em 05/11/2026 10:58)_
    Desenho original: recalcular as features móveis só com linhas em "on", reiniciando
    na partida (ou com `min_periods` e a janela truncada no início). É a correção do artefato, não uma supressão:
    o trip de 04/11/2025, depois de 79 h parado, continua podendo ser detectado. Muda as features, então exige

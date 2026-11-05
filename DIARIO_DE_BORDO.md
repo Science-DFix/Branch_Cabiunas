@@ -161,6 +161,24 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 05/11/2026 — H1, retreino com janelas que não atravessam a parada — NÃO (longe)
+- **Script:** `frente_ocsvm/h1_janela_trecho.py`, pré-registro `ce9f96f`. Tasks `496409aa` (temperatura), `028cf7eb`
+  (vibração) e `a92c0214` (óleo), semente 42, uma por vez. As três completas e com `point_anomalies_all.csv`.
+- **Resultado** (pipeline final com E5, mesma régua):
+
+  | | Trips | Fora | FP | FP/mês | FP/mês fora | FP de partida | Ponto de operação (temp · vib · óleo) |
+  |---|---|---|---|---|---|---|---|
+  | Produção | 8/8 | 3/3 | 41 | 2,816 | 2,752 | 16 | p97,5/d1 · p95/d4 · p99,9/d12 |
+  | H1 s42 | **3/8** | 2/3 | **81** | 5,563 | **6,504** | 7 | p95/d1 · p99,5/d12 · p80/d12 |
+
+- **Critério:** PASSA exige 8/8, 3/3 fora e FP/mês fora ≤ 2,158 → **NÃO**. As sementes 43/44 não rodam.
+- **Leitura:** os FP de partida caem (16 → 7), como no H0, mas o AutoML reescolheu o percentil e o debounce dos 3
+  canais. O óleo foi para p80 (dispara muito) e a vibração para p99,5/d12 (quase some). O efeito da feature ficou
+  confundido com a nova calibração. Expectativa errada: previ 8/8 e NÃO por pouco.
+- **Próximo, só se o usuário pedir:** H1b com o ponto de operação de produção fixo, para isolar a feature.
+
+_(registrado em 05/11/2026 10:58)_
+
 ### 05/11/2026 — T3b (frente Thallys), a regra do T3 em G168 e B800 — PASSA
 - **Contexto:** o usuário enviou a mensagem ao Thallys e o e-mail de extração do PI ao Renan. O Thallys avisou que o
   Cica voltou. As bases G168 e B800 estão no Dataset `86e3990f` (`controle_v2/<base>/serie.csv.gz`).

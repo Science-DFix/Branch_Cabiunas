@@ -26,6 +26,19 @@ EXPECTATIVA REGISTRADA: os FP de partida caem para metade ou menos (<= 8 de 15).
 veredito fica perto do limite; prevejo NÃO PASSA por pouco (fora entre 2,16 e 2,45). Mantém 8/8; se perder um trip,
 será o T7 (09/12/2025, detectado ~0 h depois da partida).
 
+RESULTADO (05/11/2026 10:57; tasks 496409aa temp, 028cf7eb vib, a92c0214 óleo, commit bfe2bb8/c360441): NÃO, longe.
+  s42: 3/8 (fora 2/3), 81 FP (5,563/mês), fora 52 FP (6,504/mês; limite 2,158), FP de partida 16 -> 7, 36 inconclusivos.
+  Produção na mesma régua: 8/8, 41 FP, 2,816/mês; fora 22, 2,752/mês.
+  Detecta só 17/03 (31,2 h), 09/12 (30,4 h) e 26/02 (18,2 h). Perde 27/02, 07/04, 11/04, 29/04 e 04/11.
+  O AutoML reescolheu o ponto de operação nos 3 canais: temp p97,5/d1 -> p95/d1; vib p95/d4 -> p99,5/d12; óleo
+  p99,9/d12 -> p80/d12 (o óleo passa a disparar muito, e a vibração quase some).
+PLACAR: ACERTEI: FP de partida caem para metade ou menos (16 -> 7); veredito NÃO. ERREI: "mantém 8/8" (perdeu 5) e "NÃO
+  por pouco" (o FP/mês fora triplicou em vez de cair 15-30%).
+LEITURA: corrigir as janelas tira o artefato da partida, como no H0, mas o retreino muda a calibração inteira: com as
+  features novas, o AutoML escolhe outro percentil/debounce e a pipeline vira outra. O efeito da feature fica confundido
+  com a reescolha do limiar. Sementes 43/44 não rodam (só confirmariam um PASSA). Um H1b só faria sentido fixando o
+  percentil/debounce de produção (isola a feature), e só se o usuário pedir.
+
 Uso:
   python frente_ocsvm/h1_janela_trecho.py gera              # escreve as configs (commit + push antes de enviar)
   python frente_ocsvm/h1_janela_trecho.py envia --so temp   # clona a task de produção e enfileira UM canal
