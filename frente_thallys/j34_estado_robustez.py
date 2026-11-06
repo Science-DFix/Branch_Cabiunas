@@ -61,6 +61,46 @@ EXPECTATIVAS: V1 passa (~85%). reinicio bit a bit (~90%). buracos: motor = ref60
 LIMITES: 8 trips; injeções sintéticas em datas escolhidas em operação; o banco do SIMPred, as consultas de 15 min e a
   concorrência entre equipamentos não estão aqui; o Cica não é o servidor de produção.
 
+RESULTADO (06/11/2026 13:58; task 24c98ea5, commit fc4ec31, 12 min no Cica: Threadripper 7970X, 64 núcleos, 131 GB, 1
+worker de outro usuário ocupado). ref60 limpo = 7/8, FP 9 (= J1/J2).
+  J4 (motor contra ref60 sobre os mesmos dados, desde 01/02/2025):
+    limpo (V1) ......... bit a bit (sinais e alarme), régua igual. PASSA.
+    reinicio ........... bit a bit: gravar e reler o estado a cada corte não muda nada.
+    buracos ............ bit a bit (1 h a 7 d). O buraco de 7 d muda o próprio detector (ref e motor: 8/8, pega o 04/11/25
+                         com 8,8 h), porque quebra a cadeia do refratário -- não é efeito do estado.
+    sondas ............. bit a bit (TV_351X/Y 7 d, 954005_624_TI_0325 1 d, as 10 TV_ 2 d); detector FP 9 -> 10.
+    atraso P0 .......... depois da chegada: 6 h igual; 1 d vb 34,9% e alarme 3,6% diferentes; 7 d vb 25,4%. Régua FP 10.
+    atraso P1 .......... depois da chegada: 0 nos três. Régua igual. (0,015% no total = 48 linhas DENTRO do buraco de
+                         26/05, que o ref60 nunca emitiu e o motor emite quando o dado chega.)
+    trip7 P0 ........... alarme 1,0% diferente, FP 9 -> 11 (o ref60 recalcula o vb do passado quando o trip fica conhecido).
+    trip7 P1 ........... bit a bit (refaz desde trip − 7 d).
+  J3 (30 instalações, 100 d): a REGRA VALE: 0 divergência em PLENA nas 30.
+               PLENA (mediana)   convergência real (med / máx)   divergência em DEGRADADA (sinais / alarme)   indisponível
+    H = 0      64 d (62–97)      18,3 / 35,8 d                   20,6% / 0,3%                                  100 h (até 620)
+    H = 7      57 d              12,3 / 34,4 d                   19,3% / 1,5%                                  0
+    H = 30     35 d              0 / 22,7 d                      0 / 0 (mas 01/01/26: alarme 3 semanas a mais)  0
+    H = 45     20 d              0 / 0                           0 / 0                                         0
+    H = 60     13 d              0 / 0                           0 / 0                                         0
+    Com carga >= 45 d a saída é igual ao ref60 desde T0 nas 12 instalações: a regra é conservadora nesse caso (pede
+    12.720 estáveis ANTES dos 45 d da tabela). O caso 01/01/2026 H = 30: sinais iguais, mas a tabela de 30 d não tem a
+    cadeia do refratário e o motor acende de 02/01 a 23/01 onde o ref60 tem dois episódios curtos.
+  CUSTO (mediana de 20): montar o estado de 60 d de bruto 0,28 s; ler o estado salvo 0,005 s; estado em disco 3,3 MB
+    (tabela 32.401 linhas + buffer 26.000); um passo do motor 0,15 s contra 0,33 s do ref60 (só o cálculo, num processo
+    limpo). RSS de pico: só imports 137 MB; motor 173 MB; ref60 201 MB (acima dos imports: 36 contra 64 MB).
+PLACAR: ACERTEI: V1; reinício; buracos bit a bit e régua; sondas; atraso P1 = ref depois da chegada; P0 difere;
+  trip7 P0 difere e P1 bit a bit; a regra vale; H = 0 PLENA em 60–80 d (mediana 64; 2 das 6 passam de 80, até 97);
+  convergência antes da PLENA; disco <= 5 MB; montar <= 2 s. ERREI: P0 com régua igual (FP 10); H = 60 PLENA desde T0 (13 d,
+  a regra é conservadora); RSS do motor <= 60% do ref60 (86% do total; 56% descontados os imports).
+LEITURA (para a engenharia):
+  P4: o estado é buffer + tabela, 3,3 MB por equipamento em parquet; reinício = reler (5 ms), igual bit a bit.
+  Correções e trips tardios têm regra explícita e validada: REFAZER desde o início do trecho afetado (dado: desde o
+  primeiro instante corrigido; trip: desde trip − 7 d), com janela de bruto [início − 3 d, agora]. Ignorar a correção
+  muda alarmes. Não é preciso recarga completa.
+  P2/P3: instalação nova com carga >= 45 d de bruto sai igual à referência desde o 1º instante; sem carga, ~2 meses até
+  PLENA, ~100 h sem previsão do vb (INDISPONÍVEL) e alarmes que podem sobrar ou faltar na fase DEGRADADA -- a saída
+  precisa dizer em que estado está.
+  P6: o cálculo fica pequeno (0,15 s, ~36 MB acima do interpretador); o RSS é dominado pelos imports (pandas/numpy).
+
 Uso:
   python frente_thallys/j34_estado_robustez.py --local --teste    # encanamento local, até 2025-04-15
   python frente_thallys/j34_estado_robustez.py --enqueue          # uma task na fila default

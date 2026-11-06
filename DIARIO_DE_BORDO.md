@@ -161,6 +161,37 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 06/11/2026 — J34 (frente Thallys), motor com estado: partida a frio e robustez — BIT A BIT EM TODOS OS CENÁRIOS COM A REGRA "REFAZER"
+- **Origem:** perguntas 2, 3, 4 e 6 da engenharia e a lista de cenários do documento deles.
+- **Script:** `frente_thallys/j34_estado_robustez.py`, pré-registro `fc4ec31`. Task `24c98ea5`, 12 min no Cica.
+  - O motor monta buffer e tabela só com o que o banco tinha em cada instante (o J2 tirava o buffer da grade inteira).
+  - O teste local mudou o desenho antes do envio: carga inicial de 60 d, medida do RSS por `VmHWM` e a política
+    `trip7_p1`. Está registrado no pré-registro.
+- **J4, robustez** (motor contra a janela de 60 d sobre os mesmos dados):
+  - bit a bit no dado limpo, com reinício a cada corte, com buracos de 1 h a 7 d e com sondas fora do ar;
+  - dado atrasado: ignorar a correção (P0) muda o alarme (FP 9 → 10); refazer desde o trecho corrigido (P1) dá 0 depois
+    da chegada;
+  - trip conhecido 7 d depois: P0 dá FP 11; refazer desde trip − 7 d (P1) dá bit a bit.
+- **J3, instalação nova** (30 instalações de 100 d): a regra de prontidão vale, com 0 divergência em PLENA nas 30.
+  - Com carga ≥ 45 d de bruto, a saída é igual desde o 1º instante (12/12).
+  - Sem carga: ~100 h INDISPONÍVEL (até 620 h), PLENA em ~64 d (62–97), alarmes errados para mais ou para menos
+    enquanto DEGRADADA.
+  - Com carga de 30 d, a instalação de 01/01/2026 acende um alarme de 3 semanas que a referência não tem. É a cadeia do
+    refratário de novo, e a regra marca o período como DEGRADADA.
+- **Custo:**
+  - estado em disco 3,3 MB; reler 5 ms; montar de 60 d de bruto 0,28 s;
+  - passo 0,15 s contra 0,33 s;
+  - RSS 173 contra 201 MB, dominado pelos imports (137 MB).
+- **Leitura:** fecha as perguntas 2, 3, 4 e 6 do lado do detector.
+  - Persistir buffer + tabela.
+  - Correção ou trip novo = refazer desde o início do trecho afetado, não recarga completa.
+  - Instalação nova = carga de ≥ 45 d de bruto, ou declarar a saída como indisponível/degradada.
+- **Achado lateral:** um buraco de 7 d (12–19/10/2025) faz o próprio detector pegar o trip de 04/11/2025 (8/8). A
+  cadeia do refratário custa um trip no histórico limpo — candidato a teste do detector, fora deste escopo.
+- **Expectativas erradas:** P0 com régua igual; H = 60 PLENA desde T0 (a regra é conservadora); RSS ≤ 60%.
+
+_(registrado em 06/11/2026 13:58)_
+
 ### 05/11/2026 — J2 (frente Thallys), estado mínimo do v2 — 3 d DE BRUTO + BUFFER DO vb + 45 d DE SINAIS = BIT A BIT, 409 MIL CÉLULAS
 - **Origem:** perguntas 1 e 4 da engenharia (que componente pede histórico, que estado persistir) e o limite de 1 milhão
   de células.
