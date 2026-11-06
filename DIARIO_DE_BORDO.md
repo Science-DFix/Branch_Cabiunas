@@ -161,6 +161,47 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 06/11/2026 — J6 (frente Thallys), bundle mensal atrasado — REFAZER O MÊS = BIT A BIT DEPOIS DA CHEGADA; IGNORAR MUDA O ALARME
+- **Origem:** o documento da engenharia pede "trocas de bundle" no replay. O J34 cobriu a troca no prazo; faltava o
+  retreino do dia 1 falhar ou atrasar.
+- **Script:** `frente_thallys/j6_bundle_atrasado.py`, pré-registro `7291e10`. Task `4c542c2b`, 11 min no Cica.
+  - Usa o motor do J34 sem alteração.
+  - O bundle do mês M fica disponível em M-01 + A d, com A = 1, 3, 7, em todos os meses de 2025-02 a 2026-04.
+  - Variantes:
+    - ignorar (P0);
+    - refazer desde M-01 quando o bundle chega (P1);
+    - janela de 60 d recalculada (como hoje).
+- **V1:** o motor com bundles no prazo dá bit a bit, 7/8 e FP 9, como no J34.
+- **Depois da chegada:**
+  - P1 e "como hoje" são bit a bit contra a referência nos 3 atrasos.
+  - P0 tem sinais t/p/sp/vb iguais (|Δ| ≤ 1e-13), mas o alarme muda em 2,7% (1 d), 7,6% (3 d) e 7,8% (7 d) dos
+    instantes. É o CUSUM e a cadeia do refratário carregando as linhas pontuadas com o bundle velho.
+- **Régua** (7/8 e FP 9 no prazo):
+
+  | Atraso | P0 (ignorar) | P1 (refazer) = como hoje |
+  |---|---|---|
+  | 1 d | FP 11 | FP 10 |
+  | 3 d | FP 12; 09/12/25 de 27 h para 48 h | FP 12 |
+  | 7 d | FP 16; **perde o 09/12/25** | 8/8, FP 14 |
+
+  - Com P1, a régua é idêntica à do procedimento atual em todos os atrasos.
+  - O custo que sobra é das linhas emitidas antes da chegada, pontuadas com o bundle velho. Isso vale para qualquer
+    procedimento.
+- **Leitura, para a engenharia:** bundle novo = evento de "refazer desde o dia 1 do mês", o mesmo mecanismo da
+  correção de dado.
+  - O motor com estado fica idêntico ao procedimento atual.
+  - O atraso do retreino em si custa FP, de +1 a +5 por 15 meses, por isso o bundle tem de sair no dia 1.
+- **Placar:** acertei tudo:
+  - V1;
+  - ref_A e P1 bit a bit depois da chegada;
+  - P0 com sinais iguais e alarme diferente com 7 d;
+  - régua diferente com 7 d;
+  - t/p diferentes antes da chegada.
+
+  Não previ que P1 empataria exatamente com "como hoje" na régua em todos os atrasos.
+
+_(registrado em 06/11/2026 19:14)_
+
 ### 06/11/2026 — J5 (frente Thallys), janela de leitura do retreino mensal — 77 d DÁ BUNDLE IDÊNTICO EM 16/16 MESES
 - **Origem:** queixa do "volume de linhas" no retreino, levantada na reunião com a engenharia. Hoje o `constroi_bundle.py`
   lê o histórico inteiro, mas usa só os últimos 20.000 pontos estáveis antes do dia 1.

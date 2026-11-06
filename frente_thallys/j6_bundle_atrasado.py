@@ -27,6 +27,20 @@ EXPECTATIVAS: V1 passa (~97%). ref_A bit a bit depois da chegada nos 3 atrasos (
 LIMITES: atraso igual em todos os meses (pior caso sistemático, não um mês isolado); bundles do git; 8 trips. Bundle
   VENCIDO (validade 62 d) não é exercitado: com A <= 7 o anterior ainda vale.
 
+RESULTADO (06/11/2026 19:14; task 4c542c2b, commit 7291e10, 11 min no Cica). V1 PASSA: motor_limpo bit a bit, 7/8 FP 9.
+  Depois da chegada (contra ref_limpo):
+    ref_A (como hoje) e motor P1: bit a bit nos 3 atrasos.
+    motor P0: t/p/sp/vb iguais (|Δ| <= 1,4e-13), alarme diferente em 2,7% (1 d), 7,6% (3 d), 7,8% (7 d).
+  Régua (ref_limpo 7/8 FP 9):
+    1 d: P0 FP 11 | P1 = como hoje FP 10
+    3 d: P0 FP 12, 09/12/25 de 27 h para 48 h | P1 = como hoje FP 12
+    7 d: P0 7/8 FP 16, PERDE 09/12/25 | P1 = como hoje 8/8 FP 14
+  P1 e "como hoje" têm a mesma régua e os mesmos % em tudo. O que sobra é o custo das linhas emitidas antes da chegada.
+PLACAR: ACERTEI V1; ref_A e P1 bit a bit depois da chegada; P0 com sinais iguais e alarme diferente com 7 d; régua
+  diferente com 7 d; t/p diferentes antes da chegada. Não previ o empate exato entre P1 e "como hoje".
+LEITURA: bundle novo = evento de "refazer desde o dia 1", o mesmo mecanismo da correção. O atraso em si custa FP (+1 a
+  +5 em 15 meses), qualquer que seja o procedimento: o retreino tem de publicar no dia 1.
+
 Uso:
   python frente_thallys/j6_bundle_atrasado.py --local --teste   # encanamento local, recorte até 15/04/2025
   python frente_thallys/j6_bundle_atrasado.py --enqueue         # uma task na fila default
