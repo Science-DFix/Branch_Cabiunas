@@ -28,6 +28,20 @@ LIMITES: 17 meses de um equipamento; parada longa (> 70 d de span) não ocorreu 
   inteiro dá bundle com alerta -- a regra proposta para esse caso (estender a leitura até ter os 20.000 pontos) é
   argumento, não medida.
 
+RESULTADO (06/11/2026 17:20; task 4feb79c4, commit 20d8856, 1 min no Cica, 16 meses 2025-01..2026-04). Bruto inteiro =
+  1.748.160 linhas de 30 s (68 M células). O teste local não coube em 7 GB de RAM; a análise foi conferida com
+  registros sintéticos antes do envio.
+  Bundle idêntico (sha256 de todos os arquivos) ao do inteiro: 77 d 16/16 · 60 d 15/16 (falha 2025-07) ·
+    45 d 12/16 · 30 d 6/16. TODA falha é rc 1 (pontos insuficientes); nenhuma janela gerou bundle diferente.
+  Janela mínima necessária por mês: 28 a 65 d (máx 2025-07); span 27–64 d, folga 0–3 d.
+  Volume lido com 77 d: 221.760 linhas = 12,7% do inteiro hoje, e fixo (o inteiro cresce ~86 mil linhas/mês);
+    tempo do main() 0,35 s contra 2,3 s (mediana).
+  V1: os 16 bundles do inteiro batem com os do git -- mesmas datas de baseline, |Δ| = 0 nos números de todos os JSON.
+PLACAR: ACERTEI 77 d 16/16; 45/30 d falham por ERRO; janela mínima máx entre 60 e 70 d (65); volume <= 20% (12,7%);
+  V1 desde 2025-03 (16/16). ERREI (dei 25%) 60 d em todos -- cai em 2025-07.
+LEITURA: o retreino só precisa ler [dia 1 − 77 d, dia 1) e o resultado é idêntico; numa parada longa, estender a
+  leitura até ter os 20.000 pontos (argumento; não ocorreu no período).
+
 Uso:
   python frente_thallys/j5_retreino_janela.py --local --teste    # encanamento local, 2 meses
   python frente_thallys/j5_retreino_janela.py --enqueue          # uma task na fila default

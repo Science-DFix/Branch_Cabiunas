@@ -161,6 +161,39 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 06/11/2026 — J5 (frente Thallys), janela de leitura do retreino mensal — 77 d DÁ BUNDLE IDÊNTICO EM 16/16 MESES
+- **Origem:** queixa do "volume de linhas" no retreino, levantada na reunião com a engenharia. Hoje o `constroi_bundle.py`
+  lê o histórico inteiro, mas usa só os últimos 20.000 pontos estáveis antes do dia 1.
+- **Script:** `frente_thallys/j5_retreino_janela.py`, pré-registro `20d8856`. Task `4feb79c4`, 1 min no Cica.
+  - Roda o `main()` do pacote sem alteração para cada mês de 2025-01 a 2026-04.
+  - Lê o bruto de 30 s inteiro e também só [corte − N d, corte), com N = 77, 60, 45 e 30.
+  - Compara o sha256 de cada arquivo do bundle.
+  - O teste local não coube nos 7 GB de RAM e foi interrompido no envio. A análise foi conferida com dados sintéticos.
+- **Resultado:**
+  - 77 d: bundle idêntico, byte a byte, em 16/16 meses;
+  - 60 d: 15/16;
+  - 45 d: 12/16;
+  - 30 d: 6/16.
+  - Toda falha é um ERRO por "pontos insuficientes" (rc 1). Nenhuma janela gerou um bundle diferente: o script não
+    publica um bundle errado, ele se recusa.
+  - Janela mínima necessária por mês (corte − 1º ponto do baseline): 28 a 65 d, com máximo de 65 d em 2025-07.
+    Sobram 12 d de folga até 77 d.
+- **Volume:** o histórico inteiro tem 1.748.160 linhas de 30 s (20 meses, 68 milhões de células) e cresce cerca de
+  86 mil linhas por mês. Com 77 d são 221.760 linhas fixas, 12,7% hoje.
+  O `main()` leva 2,3 s contra 0,35 s (mediana).
+- **V1:** os bundles do histórico inteiro batem com os 16 do git, com as mesmas datas de baseline e |Δ| = 0 em todos os
+  números dos JSON.
+- **Leitura, para a engenharia:** o retreino precisa ler só [dia 1 − 77 d, dia 1); o resultado é idêntico.
+  - Regra para parada longa: se 77 d derem menos de 20.000 pontos estáveis, estender a leitura até tê-los. Isso é
+    argumento, não medida: não ocorreu no período.
+  - A pergunta de quem gravava as "linhas" ainda precisa ser confirmada com quem levantou a queixa.
+- **Placar:**
+  - acertei: 77 d em 16/16; 45 e 30 d falham por ERRO, não por bundle diferente; janela mínima máxima entre 60 e
+    70 d (65); volume ≤ 20% (12,7%); V1 desde 2025-03 (bateu nos 16);
+  - errei (dei 25%): 60 d em todos — falha justamente em 2025-07.
+
+_(registrado em 06/11/2026 17:20)_
+
 ### 06/11/2026 — J34 (frente Thallys), motor com estado: partida a frio e robustez — BIT A BIT EM TODOS OS CENÁRIOS COM A REGRA "REFAZER"
 - **Origem:** perguntas 2, 3, 4 e 6 da engenharia e a lista de cenários do documento deles.
 - **Script:** `frente_thallys/j34_estado_robustez.py`, pré-registro `fc4ec31`. Task `24c98ea5`, 12 min no Cica.
