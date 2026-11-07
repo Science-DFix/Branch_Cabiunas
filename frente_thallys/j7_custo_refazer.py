@@ -33,6 +33,23 @@ EXPECTATIVAS: P <= 14 exato em 20/20 (~90%); 17 d exato em >= 18/20 (~60%); 30 d
 LIMITES: tracemalloc mede Python/numpy, não o RSS; sem correção real no dado (o J34 já mostrou que o resultado de
   refazer com dado corrigido é o da referência); o Cica não é o servidor do SIMPred.
 
+RESULTADO (07/11/2026 12:11; task e9ce6fc5, commit e65b697, 6 min no Cica; replay de 1.880 cortes em 255 s).
+  Exatos e custo (mediana, p95):
+    refazer  1 d  20/20  0,49 s (0,87)  11 MB
+    refazer  7 d  20/20  0,55 s (0,89)  13 MB
+    refazer 14 d  20/20  0,62 s (0,91)  17 MB
+    refazer 17 d  20/20  0,65 s (0,95)  19 MB
+    refazer 21 d  13/20  0,65 s (0,98)  22 MB
+    refazer 30 d   6/20  0,66 s (1,00)  27 MB
+    reconstruir de 60 d de bruto  20/20 (corte seguinte idêntico)  0,53 s (0,65)  38 MB
+  Regra das posições: 119/120. A exceção é 2026-04-01, 21 d: 13.013 posições e vb |Δ| 6e-6; o limite não é afiado
+    na margem.
+PLACAR: ACERTEI <= 14 d 20/20; 17 d >= 18/20 (20/20); 30 d inexato na maioria (14/20); 17 d <= 1 s; reconstruir
+  exato 20/20. ERREI regra 120/120 (119); refazer 7 d <= 0,5 s (0,55); reconstruir ~0,3 s (0,53).
+LEITURA: correção, trip ou bundle até 17 d atrás = refazer pelo estado (lê P + 3 d de bruto, ~0,6 s). Mais antigo =
+  reconstruir de 60 d de bruto (0,53 s, exato). O custo de CPU é o mesmo; muda o volume lido do banco. Para a regra,
+  usar o limite em dias (17 d) ou dar margem à conta das posições.
+
 Uso:
   python frente_thallys/j7_custo_refazer.py --local --teste   # encanamento local, recorte até 15/04/2025
   python frente_thallys/j7_custo_refazer.py --enqueue         # uma task na fila default

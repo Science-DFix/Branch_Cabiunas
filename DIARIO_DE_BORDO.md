@@ -161,6 +161,43 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 07/11/2026 — J7 (frente Thallys), custo e limite do "refazer" — EXATO ATÉ 17 d EM 20/20, ~0,6 s; ACIMA, RECONSTRUIR DE 60 d (0,53 s)
+- **Origem:** o documento da engenharia pede o "tempo de recuperação após correção". O J34 e o J6 fixaram a regra
+  "refazer desde o trecho afetado", mas só mediram o reinício (5 ms).
+- **Script:** `frente_thallys/j7_custo_refazer.py`, pré-registro `e65b697`. Task `e9ce6fc5`, 6 min no Cica.
+  - 20 instantes sorteados; refazer P dias sobre o mesmo dado, comparado ao estado gravado.
+  - O teste local mudou o desenho antes do envio, e isso está no pré-registro:
+    - **trips desligados.** O pacote só aplica um trip quando o dado passa dele, então refazer um trecho que cruza um
+      trip diverge de propósito: é a regra do trip tardio do J34.
+    - **regra do limite trocada.** A conta "sobram 13.000 no buffer" errou 17 d. A conta certa são as posições estáveis
+      antes de `desde`: min(13.000, buffer antes de `desde` − 3 d) + estáveis do bruto relido, com limite ≥ 12.900.
+- **Resultado** (mediana; p95 abaixo de 1 s em todos):
+
+  | Variante | Exatos | Tempo | Pico |
+  |---|---|---|---|
+  | refazer 1 d | 20/20 | 0,49 s | 11 MB |
+  | refazer 7 d | 20/20 | 0,55 s | — |
+  | refazer 14 d | 20/20 | 0,62 s | — |
+  | refazer 17 d | 20/20 | 0,65 s | 19 MB |
+  | refazer 21 d | 13/20 | 0,65 s | — |
+  | refazer 30 d | 6/20 | 0,66 s | 27 MB |
+  | reconstruir de 60 d de bruto | 20/20 (corte seguinte idêntico) | 0,53 s | 38 MB |
+
+  - A regra das posições acertou 119/120. O erro foi 2026-04-01, 21 d, com 13.013 posições e vb |Δ| 6e-6: o limite
+    não é afiado na margem.
+- **Leitura, para a engenharia:**
+  - correção, trip ou bundle até 17 d atrás: refazer pelo estado, lendo P + 3 d de bruto, ~0,6 s;
+  - mais antigo que isso: reconstruir de 60 d de bruto, 0,53 s, exato.
+  - Os dois custam o mesmo em CPU; a diferença é o volume de leitura do banco. O caso do trip conhecido 7 d depois
+    (refazer 14 d) e o do bundle 7 d atrasado cabem no refazer.
+  - Para a regra, usar o limite em dias (17 d) ou dar margem à conta das posições.
+- **Placar:**
+  - acertei: ≤ 14 d em 20/20; 17 d em ≥ 18/20 (20/20); 30 d inexato na maioria (14/20); 17 d ≤ 1 s; reconstruir
+    exato 20/20;
+  - errei: regra em 120/120 (119); refazer 7 d ≤ 0,5 s (0,55); reconstruir ~0,3 s (0,53).
+
+_(registrado em 07/11/2026 12:11)_
+
 ### 06/11/2026 — J6 (frente Thallys), bundle mensal atrasado — REFAZER O MÊS = BIT A BIT DEPOIS DA CHEGADA; IGNORAR MUDA O ALARME
 - **Origem:** o documento da engenharia pede "trocas de bundle" no replay. O J34 cobriu a troca no prazo; faltava o
   retreino do dia 1 falhar ou atrasar.
