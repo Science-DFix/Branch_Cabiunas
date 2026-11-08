@@ -32,6 +32,25 @@ EXPECTATIVAS: INTEIRA exata em 40/40 (~85%, como no J34); BLOCOS exatos em 80/80
 LIMITES: tracemalloc mede Python/numpy, não o RSS; horizonte de 14 d depois de T0 (o J34 usou 100 d com a carga
   inteira); o Cica não é o servidor do SIMPred; tempo de consulta ao banco não entra (é da engenharia).
 
+RESULTADO (08/11/2026 15:24; task c9411e84, commit e625cd4, 21 min no Cica; 20 instalações, 10.080 linhas comparadas
+  em cada).
+                 exatos   montagem (p95)    pico    cargas  maior carga
+    H 45 inteira  16/20   0,40 s (0,50)     29 MB   1       1,20 M
+    H 45 B 14     16/20   1,71 s (2,30)     18 MB   4       453 mil
+    H 45 B 30     16/20   0,91 s (0,96)     19 MB   2       799 mil
+    H 60 inteira  20/20   0,51 s (0,64)     38 MB   1       1,60 M
+    H 60 B 14     20/20   2,46 s (3,26)     21 MB   5       453 mil
+    H 60 B 30     20/20   1,07 s (1,15)     28 MB   2       879 mil
+  As 4 falhas de 45 d (T0 = 25/05, 06/06, 13/06 e 14/06/2025) são as MESMAS na carga inteira e nos blocos, no mesmo
+  corte e com o mesmo |Δ| do vb (0,099; 0,44; 15,4; 15,4). Os blocos reproduzem a carga inteira; quem falha é a carga
+  de 45 d naquele período (só o vb diverge). Causa provável: pouca operação estável em mai–jun/2025, e a base de 400 h
+  do vb alcança antes do início da carga -- não conferido instante a instante.
+PLACAR: ACERTEI maior carga por construção (799/879 mil e 453 mil); montagem em blocos B 30 <= 2 s (0,91/1,07);
+  pico < 60 MB (28). ERREI INTEIRA 40/40 (36/40) e BLOCOS 80/80 (72/80) -- as falhas não são dos blocos.
+LEITURA: carga inicial de 60 d em 2 blocos de 30 d = igual ao motor contínuo em 20/20, cada carga <= 879 mil células,
+  ~1,1 s. Corrige o J34: "carga >= 45 d = igual desde T0" vale em operação normal (12/12 lá), não em período de baixa
+  disponibilidade. A regra de prontidão do J34 continua sendo a salvaguarda (marca DEGRADADA até haver base cheia).
+
 Uso:
   python frente_thallys/j9_carga_blocos.py --local --teste   # encanamento local, recorte até 15/04/2025
   python frente_thallys/j9_carga_blocos.py --enqueue         # uma task na fila default

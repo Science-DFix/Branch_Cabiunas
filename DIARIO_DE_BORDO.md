@@ -161,6 +161,35 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 08/11/2026 — J9 (frente Thallys), carga inicial em blocos — BLOCOS = CARGA INTEIRA; 60 d EM 2 BLOCOS DE 30 d É EXATA EM 20/20, MAS 45 d FALHA EM 4/20
+- **Origem:** o J34 recomendou carga inicial de ≥ 45 d, que lê ~1,2 M células numa carga (60 d, ~1,6 M), acima do
+  limite de 1 M do worker.
+- **Script:** `frente_thallys/j9_carga_blocos.py`, pré-registro `e625cd4`. Task `c9411e84`, 21 min no Cica.
+  - 20 instalações desde 01/04/2025. Carga de H = 45 e 60 d, inteira ou em blocos de 14 e 30 d. Depois, 14 d de
+    emissões comparadas com o motor contínuo (10.080 linhas por instalação). Sem trips, como no J7/J8.
+- **Resultado:**
+
+  | Carga | Exatos | Montagem (mediana) | Maior carga |
+  |---|---|---|---|
+  | 45 d inteira | 16/20 | 0,40 s | 1,20 M |
+  | 45 d, blocos de 14 / 30 d | 16/20 | 1,71 / 0,91 s | 453 / 799 mil |
+  | 60 d inteira | 20/20 | 0,51 s | 1,60 M |
+  | **60 d, blocos de 14 / 30 d** | **20/20** | 2,46 / **1,07 s** | 453 / **879 mil** |
+
+  - As 4 falhas de 45 d (T0 25/05, 06/06, 13/06 e 14/06/2025) são as mesmas nas três variantes, no mesmo corte e com o
+    mesmo |Δ| do vb (0,099 a 15,4). **Os blocos reproduzem a carga inteira**; quem falha é a carga de 45 d nesse período.
+  - Causa provável: pouca operação estável em mai–jun/2025, e a base de 400 h do vb alcança antes do início da carga.
+    Não conferido instante a instante.
+- **Corrige o J34:** "carga ≥ 45 d = igual desde T0" valeu nas 6 datas de lá (12/12), mas não vale em período de baixa
+  disponibilidade. A regra de prontidão continua sendo a salvaguarda.
+- **Leitura, para a engenharia:** instalar com carga de **60 d em 2 blocos de 30 d**: igual ao motor contínuo em 20/20,
+  cada carga ≤ 879 mil células, ~1,1 s.
+- **Placar:**
+  - acertei: maior carga por construção; montagem B 30 ≤ 2 s; pico < 60 MB;
+  - errei: inteira 40/40 (36/40) e blocos 80/80 (72/80). As falhas não são dos blocos.
+
+_(registrado em 08/11/2026 15:24)_
+
 ### 07/11/2026 — J8 (frente Thallys), correção antiga dentro de 1 M células — FOTO DIÁRIA + REFAZER EM BLOCOS DE 30 d: BIT A BIT EM 160/160, CADA CARGA ≤ 879 MIL CÉLULAS
 - **Origem:** o J7 recomendou reconstruir de 60 d de bruto para correção com mais de 17 d. Isso lê ~1,6 M células numa
   carga e estoura o `FEATURE_HISTORY_MAX_CELLS` padrão do worker (1 M).
