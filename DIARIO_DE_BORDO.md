@@ -161,6 +161,37 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 07/11/2026 — J8 (frente Thallys), correção antiga dentro de 1 M células — FOTO DIÁRIA + REFAZER EM BLOCOS DE 30 d: BIT A BIT EM 160/160, CADA CARGA ≤ 879 MIL CÉLULAS
+- **Origem:** o J7 recomendou reconstruir de 60 d de bruto para correção com mais de 17 d. Isso lê ~1,6 M células numa
+  carga e estoura o `FEATURE_HISTORY_MAX_CELLS` padrão do worker (1 M).
+- **Descartado na conta, antes do teste:** ler só as sondas TV_ no trecho antigo. A tabela de 45 d de sinais usa as 37
+  colunas, então a carga ficaria em ~1,33 M.
+- **Script:** `frente_thallys/j8_foto_blocos.py`, pré-registro `25c0175`. Task `0355fa6d`, 11 min no Cica.
+  - Foto do estado no 1º corte de cada dia. Correção em `desde`: voltar à última foto ≤ `desde` e refazer até o agora
+    em blocos de B dias, cada bloco relendo B + 3 d das 37 colunas.
+  - Idades 21, 30, 45 e 60 d, B = 14 e 30 d, 20 instantes desde 01/06/2025. Sem trips, como no J7.
+- **Resultado:** bit a bit em **160/160** (tabela inteira e corte seguinte). A regra das posições acertou 160/160.
+
+  | Idade | B = 14 d: tempo · maior carga · total | B = 30 d: tempo · maior carga · total |
+  |---|---|---|
+  | 21 d | 1,13 s · 453 mil · 726 mil | 0,66 s · 659 mil · 646 mil |
+  | 30 d | 1,75 s · 453 mil · 1,05 M | 1,12 s · 879 mil · 966 mil |
+  | 45 d | 2,40 s · 453 mil · 1,53 M | 1,41 s · 879 mil · 1,37 M |
+  | 60 d | 3,19 s · 453 mil · 2,00 M | 1,96 s · 879 mil · 1,84 M |
+
+  - Mediana do tempo; p95 até 4,0 s (60 d, B 14). Pico de memória Python 19–30 MB.
+- **Leitura, para a engenharia:**
+  - até 17 d atrás: refazer pelo estado (J7);
+  - mais antigo: voltar à foto diária e refazer em blocos de 30 d. Cada carga fica em ≤ 879 mil células, abaixo do
+    limite padrão, e o resultado é exato. Substitui "reconstruir de 60 d".
+  - O **total** lido passa de 1 M em correções de 30 d ou mais. O carregamento precisa ser por bloco, com o limite
+    valendo por carga.
+  - Custo: ~200 MB de fotos em disco por equipamento (60 × 3,3 MB; conta, não medida).
+- **Placar:** acertei todas as expectativas (exato 160/160, regra 160/160, maior bloco ≤ 879 mil, tempos, B 14 mais
+  caro, pico < 50 MB).
+
+_(registrado em 07/11/2026 23:38)_
+
 ### 07/11/2026 — J7 (frente Thallys), custo e limite do "refazer" — EXATO ATÉ 17 d EM 20/20, ~0,6 s; ACIMA, RECONSTRUIR DE 60 d (0,53 s)
 - **Origem:** o documento da engenharia pede o "tempo de recuperação após correção". O J34 e o J6 fixaram a regra
   "refazer desde o trecho afetado", mas só mediram o reinício (5 ms).

@@ -31,6 +31,20 @@ LIMITES: tracemalloc mede Python/numpy, não o RSS; sem correção real no dado 
   corrigido dá o da referência); foto diária em disco = 60 × 3,3 MB ≈ 200 MB por equipamento (conta, não medida); o
   Cica não é o servidor do SIMPred; tempo de consulta ao banco não entra (é da engenharia).
 
+RESULTADO (07/11/2026 23:38; task 0355fa6d, commit 25c0175, 11 min no Cica; replay de 1.880 cortes, 73 fotos, 256 s).
+  Exatos em 160/160 (tabela inteira e corte seguinte). Regra das posições prevê exato e acerta em 160/160.
+  Mediana (p95), pico, blocos, maior bloco e total lido (células na conta da engenharia):
+    A 21 d  B 14  1,13 s (1,81)  19 MB  2 blocos  453 mil  726 mil   | B 30  0,66 s (0,93)  22 MB  1 bloco   659 mil  646 mil
+    A 30 d  B 14  1,75 s (2,60)  22 MB  3 blocos  453 mil  1,05 M    | B 30  1,12 s (1,66)  28 MB  2 blocos  879 mil  966 mil
+    A 45 d  B 14  2,40 s (3,27)  23 MB  4 blocos  453 mil  1,53 M    | B 30  1,41 s (1,85)  28 MB  2 blocos  879 mil  1,37 M
+    A 60 d  B 14  3,19 s (4,01)  24 MB  5 blocos  453 mil  2,00 M    | B 30  1,96 s (2,43)  30 MB  3 blocos  879 mil  1,84 M
+PLACAR: ACERTEI todas: exato 160/160; regra 160/160; maior bloco <= 879 mil; B 30: A 30 ~1 s (1,12) e A 60 <= 2,5 s
+  (1,96); B 14 mais caro que B 30 em todas as idades; pico < 50 MB (30).
+LEITURA: correção mais antiga que 17 d = voltar à foto diária anterior ao trecho e refazer em blocos de 30 d; cada
+  carga fica abaixo de 1 M células (879 mil) e o resultado é bit a bit. O total lido passa de 1 M em correções de
+  30 d ou mais, então o carregamento precisa ser por bloco, não um só. Substitui "reconstruir de 60 d" (1,6 M numa
+  carga). Custo: ~200 MB de fotos em disco por equipamento (60 × 3,3 MB).
+
 Uso:
   python frente_thallys/j8_foto_blocos.py --local --teste   # encanamento local, recorte até 15/04/2025
   python frente_thallys/j8_foto_blocos.py --enqueue         # uma task na fila default
