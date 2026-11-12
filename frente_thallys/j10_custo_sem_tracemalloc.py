@@ -96,6 +96,11 @@ def executa(local: bool, insumos: str | None, teste: bool):
     J.prepara_cenarios()
     res = dict(ambiente=j1.ambiente()); print("ambiente:", res["ambiente"], flush=True)
     df, raw = G["df"], G["raw"]
+    # o bruto traz texto do PI ("No Data"...) em colunas object: o parquet pede tipo único -> texto (o
+    # `preparar_grade` do filho converte, como faria com o export real)
+    obj = [c for c in raw.columns if raw[c].dtype == object]
+    if obj:
+        raw = raw.astype({c: str for c in obj})
     lotes = LOTES if not teste else [30, 60]
     brutos = LOTES_BRUTO if not teste else [60]
     rng = np.random.default_rng(j1.SEMENTE)
