@@ -23,6 +23,22 @@ CRITÉRIO: ganho real = em B, 8/8 com FP <= 9 em pelo menos um N. Sem isso, o 8/
 LIMITES: um equipamento, 8 trips; o f é escolhido pelas horas no mesmo período em que se mede a régua (sem rótulos,
   mas não fora da amostra).
 
+RESULTADO (task e7574f0d, Cica). Controle 7/8 FP 9, 1.457 h.
+  A. Controle com o vb da base de 3.000 só em [04/11 - D, 04/11 + 2 d]: 8/8 FP 9 (1.463 h) com D = 2, 10 e 30 d;
+     base de 3.000 com o vb do controle na mesma janela: 7/8 FP 15 (perde o 04/11) nos três D.
+  B. Subindo o limiar do vb (f de 1,00 a 2,00):
+     N 6.000: escolhido f 1,60 (1.251 h) -> 7/8 FP 12; ainda pega o 04/11, perde outro trip. 8/8 só até f 1,30 (FP >= 15).
+     N 3.000: as horas não descem a 1.457 na grade; mais perto f 2,00 (1.917 h) -> 7/8 FP 11.
+              8/8 até f 1,95 (FP 11, 1.925 h, +32% horas).
+     As horas não caem de forma monotônica com f (a cadeia de episódios muda).
+PLACAR: A (2 d não pega, 30 d pega) NÃO: 2 d já pega, o efeito é LOCAL, não de cadeia. B (horas iguais voltam a 7/8)
+  SIM nos dois N (N 3.000 sem chegar às horas do controle). Critério (8/8 com FP <= 9 em B): NÃO -> ganho real NÃO.
+LEITURA: a base curta tem um precursor real do 04/11 no vb, ~8,8 h antes, local (2 d bastam) e robusto (resiste a
+  f = 2,0). Mas ela não é melhor que a de 400 h: a sensibilidade extra é espalhada pelo período inteiro, e ao apertar o
+  limiar para conter o FP ela perde outro trip (N 6.000) ou fica com +2 FP e +32% de horas (N 3.000). A base de 400 h
+  fica. Hipótese aberta, não testada: um z do vb com base curta só como sinal auxiliar (mais busca nos mesmos 8 trips).
+  _(registrado em 12/11/2026 13:23)_
+
 Uso:
   python frente_thallys/j13_base_vb_ganho.py --enqueue         # uma task na fila default
 """

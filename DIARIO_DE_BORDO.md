@@ -161,6 +161,17 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 12/11/2026 — J13 (frente Thallys), base do vb curta: ganho real? — NÃO; O 04/11 TEM PRECURSOR LOCAL NO vb, MAS A BASE CURTA NÃO DOMINA A DE 400 h
+
+- A (troca do vb só perto do trip): o vb da base de 3.000 em [04/11 − 2 d, +2 d] já pega o 04/11 no controle (8/8 FP 9);
+  o inverso perde. O efeito é local, não da cadeia do refratário.
+- B (limiar do vb × f até igualar horas): N 6.000 f 1,60 → 7/8 FP 12 (perde outro trip); N 3.000 não chega às
+  1.457 h; em f 1,95 fica 8/8 FP 11 com +32% horas. Critério (8/8, FP ≤ 9 com horas iguais): NÃO.
+- Leitura: precursor real do 04/11 no vb ~8,8 h antes, robusto; mas a sensibilidade da base curta é espalhada e não
+  bate o controle em custo igual. Base de 400 h fica. Hipótese aberta: vb de base curta como sinal auxiliar.
+
+_(registrado em 12/11/2026 13:23)_
+
 ### 12/11/2026 — J12 (frente Thallys), base do vb parcial — AQUECENDO NÃO EMITE COMO PLENA: 8/8 MAS FP QUASE DOBRA
 
 - Pergunta: com a base do vb limitada a N amostras estáveis o período todo (pior caso do AQUECENDO), a detecção se
