@@ -22,6 +22,11 @@ PROCEDIMENTO. 20 instantes sorteados (semente 20261105, como o custo do J34) des
   - motor_bruto: `preparar_grade` sobre 3 d de bruto de 30 s (só janelas fechadas) + um passo do motor.
   Tempo por fase (grade, cálculo) e total, sem a leitura dos arquivos. Mediana e p95 nos 20 instantes.
   Conferência: o lote_60 tem de dar o mesmo da medida do J34 (0,33 s; RSS 201 MB) dentro de ±20%.
+  O bruto vai ao filho em pickle, tal como sai do `carregar_dados` (texto do PI misturado a número).
+PARTE B (ponto 4 do Thallys: o motor recebeu a grade pronta; ele tem de aplicar `preparar_grade` aos 3 d). 50 cortes
+  sorteados (semente 20261111): (a) `preparar_grade` sobre [c − 3 d, c) = grade do bruto inteiro no mesmo trecho
+  (igualdade exata, NaN igual); (b) com [c − 3 d, c + 30 s], a última janela tem 2 das 4 leituras: quantas colunas e
+  quanto mudam. ESPERADO: (a) 50/50 (~90%: a mediana é por janela de 2 min alinhada à meia-noite); (b) difere.
 EXPECTATIVAS: lote_60 0,25–0,45 s e RSS 180–230 MB (~80%, = J34); lote_90 <= 0,7 s (~75%); RSS de lote_90 <= 250 MB
   (~70%); grade de 90 d a partir de 30 s <= 2 s (~75%; o docstring do pacote diz ~1,1 s) -- ou seja, os 14 s do J1
   eram efeito do tracemalloc; lote_bruto_90 <= 3 s (~70%); motor_bruto <= 0,3 s (~70%).
@@ -67,7 +72,7 @@ J.G["det"] = J.G["modelos"][-1]["detector"]; J.G["orig_z"] = ci._z_vibracao; ci.
 trips = [pd.Timestamp(t) for t in json.loads(open(pasta + "/trips.json").read())]
 r0 = hwm(); tg = 0.0; tc = 0.0
 if modo.startswith("lote_bruto_"):
-    w = pd.read_parquet(pasta + f"/bruto{modo.split('_')[-1]}.parquet")
+    w = pd.read_pickle(pasta + f"/bruto{modo.split('_')[-1]}.pkl")
     t0 = time.perf_counter(); g = ci.preparar_grade(w); t1 = time.perf_counter()
     J._prever(J._preproc(g, trips, None)); t2 = time.perf_counter(); tg, tc = t1 - t0, t2 - t1
 elif modo.startswith("lote_"):
@@ -77,13 +82,45 @@ elif modo.startswith("motor"):
     m = J.Motor(); m.tab = pd.read_parquet(pasta + "/tab.parquet").iloc[:-1]; m.buf = pd.read_parquet(pasta + "/buf.parquet")
     m.ultimo = m.tab.index[-1]
     if modo == "motor_bruto":
-        w = pd.read_parquet(pasta + "/bruto3.parquet")
+        w = pd.read_pickle(pasta + "/bruto3.pkl")
         t0 = time.perf_counter(); g = ci.preparar_grade(w); tg = time.perf_counter() - t0
     else:
         g = pd.read_parquet(pasta + "/grade3.parquet")
     t1 = time.perf_counter(); m.passo(g, g.index[-1], trips); tc = time.perf_counter() - t1
 print(json.dumps(dict(rss_mb=hwm(), rss_antes_mb=r0, grade_s=tg, calculo_s=tc, total_s=tg + tc)))
 """
+
+
+def grade_trechos(teste: bool):
+    """Parte B: `preparar_grade` sobre 3 d de bruto = a grade montada do bruto inteiro?"""
+    import numpy as np
+    import pandas as pd
+    ci, raw, df = G["ci"], G["raw"], G["df"]
+
+    def igual(a, b):
+        a, b = a.to_numpy(float), b.to_numpy(float)
+        return a.shape == b.shape and bool(((a == b) | (np.isnan(a) & np.isnan(b))).all())
+
+    rng = np.random.default_rng(20261111)
+    cand = df.loc[pd.Timestamp("2025-01-10", tz="UTC"):df.index[-1] - D("1D")].index
+    cortes = sorted(cand[i] for i in rng.choice(len(cand), 5 if teste else 50, replace=False))
+    ok_a, B = 0, []
+    for c in cortes:
+        ini = c - D("3D")
+        g = ci.preparar_grade(raw.loc[ini:c - D("1ns")]); ref = df.loc[ini:c - D("1ns")]
+        ok_a += bool(g.index.equals(ref.index) and igual(g, ref))
+        gb = ci.preparar_grade(raw.loc[ini:c + D("30s")])      # última janela com 2 das 4 leituras
+        u, r = gb.iloc[-1], df.loc[c]; m = r.notna() & u.notna()
+        B.append(dict(n_dif=int(((u != r) & m).sum() + (r.isna() != u.isna()).sum()),
+                      max_rel=float((np.abs(u[m] - r[m]) / np.abs(r[m]).clip(lower=1e-9)).max()) if m.any() else 0.0,
+                      resto_igual=igual(gb.iloc[:-1], df.loc[gb.index[:-1]])))
+    B = pd.DataFrame(B)
+    out = dict(n=len(cortes), fechadas_identicas=ok_a, colunas=int(df.shape[1]),
+               parcial_colunas_dif_med=float(B.n_dif.median()), parcial_colunas_dif_max=int(B.n_dif.max()),
+               parcial_dif_rel_med=float(B.max_rel.median()), parcial_dif_rel_max=float(B.max_rel.max()),
+               parcial_resto_igual=int(B.resto_igual.sum()))
+    print("GRADE EM TRECHOS:", out, flush=True)
+    return out
 
 
 def executa(local: bool, insumos: str | None, teste: bool):
@@ -96,11 +133,10 @@ def executa(local: bool, insumos: str | None, teste: bool):
     J.prepara_cenarios()
     res = dict(ambiente=j1.ambiente()); print("ambiente:", res["ambiente"], flush=True)
     df, raw = G["df"], G["raw"]
-    # o bruto traz texto do PI ("No Data"...) em colunas object: o parquet pede tipo único -> texto (o
-    # `preparar_grade` do filho converte, como faria com o export real)
-    obj = [c for c in raw.columns if raw[c].dtype == object]
-    if obj:
-        raw = raw.astype({c: str for c in obj})
+    # o bruto traz texto do PI ("No Data"...) misturado a número em colunas object, como sai do `carregar_dados`:
+    # o parquet não aceita tipo misto, o pickle guarda o DataFrame tal como está
+    def salva_bruto(w, f):
+        w.to_pickle(f)
     lotes = LOTES if not teste else [30, 60]
     brutos = LOTES_BRUTO if not teste else [60]
     rng = np.random.default_rng(j1.SEMENTE)
@@ -118,11 +154,11 @@ def executa(local: bool, insumos: str | None, teste: bool):
         df.loc[fim - D("3D"):fim].to_parquet(pasta / "grade3.parquet")
         # bruto só até o fim da última janela de 2 min (janelas fechadas): [fim - N, fim + 2 min)
         fecha = fim + D("2min") - D("1ns")
-        raw.loc[fim - D("3D"):fecha].to_parquet(pasta / "bruto3.parquet")
+        salva_bruto(raw.loc[fim - D("3D"):fecha], pasta / "bruto3.pkl")
         for n in lotes:
             df.loc[fim - D(f"{n}D"):fim].to_parquet(pasta / f"grade{n}.parquet")
         for n in brutos:
-            raw.loc[fim - D(f"{n}D"):fecha].to_parquet(pasta / f"bruto{n}.parquet")
+            salva_bruto(raw.loc[fim - D(f"{n}D"):fecha], pasta / f"bruto{n}.pkl")
         (pasta / "trips.json").write_text(json.dumps([str(t) for t in trips]))
         for modo in modos:
             # "nada": o filho só faz os imports e carrega os bundles, sem cálculo
@@ -150,6 +186,7 @@ def executa(local: bool, insumos: str | None, teste: bool):
         print(f"   {modo:14s} total {r['total_s_med']:.3f} s (p95 {r['total_s_p95']:.3f}) | grade {r['grade_s_med']:.3f} | "
               f"cálculo {r['calculo_s_med']:.3f} | RSS {r['rss_mb_med']:.0f} MB (máx {r['rss_mb_max']:.0f}; "
               f"+{r['acima_imports_mb']:.0f} sobre imports)", flush=True)
+    res["grade_trechos"] = grade_trechos(teste)
     res.update(resumo=resumo, duracao_min=round((time.time() - t00) / 60, 1))
     (SAIDA / "j10_resultado.json").write_text(json.dumps(res, indent=1, ensure_ascii=False, default=str))
     from clearml import Task as Tk
