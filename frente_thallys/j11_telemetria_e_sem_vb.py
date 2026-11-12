@@ -25,6 +25,9 @@ PARTE B. Controle publicado (`sinais_causais` + `prever`, = reproduz.controle: 7
 EXPECTATIVAS: (A) lote_90 entre 3 e 8 s e RAM pico entre 150 e 400 MB (~70%; o relatório de 07/10 dá 5,4 s e
   167 MB); lote_60 abaixo de lote_90 nos dois (~90%); motor <= metade do tempo de lote_60 (~75%) e RAM <= lote_60
   (~75%). (B) controle 7/8 FP 9 (~95%); sem vb <= 3/8 (~70%; o Thallys diz 1/8).
+REENVIO (12/11/2026): a 1a task (fdd7fb5b) falhou antes de medir (sem espaço em disco: o subprocesso dos estados
+  copiava de novo o CSV de 1 GB). Correção só de infraestrutura: o filho reaproveita a árvore do pai e os CSVs são
+  gravados e apagados um instante por vez. Perguntas, medidas e expectativas inalteradas.
 LIMITES: Cica, não o servidor do SIMPred; leitura do banco fora (o CSV vem do disco local); o motor importa o
   módulo da frente (j34), que é maior que um motor de produção.
 
@@ -35,6 +38,7 @@ from clearml import Task  # noqa: F401  (antes do argparse: o worker injeta argu
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -72,7 +76,7 @@ def monta_estados(teste: bool):
 
 
 def recorta_csv(a97: Path, inst: list[dict]):
-    """Uma passada no export de 30 s: grava, para cada instante, os CSVs de 3, 60 e 90 d no formato de produção."""
+    """Uma passada no export de 30 s: grava, para os instantes dados, os CSVs de 3, 60 e 90 d no formato de produção."""
     import pandas as pd
     alvos = []
     for x in inst:
@@ -102,19 +106,28 @@ def mede(rotulo, cmd, log):
     return o.returncode, o.stderr[-600:]
 
 
+def livre_gb():
+    return round(shutil.disk_usage(tempfile.gettempdir()).free / 1e9, 1)
+
+
 def parte_a(pk: Path, a97: Path, teste: bool, local: bool, insumos):
+    import numpy as np
     import pandas as pd
+    # o filho reaproveita a árvore do pai (J11_PK/J11_A97): uma 2a cópia do CSV de 1 GB encheu o disco do worker
+    env = dict(os.environ, J11_PK=str(pk), J11_A97=str(a97))
     o = subprocess.run([sys.executable, __file__, "--estados"] + (["--local"] if local else []) +
-                       (["--teste"] if teste else []) + ["--insumos", insumos or ""], capture_output=True, text=True)
+                       (["--teste"] if teste else []) + ["--insumos", insumos or ""], capture_output=True, text=True,
+                       env=env)
     if o.returncode != 0:
         raise RuntimeError("estados: " + o.stderr[-1500:])
     inst = json.loads((SAIDA / "instantes.json").read_text())
-    t0 = time.time(); recorta_csv(a97, inst); print(f"CSVs recortados em {time.time() - t0:.0f} s", flush=True)
     log = SAIDA / "telemetria.jsonl"
     exemplo, scripts, modelos = pk / "scripts" / "tc33003a_exemplo.py", pk / "scripts", pk / "modelos"
     erros = []
     for x in inst:
         pa = Path(x["pasta"])
+        t0 = time.time(); recorta_csv(a97, [x])    # um instante por vez: os CSVs são apagados depois da medida
+        print(f"   CSVs recortados em {time.time() - t0:.0f} s; livre {livre_gb()} GB", flush=True)
         for n in (60, 90):
             c, e = mede(f"lote_{n}|{x['fim']}", [sys.executable, str(exemplo), "--csv", str(pa / f"bruto{n}.csv"),
                                                  "--dias", "1", "--ignorar-validade"], log)
@@ -122,12 +135,13 @@ def parte_a(pk: Path, a97: Path, teste: bool, local: bool, insumos):
         c, e = mede(f"motor|{x['fim']}", [sys.executable, str(AQUI / "j11_motor_cmd.py"), str(pa), str(scripts),
                                           str(modelos)], log)
         if c: erros.append(("motor", x["fim"], c, e))
+        x["csv_mb"] = {n: round((pa / f"bruto{n}.csv").stat().st_size / 1e6, 1) for n in (3, 60, 90)}
+        for n in (3, 60, 90):
+            (pa / f"bruto{n}.csv").unlink()
         print(f"   {x['fim']} medido", flush=True)
     R = pd.DataFrame([json.loads(l) for l in log.read_text().splitlines()])
     R["modo"] = R.rotulo.str.split("|").str[0]
     R["cpu_s"] = R.cpu_usuario_s + R.cpu_sistema_s
-    R["csv_mb"] = [Path(json.loads(l)["comando"].split("--csv ")[1].split(" ")[0]).stat().st_size / 1e6
-                   if "--csv" in json.loads(l)["comando"] else None for l in log.read_text().splitlines()]
     R.to_csv(SAIDA / "telemetria.csv", index=False)
     res = {}
     for modo, g in R[R.codigo_saida == 0].groupby("modo", sort=False):
@@ -140,6 +154,7 @@ def parte_a(pk: Path, a97: Path, teste: bool, local: bool, insumos):
         r = res[modo]
         print(f"   {modo:9s} {r['duracao_s_med']} s (p95 {r['duracao_s_p95']}) | CPU {r['cpu_s_med']} s | RAM pico "
               f"{r['ram_pico_mb_med']} MB (máx {r['ram_pico_mb_max']}) | lidos {r['lidos_mb_med']} MB | n {r['n']}", flush=True)
+    res["csv_mb"] = {n: float(np.median([x["csv_mb"][n] for x in inst])) for n in (3, 60, 90)}
     res["falhas"] = [dict(modo=a, fim=b, codigo=c, erro=e) for a, b, c, e in erros]
     if erros:
         print("FALHAS:", res["falhas"][:3], flush=True)
@@ -166,7 +181,9 @@ def parte_b():
 
 def executa(local: bool, insumos: str | None, teste: bool):
     SAIDA.mkdir(parents=True, exist_ok=True); t00 = time.time()
+    print(f"disco livre antes: {livre_gb()} GB", flush=True)
     pk, a97, _ = j1.monta(local, insumos)
+    print(f"disco livre depois de montar: {livre_gb()} GB", flush=True)
     res = dict(ambiente=j1.ambiente()); print("ambiente:", res["ambiente"], flush=True)
     print("PARTE A (telemetria)", flush=True)
     res["A"] = parte_a(pk, a97, teste, local, insumos)
@@ -189,7 +206,13 @@ def main():
     ap.add_argument("--insumos", default=j1.DS_INSUMOS)
     a = ap.parse_args()
     if a.estados:                       # subprocesso da parte A: monta os estados do motor e sai
-        pk, a97, _ = j1.monta(a.local, a.insumos or j1.DS_INSUMOS)
+        pk, a97 = Path(os.environ["J11_PK"]), Path(os.environ["J11_A97"])
+        if a.local:
+            nv_src = j1.LOCAL_NV
+        else:
+            from clearml import Dataset
+            nv_src = Path(Dataset.get(dataset_id=a.insumos or j1.DS_INSUMOS).get_local_copy()) / "nv"
+        sys.path[:0] = [str(nv_src.parent), str(pk / "scripts")]      # o que j1.monta faz, sem copiar o CSV
         j1.prepara(pk, a97, a.teste); monta_estados(a.teste); return
     if a.enqueue:
         t = Task.init(project_name="TesteMLCab", task_name=NOME)
