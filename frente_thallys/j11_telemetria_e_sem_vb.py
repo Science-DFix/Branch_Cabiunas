@@ -27,7 +27,10 @@ EXPECTATIVAS: (A) lote_90 entre 3 e 8 s e RAM pico entre 150 e 400 MB (~70%; o r
   (~75%). (B) controle 7/8 FP 9 (~95%); sem vb <= 3/8 (~70%; o Thallys diz 1/8).
 REENVIO (12/11/2026): a 1a task (fdd7fb5b) falhou antes de medir (sem espaço em disco: o subprocesso dos estados
   copiava de novo o CSV de 1 GB). Correção só de infraestrutura: o filho reaproveita a árvore do pai e os CSVs são
-  gravados e apagados um instante por vez. Perguntas, medidas e expectativas inalteradas.
+  gravados e apagados um instante por vez. A 2a (6746255a) falhou igual, e aí achei a causa: o subprocesso herdava
+  CLEARML_TASK_ID, o ClearML trocava os argumentos dele pelos da task e ele rodava a task inteira de novo, em
+  cascata. Agora o filho roda sem as variáveis CLEARML_* e se recusa a rodar sem --estados.
+  Perguntas, medidas e expectativas inalteradas.
 LIMITES: Cica, não o servidor do SIMPred; leitura do banco fora (o CSV vem do disco local); o motor importa o
   módulo da frente (j34), que é maior que um motor de produção.
 
@@ -54,6 +57,7 @@ N_INST = 10
 SAIDA = Path(tempfile.gettempdir()) / "j11_saida"
 TELEM = AQUI / "terceiros" / "telemetria_execucao.py"
 G = j1.G
+NV_PAI = []
 
 
 def monta_estados(teste: bool):
@@ -114,7 +118,10 @@ def parte_a(pk: Path, a97: Path, teste: bool, local: bool, insumos):
     import numpy as np
     import pandas as pd
     # o filho reaproveita a árvore do pai (J11_PK/J11_A97): uma 2a cópia do CSV de 1 GB encheu o disco do worker
-    env = dict(os.environ, J11_PK=str(pk), J11_A97=str(a97))
+    # sem as variáveis do ClearML: com CLEARML_TASK_ID o filho recebia os argumentos da task (--estados virava False)
+    # e rodava a task inteira de novo, em cascata, até encher o disco (2 tasks perdidas)
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("CLEARML_", "TRAINS_"))}
+    env.update(J11_PK=str(pk), J11_A97=str(a97), J11_NV_PAI=str(NV_PAI[0]))
     o = subprocess.run([sys.executable, __file__, "--estados"] + (["--local"] if local else []) +
                        (["--teste"] if teste else []) + ["--insumos", insumos or ""], capture_output=True, text=True,
                        env=env)
@@ -183,6 +190,7 @@ def executa(local: bool, insumos: str | None, teste: bool):
     SAIDA.mkdir(parents=True, exist_ok=True); t00 = time.time()
     print(f"disco livre antes: {livre_gb()} GB", flush=True)
     pk, a97, _ = j1.monta(local, insumos)
+    NV_PAI[:] = [sys.path[0]]                       # j1.monta põe o pai do nv no início do sys.path
     print(f"disco livre depois de montar: {livre_gb()} GB", flush=True)
     res = dict(ambiente=j1.ambiente()); print("ambiente:", res["ambiente"], flush=True)
     print("PARTE A (telemetria)", flush=True)
@@ -205,14 +213,11 @@ def main():
     ap.add_argument("--local", action="store_true"); ap.add_argument("--teste", action="store_true")
     ap.add_argument("--insumos", default=j1.DS_INSUMOS)
     a = ap.parse_args()
+    if "J11_PK" in os.environ and not a.estados:
+        raise SystemExit("J11: filho sem --estados; não roda a task de novo")
     if a.estados:                       # subprocesso da parte A: monta os estados do motor e sai
         pk, a97 = Path(os.environ["J11_PK"]), Path(os.environ["J11_A97"])
-        if a.local:
-            nv_src = j1.LOCAL_NV
-        else:
-            from clearml import Dataset
-            nv_src = Path(Dataset.get(dataset_id=a.insumos or j1.DS_INSUMOS).get_local_copy()) / "nv"
-        sys.path[:0] = [str(nv_src.parent), str(pk / "scripts")]      # o que j1.monta faz, sem copiar o CSV
+        sys.path[:0] = [os.environ["J11_NV_PAI"], str(pk / "scripts")]      # o que j1.monta faz, sem copiar o CSV
         j1.prepara(pk, a97, a.teste); monta_estados(a.teste); return
     if a.enqueue:
         t = Task.init(project_name="TesteMLCab", task_name=NOME)
