@@ -161,6 +161,26 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 11/11/2026 — J10 (frente Thallys), custo sem tracemalloc + revisão do Thallys na resposta à engenharia — CUSTO DO J1 ESTAVA INFLADO ~3×; GRADE EM TRECHOS IDÊNTICA
+
+- **Origem:** o Thallys mandou o `RELATORIO_RELEASE_V21_TC33003A.pdf` (release/v2.1 = e17bf27 + refratário especificado +
+  notificação) e uma avaliação da nossa resposta à engenharia com 6 imprecisões. Conferidas no código do e17bf27: as 6
+  procedem. Nenhuma muda os resultados de igualdade dos J1–J9 (o motor bate bit a bit com o código, não com o texto).
+  - Pacote dos J1–J9 conferido: Dataset f5e1b16b = e17bf27 arquivo por arquivo (scripts sem _pdf/, 160 de modelos,
+    registro = trips_conhecidos do último bundle); nv = d77de7d. O Thallys confirmou a pacote-consolidado.
+- **J10 (task 1d3d16f1, pré-reg d9b970e → e8dcca9):** processo limpo, perf_counter, RSS (VmHWM). Lote 60 d 0,31 s / 200 MB
+  (= J34); 90 d 0,49 s / 228 MB; a partir do export de 30 s: 60 d 0,69 s (grade 0,38), 90 d 1,08 s (grade 0,56); motor
+  0,13 s / 173 MB, com grade de 3 d 0,15 s / 185 MB. Os 14 s da grade e os 0,93/1,36 s do J1 eram efeito do tracemalloc.
+  Parte B: `preparar_grade` em 3 d com janelas fechadas = grade do bruto inteiro em 50/50; janela final incompleta
+  (2 de 4 leituras) muda ~29 de 39 colunas.
+- **Correções na resposta** (`~/FRENTE_THALLYS/tc33003a-resposta-da-equipe-de-modelos.md`): refratário (atenção também
+  arma); CUSUM na decisão; prontidão renomeada `SEM_VB`/`VB_PARCIAL`/`PLENA`, separada de ok/degradado/cego e dos
+  códigos 0/2/3/4; entrada = export de 30 s + `preparar_grade` só em janelas fechadas; emitido congelado (série
+  emitida × recalculada); seção 6 refeita com o J10; campos da notificação v2.1 como PENDENTE (ce42757 sem push).
+- **Regra nova do usuário:** todo teste roda no Cica, inclusive conferência pequena.
+
+_(registrado em 11/11/2026 21:20)_
+
 ### 08/11/2026 — J9 (frente Thallys), carga inicial em blocos — BLOCOS = CARGA INTEIRA; 60 d EM 2 BLOCOS DE 30 d É EXATA EM 20/20, MAS 45 d FALHA EM 4/20
 - **Origem:** o J34 recomendou carga inicial de ≥ 45 d, que lê ~1,2 M células numa carga (60 d, ~1,6 M), acima do
   limite de 1 M do worker.

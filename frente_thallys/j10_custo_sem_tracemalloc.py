@@ -33,6 +33,26 @@ EXPECTATIVAS: lote_60 0,25–0,45 s e RSS 180–230 MB (~80%, = J34); lote_90 <=
 LIMITES: Cica, não o servidor do SIMPred; leitura do banco fora; RSS inclui os imports (pandas, numpy, scikit-learn,
   clearml), por isso também se reporta o acréscimo sobre o RSS dos imports.
 
+RESULTADO (11/11/2026 21:20; task 1d3d16f1, commit e8dcca9, 3,5 min no Cica; a 1ª tentativa, 53677107, falhou no parquet do bruto
+  com texto do PI e foi corrigida para pickle). Mediana de 20 instantes:
+                    total     grade    cálculo   RSS
+    imports         --        --       --        138 MB
+    lote_30         0,14 s    --       0,14 s    176 MB
+    lote_45         0,22 s    --       0,22 s    186 MB
+    lote_60         0,31 s    --       0,31 s    200 MB
+    lote_90         0,49 s    --       0,49 s    228 MB
+    lote_bruto_60   0,69 s    0,38 s   0,31 s    595 MB
+    lote_bruto_90   1,08 s    0,56 s   0,48 s    826 MB
+    motor           0,13 s    --       0,13 s    173 MB
+    motor_bruto     0,15 s    0,03 s   0,12 s    185 MB
+  PARTE B: (a) janelas fechadas 50/50 idênticas; (b) última janela com 2 de 4 leituras difere em 29 de 39 colunas
+  (máx 34), dif. relativa mediana 2,3% (máx 128%); linhas anteriores iguais 50/50.
+PLACAR: ACERTEI todas: lote_60 = J34 (0,31 s / 200 MB contra 0,33 / 201); lote_90 0,49 <= 0,7; RSS 228 <= 250; grade
+  90 d 0,56 <= 2 s; lote_bruto_90 1,08 <= 3 s; motor_bruto 0,15 <= 0,3; parte B (a) 50/50.
+LEITURA: os 14 s da grade e os 0,93/1,36 s do J1 eram efeito do tracemalloc (~3x no cálculo). O RSS a partir do
+  bruto (595/826 MB) é dominado pelo bruto em objetos do Python (texto do PI), não pelo detector; no motor (3 d) a
+  diferença some. O motor tem de aplicar `preparar_grade` só a janelas fechadas.
+
 Uso:
   python frente_thallys/j10_custo_sem_tracemalloc.py --local --teste   # encanamento local
   python frente_thallys/j10_custo_sem_tracemalloc.py --enqueue         # uma task na fila default
