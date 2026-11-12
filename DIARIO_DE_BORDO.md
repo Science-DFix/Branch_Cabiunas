@@ -161,6 +161,23 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 12/11/2026 — J11 (frente Thallys), custo com o medidor do Thallys + detecção sem o vb — MOTOR 0,5 s / 141 MB CONTRA LOTE 60 d 1,6 s / 563 MB; SEM VB 2/8
+
+- Pedido do Thallys (2ª avaliação, ponto 5): medir com `telemetria_execucao.py` (cc6edc9, copiado sem alteração) e
+  citar uma tabela só; e conferir o "sem vb cai para 1 de 8" (ponto 3).
+- Task 8b7268f0 (Cica; 10 instantes desde abr/2025, mediana, processo novo por execução, comando inteiro):
+  lote_60 1,61 s / CPU 5,8 s / 563 MB; lote_90 2,37 s / 6,9 s / 800 MB; motor 0,50 s / 4,7 s / 141 MB.
+- Sem vb: 2/8 FP 8 (controle 7/8 FP 9). O Thallys disse 1/8; a conclusão (estado INDISPONÍVEL) não muda.
+- Placar: erraram as 2 expectativas do lote_90 (3–8 s e 150–400 MB), porque li mal o relatório de 07/10: os 167 MB
+  eram de entrada de 2 min; com 30 s ele dá 750 MB e 5,4 s. A memória bate; o tempo caiu por `preparar_grade` uma vez.
+- Duas tasks perdidas antes (fdd7fb5b, 6746255a): o subprocesso herdava CLEARML_TASK_ID, o ClearML trocava os
+  argumentos dele pelos da task e ele rodava a task inteira de novo, em cascata, até encher o disco. Regra: subprocesso
+  de task remota roda sem as variáveis CLEARML_*.
+- Rascunho B atualizado: 4 estados do Thallys (INDISPONÍVEL > DEGRADADA > AQUECENDO > PLENA), frases dele para
+  refratário/CUSUM/entrada/emitido, campo `emitido_em`, seção 6 trocada pela tabela única da J11.
+
+_(registrado em 12/11/2026 01:38)_
+
 ### 11/11/2026 — J10 (frente Thallys), custo sem tracemalloc + revisão do Thallys na resposta à engenharia — CUSTO DO J1 ESTAVA INFLADO ~3×; GRADE EM TRECHOS IDÊNTICA
 
 - **Origem:** o Thallys mandou o `RELATORIO_RELEASE_V21_TC33003A.pdf` (release/v2.1 = e17bf27 + refratário especificado +

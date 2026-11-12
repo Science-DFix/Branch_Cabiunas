@@ -34,6 +34,20 @@ REENVIO (12/11/2026): a 1a task (fdd7fb5b) falhou antes de medir (sem espaço em
 LIMITES: Cica, não o servidor do SIMPred; leitura do banco fora (o CSV vem do disco local); o motor importa o
   módulo da frente (j34), que é maior que um motor de produção.
 
+RESULTADO (task 8b7268f0, Cica, 10 instantes, mediana; 2,4 min)
+  (A) por execução, processo novo:  lote_60 1,61 s (p95 1,71) | CPU 5,8 s | RAM 563 MB (367-576) | CSV 71 MB
+                                    lote_90 2,37 s (p95 2,52) | CPU 6,9 s | RAM 800 MB (496-808) | CSV 106 MB
+                                    motor   0,50 s (p95 0,56) | CPU 4,7 s | RAM 141 MB (137-155) | CSV 3,6 MB
+  (B) controle 7/8 FP 9 (0,807/mês); sem vb 2/8 FP 8 (0,717/mês) -- pega só 17/03/2025 e 26/02/2026.
+PLACAR: lote_90 tempo 3-8 s NÃO (2,4 s); lote_90 RAM 150-400 MB NÃO (800 MB); lote_60 < lote_90 SIM;
+  motor <= metade do lote_60 SIM (0,50 x 1,61 s); motor RAM <= lote_60 SIM; controle 7/8 FP 9 SIM; sem vb <= 3/8 SIM (2/8).
+LEITURA: as duas expectativas do lote_90 erraram porque li mal o relatório de 07/10: os 167 MB eram com entrada de
+  2 min; com o export de 30 s e 90 d o mesmo relatório dá 750 MB e 5,4 s. A memória bate (800 MB). O tempo cai para
+  2,4 s porque o exemplo de e17bf27 já chama preparar_grade uma vez (o Thallys mediu 5,6 -> 2,5 s na v2.1). A RAM do
+  lote muda com o período (2025 ~497 MB, 2026 ~805 MB, mesmo CSV); causa não investigada. No motor, a CPU é quase
+  toda a partida do processo. Sem o vb: 2/8, não 1/8 como o Thallys disse; a conclusão (INDISPONÍVEL) não muda.
+  _(registrado em 12/11/2026 01:38)_
+
 Uso:
   python frente_thallys/j11_telemetria_e_sem_vb.py --enqueue         # uma task na fila default
 """
