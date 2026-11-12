@@ -20,6 +20,21 @@ CRITÉRIO DE DECISÃO (para o documento): o menor N com 7/8 e FP <= 11 vira o li
   emite alarme. Se for 3.000, o AQUECENDO emite sempre; se nenhum N < 12.000 passar, o AQUECENDO não emite.
 LIMITES: pior caso (base parcial o período todo); numa instalação real a base cresce. Um equipamento, 8 trips.
 
+RESULTADO (task ce91ed2f, Cica, 2,9 min). Base do vb limitada a N amostras estáveis o período todo:
+  N 12.000 (400 h): 7/8 FP  9 (0,81/mês), 1.457 h de alarme, alarme diferente do controle 0%
+  N  9.000 (300 h): 8/8 FP 17 (1,53/mês), 1.929 h, 4,2%
+  N  6.000 (200 h): 8/8 FP 17 (1,53/mês), 2.331 h, 7,3%
+  N  4.500 (150 h): 8/8 FP 19 (1,70/mês), 2.345 h, 9,1%
+  N  3.000 (100 h): 8/8 FP 15 (1,35/mês), 2.196 h, 8,6%
+  Com base parcial ganha o 04/11/2025 (8,8 h) e perde antecedência no 07/04/2025 (32 -> 6,6 h, exceto N 6.000).
+PLACAR: N 12.000 = 7/8 FP 9 SIM; N 3.000 entre 5/8 e 7/8 com FP 9-16 NÃO (8/8, FP 15); detecção não melhora ao
+  encurtar NÃO (melhora: 8/8). Critério: nenhum N < 12.000 tem 7/8 com FP <= 11 -> menor N que passa = 12.000.
+LEITURA: a base curta não cega o vb, deixa ele mais sensível: pega tudo (8/8), mas o FP quase dobra (1,3-1,7/mês
+  contra 0,81) e as horas de alarme sobem 32-61%. Pelo critério pré-registrado, o AQUECENDO NÃO emite como PLENA.
+  Emitir durante o AQUECENDO com aviso de ~2x FP é decisão da operação, não deste teste. É pior caso (base parcial o
+  período todo). Reforça a ideia 2 (semear a base do vb pelo bundle), que elimina o período.
+  _(registrado em 12/11/2026 11:09)_
+
 Uso:
   python frente_thallys/j12_base_vb_parcial.py --enqueue         # uma task na fila default
 """

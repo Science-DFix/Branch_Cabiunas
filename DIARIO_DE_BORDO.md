@@ -161,6 +161,19 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 12/11/2026 — J12 (frente Thallys), base do vb parcial — AQUECENDO NÃO EMITE COMO PLENA: 8/8 MAS FP QUASE DOBRA
+
+- Pergunta: com a base do vb limitada a N amostras estáveis o período todo (pior caso do AQUECENDO), a detecção se
+  mantém? Task ce91ed2f; controle publicado (`sinais_causais` + `prever`), limiar de opinião fixo em 3.000.
+- N 12.000: 7/8 FP 9; 9.000: 8/8 FP 17; 6.000: 8/8 FP 17; 4.500: 8/8 FP 19; 3.000: 8/8 FP 15. Alarme diferente
+  4–9% dos instantes; horas de alarme +32 a +61%.
+- Placar: erraram 2 de 3 expectativas (esperava perda de detecção; veio ganho, com mais FP). Critério: nenhum N < 12.000
+  passa (7/8, FP <= 11).
+- Leitura: base curta deixa o vb mais sensível, não cego. O AQUECENDO não deve emitir como PLENA; emitir com aviso de
+  ~2× FP é decisão da operação. Reforça semear a base do vb pelo bundle (ideia 2).
+
+_(registrado em 12/11/2026 11:09)_
+
 ### 12/11/2026 — J11 (frente Thallys), custo com o medidor do Thallys + detecção sem o vb — MOTOR 0,5 s / 141 MB CONTRA LOTE 60 d 1,6 s / 563 MB; SEM VB 2/8
 
 - Pedido do Thallys (2ª avaliação, ponto 5): medir com `telemetria_execucao.py` (cc6edc9, copiado sem alteração) e
