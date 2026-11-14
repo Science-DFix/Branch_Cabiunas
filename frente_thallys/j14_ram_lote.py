@@ -24,6 +24,25 @@ CRITÉRIO: a etapa em que o pico de 2026 passa o de 2025 em > 100 MB é a origem
   ressalva.
 LIMITES: o CSV é o nosso export (sensores_full_2024_2026_30s.csv), não o da consolidada; Cica, não o SIMPred.
 
+RESULTADO (task 760f35b1, Cica, 1,8 min; os mesmos 10 instantes da J11)
+  Telemetria do exemplo inteiro: pico 495-497 MB nos 4 instantes de 2025 e 795-808 MB nos 6 de 2026 (= J11).
+  Após carregar_dados:  2025: 37 float64 + 1 int64 + 1 bool, 81 MB (memória profunda); RSS ~235 MB.
+                        2026: 38 object + 1 bool, 336-383 MB; RSS ~565 MB.
+    As colunas viram object por 11 a 14 células de texto do PI na janela de 90 d ("{'Name': 'Comm Fail', 'Value':
+    313, 'IsSystem': True}" e "Out of Serv"). Após preparar_grade os dois anos ficam iguais: 39 float32, 10,6 MB.
+    Daí em diante o RSS não sobe mais de 30 MB em nenhuma etapa.
+  1 thread: saída idêntica (sha256) em 10/10; CPU 6,7 -> 2,2 s (mediana); duração igual (2,26 s); RAM igual.
+  (O "pico por etapa" da sonda saiu 5.255 MB em tudo: ru_maxrss herdado do pai pelo exec, o mesmo erro do teste
+  local da J34; vale o RSS atual por etapa e o pico da telemetria.)
+PLACAR: reproduz a J11 SIM; diferença no carregar_dados por colunas object (texto) SIM; 1 thread idêntica SIM;
+  CPU menor SIM (-67%, o Thallys mediu -21%).
+LEITURA: os ~300 MB a mais de 2026 vêm do CSV, não do pacote: um punhado de estados do sistema do PI em texto faz o
+  pandas ler as 38 colunas como object, e o pico acontece no read_csv, antes do preparar_grade (que já transforma texto
+  em NaN). O Thallys não vê isso porque o CSV dele não tem essas células. Como o export de produção do PI pode trazê-las,
+  o orçamento deve usar ~800 MB, ou a leitura deve converter para número já no read_csv (mudança no pacote: decisão do
+  Thallys). Com 1 thread a CPU cai a um terço sem mudar a saída nem o tempo.
+  _(registrado em 14/11/2026 13:41)_
+
 Uso:
   python frente_thallys/j14_ram_lote.py --enqueue         # uma task na fila default
 """

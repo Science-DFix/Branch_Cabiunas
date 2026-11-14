@@ -161,6 +161,19 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 14/11/2026 — J14 (frente Thallys), RAM do lote 2025 × 2026 + 1 thread — OS ~300 MB A MAIS VÊM DE TEXTO DO PI NO CSV; 1 THREAD = MESMA SAÍDA COM 1/3 DA CPU
+
+- Script `frente_thallys/j14_ram_lote.py` (+ `j14_sonda_ram.py`), task `760f35b1`. Origem: a revisão do Thallys de
+  13/11 (ele mede 499–501 MB em todas as datas na consolidada).
+- 2026: 11–14 células "Comm Fail"/"Out of Serv" do PI na janela de 90 d fazem o `read_csv` ler as 38 colunas como
+  object (336–383 MB contra 81 MB em 2025); o pico sai no `carregar_dados`. Depois do `preparar_grade` os dois anos
+  são iguais (39 float32, 10,6 MB).
+- 1 thread: sha256 da saída igual em 10/10; CPU 6,7 → 2,2 s; duração e RAM iguais.
+- Decisão: é do CSV, não do pacote. Orçamento em ~800 MB enquanto o export puder trazer texto; converter para número
+  já na leitura fica como sugestão ao Thallys.
+
+_(registrado em 14/11/2026 13:41)_
+
 ### 12/11/2026 — J13 (frente Thallys), base do vb curta: ganho real? — NÃO; O 04/11 TEM PRECURSOR LOCAL NO vb, MAS A BASE CURTA NÃO DOMINA A DE 400 h
 
 - A (troca do vb só perto do trip): o vb da base de 3.000 em [04/11 − 2 d, +2 d] já pega o 04/11 no controle (8/8 FP 9);
