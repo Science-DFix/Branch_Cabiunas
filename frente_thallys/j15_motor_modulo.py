@@ -20,6 +20,19 @@ CRITÉRIO: as duas corridas IGUAL -> o módulo é a entrega de referência e vai
 LIMITES: só o cenário limpo e o reinício; buracos, sondas, atrasos e trips tardios (J34) e as recuperações (J6-J9)
   não são refeitos aqui: ficam para o Thallys rodar, ou para um teste seguinte, sobre o módulo.
 
+RESULTADO (task 244691f9, Cica, 10 min). 1.708 atualizações de 02/03/2025 a 30/04/2026, comparadas desde 09/03/2025
+  (300.960 linhas; 16 bundles, 9 trips no registro):
+    normal ...... IGUAL: 0 linhas diferentes em t, p, sp, vb, máscara e alarme; |Δ| máx t 5,3e-15, p 8,9e-15,
+                  sp e vb 0. Passo mediano 0,116 s; estado em disco 2,99 MB.
+    reinício .... IGUAL, mesmos números (passo 0,118 s).
+  A referência de 60 d leva 75 s (8 processos); o motor, 197 s (242 s com reinício), em série.
+PLACAR: normal igual SIM; reinício igual SIM; estado entre 2,5 e 4 MB SIM (2,99); passo <= 0,3 s SIM (0,12).
+LEITURA: o módulo separado reproduz o lote com igualdade exata pela regra proposta (|Δ| <= 1e-9, máscara e alarme
+  idênticos). Atenção ao termo: t e p diferem na 15a casa (arredondamento de ponto flutuante), então "bit a bit" só
+  vale para sp, vb, máscara e alarme; o J34 usava o mesmo limiar de 1e-9. O estado ficou em 2,99 MB (3,3 MB no J34,
+  que começava com o trecho de 2024). Critério cumprido: o módulo vai ao Thallys.
+  _(registrado em 14/11/2026 13:54)_
+
 Uso:
   python frente_thallys/j15_motor_modulo.py --enqueue         # uma task na fila default
 """

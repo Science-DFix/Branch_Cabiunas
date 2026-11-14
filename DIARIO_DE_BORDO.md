@@ -161,6 +161,17 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 14/11/2026 — J15 (frente Thallys), motor com estado como módulo separado — IGUAL AO LOTE DE 60 d NAS 1.708 ATUALIZAÇÕES, COM E SEM REINÍCIO
+
+- `frente_thallys/motor_estado/` (`motor_estado.py` + `teste_equivalencia.py`, roda sozinho com `--pacote`/`--csv`),
+  envoltório `frente_thallys/j15_motor_modulo.py`, task `244691f9`. É a classe Motor do J34 sem o estado global.
+- 0 linhas diferentes (t, p, sp, vb, máscara, alarme) em 300.960 linhas; |Δ| máx 8,9e-15 em t/p, 0 em sp/vb.
+  Passo 0,12 s; estado 2,99 MB.
+- "Bit a bit" nos J2/J34/J15 = |Δ| ≤ 1e-9 + máscara e alarme idênticos (t e p diferem na 15ª casa).
+- Decisão: o módulo é a entrega de referência proposta pelo Thallys; vai a ele para conferir na consolidada.
+
+_(registrado em 14/11/2026 13:54)_
+
 ### 14/11/2026 — J14 (frente Thallys), RAM do lote 2025 × 2026 + 1 thread — OS ~300 MB A MAIS VÊM DE TEXTO DO PI NO CSV; 1 THREAD = MESMA SAÍDA COM 1/3 DA CPU
 
 - Script `frente_thallys/j14_ram_lote.py` (+ `j14_sonda_ram.py`), task `760f35b1`. Origem: a revisão do Thallys de
