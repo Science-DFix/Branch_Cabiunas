@@ -161,6 +161,43 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 13–14/11/2026 — Revisão do Thallys na resposta à engenharia + correções (frente Thallys) — RESUMO DA SESSÃO
+
+- **O que o Thallys conferiu na consolidada (idêntico):** controle 7/8 FP 9 (1.457 h); sem vb 2/8 FP 8; tabela inteira
+  da J12; J2; J5; alarme ao vivo ~2 h depois do lote; 04/11 chega só a "atenção" 8,8 h antes; as afirmações sobre o
+  código (refratário, comentário da linha 659, `preparar_grade` uma vez, INDISPONÍVEL como regra nova).
+- **O que ele não conseguiu conferir:** tudo que depende do motor com estado (J34, J6–J10, estado de 3,3 MB, tempos
+  do J11), porque o motor vivia nos scripts de teste. Resolvido pela J15 (módulo separado).
+- **8 erros apontados no documento de 12/11, todos procedentes e corrigidos (versão de 14/11):**
+  1. células contadas em linhas de 2 min, mas o texto dizia que a entrada era o export de 30 s → nota de unidade no
+     topo e **[PERGUNTA]** à engenharia (histórico de 30 s ou de 2 min?); a 30 s os blocos cairiam para ~8 d (não
+     medido); o motor fica < 1 M nos dois casos (~409 mil / ~660 mil);
+  2. "+75% de FP" (0,344 → 0,603 era outra métrica) → 9 → 12 FP (+33%), horas fora de trip 407 → 620 (+52%);
+  3. códigos de saída: a inferência só tem 0, 2, 3; o 1 e o 4 são do `constroi_bundle.py` (conferido no código);
+  4. a explicação da queda 5,4 → 2,4 s não se sustentava (chamada única desde 5608f35) → ficou só a medida;
+  5. AQUECENDO misturava base do vb incompleta (muda a detecção) e < 45 d de linhas (só garantia) → AQUECENDO = só a
+     base do vb; limiares na mesma unidade, 3.720 e 12.720 (guarda incluída; código linhas 440–462); os 45 d viraram
+     condição da instalação; a coluna "PLENA em" do J34 foi medida com a regra antiga (a medir de novo);
+  6. J12 e J13 fora do documento → entraram, com a varredura do Thallys (420 h 7/8 FP 9; 380 h 8/8 FP 11);
+  7. bundles vencidos (último até 29/03/2026; inferência devolve 2) → passo 0: rodar o `constroi_bundle.py`;
+  8. "Lote 60 d (hoje)" trocado → hoje é 90 d; commit `e17bf27` citado.
+  Também: definição explícita de "bit a bit" (|Δ| ≤ 1e-9 + máscara e alarme idênticos; t e p diferem ~1e-14).
+- **Ideias abandonadas pelos argumentos dele:** vb de base curta como sinal auxiliar (o 04/11 está na beira da base,
+  −5% já pega: seria ajuste a um evento); semear a base do vb pelo bundle (o retreino já exige 20.000 estáveis, então
+  onde há bundle há dado para a carga de 60 d; congelar a referência no bundle muda o modelo). A J14 que eu tinha
+  proposto (instalação nova com base semeada) não foi feita por isso; o número J14 foi para a RAM.
+- **Decisões dele aceitas:** entrega = módulo separado com teste de equivalência, sem tocar o `cabiunas_inference.py`;
+  tolerância = igualdade exata no mesmo ambiente.
+- **Testes da sessão:** J14 (RAM: texto do PI no CSV; 1 thread) e J15 (motor como módulo), entradas abaixo.
+- **Arquivos:** `~/FRENTE_THALLYS/tc33003a-resposta-da-equipe-de-modelos.md` (versão 14/11; backup da anterior no
+  scratchpad da sessão) e `~/FRENTE_THALLYS/relato-thallys-14-11.md` (resposta ao Thallys, **ainda não enviada**).
+- **Pendente:** enviar o relato; portar os cenários do J34 (buracos, sondas, atrasos, trips tardios) e as
+  recuperações J6–J9 para o teste do módulo (oferecido ao Thallys); resposta da engenharia sobre 30 s × 2 min;
+  conversão para número no `carregar_dados` (decisão do Thallys); campos da notificação v2.1 (ce42757 não está no
+  remoto); atributo novo da v2.1.
+
+_(registrado em 15/11/2026 16:51)_
+
 ### 14/11/2026 — J15 (frente Thallys), motor com estado como módulo separado — IGUAL AO LOTE DE 60 d NAS 1.708 ATUALIZAÇÕES, COM E SEM REINÍCIO
 
 - `frente_thallys/motor_estado/` (`motor_estado.py` + `teste_equivalencia.py`, roda sozinho com `--pacote`/`--csv`),
