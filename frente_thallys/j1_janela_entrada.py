@@ -107,10 +107,11 @@ AQUI = Path(__file__).resolve().parent
 NOME = "frente_thallys | J1 janela de entrada do v2"
 DS_A97 = "a97ba56ba14840fbb1125c2a82f883c9"
 DS_INSUMOS = "f5e1b16b56324d6ab242e49bce224d07"   # criado por --cria-insumos em 05/11/2026
-LOCAL_PKG = AQUI / "dados" / "nvdados" / "estrutura_pra_prod" / "Cabiunas"
-LOCAL_NV = Path.home() / "FRENTE_THALLYS" / "repro_thallys_regra_carga_9fp_4fp" / "src" / "nv"
-LOCAL_ATUAL = Path.home() / "FRENTE_THALLYS/clearml_fixos/ds_86e3990fde354c039ce38aab508f344d/controle_v2/atual/serie.csv.gz"
-LOCAL_A97 = Path.home() / "FRENTE_THALLYS/clearml_fixos" / f"ds_{DS_A97}" / "sensores_full_2024_2026_30s.csv"
+# caminhos do modo --local; cada um pode ser trocado por variável de ambiente (ver frente_thallys/REPRODUZIR.md)
+LOCAL_PKG = Path(os.environ.get("FT_PKG", AQUI / "dados" / "nvdados" / "estrutura_pra_prod" / "Cabiunas"))
+LOCAL_NV = Path(os.environ.get("FT_NV", Path.home() / "FRENTE_THALLYS" / "repro_thallys_regra_carga_9fp_4fp" / "src" / "nv"))
+LOCAL_ATUAL = Path(os.environ.get("FT_ATUAL", Path.home() / "FRENTE_THALLYS/clearml_fixos/ds_86e3990fde354c039ce38aab508f344d/controle_v2/atual/serie.csv.gz"))
+LOCAL_A97 = Path(os.environ.get("FT_A97", Path.home() / "FRENTE_THALLYS/clearml_fixos" / f"ds_{DS_A97}" / "sensores_full_2024_2026_30s.csv"))
 PACOTES = ["numpy==2.3.5", "pandas==2.3.3", "pyarrow==23.0.1", "scikit-learn==1.8.0", "scipy==1.16.3", "tzdata",
            "clearml"]
 JANELAS = {"inf": None, "90": 90, "60": 60, "45": 45, "35": 35, "30": 30}
