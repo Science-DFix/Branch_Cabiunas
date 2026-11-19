@@ -17,6 +17,20 @@ CRITÉRIO: >= 99,9% iguais -> a grade da pipeline é a mediana do 30 s; a [PERGU
   montada pela mediana" (números do documento valem). Se não, identificar a construção (asfreq/média) e reabrir a
   frase "não usar grade de 2 min pronta" com o Thallys antes de fechar o documento.
 
+RESULTADO (task 003a69f8, Cica, pandas 2.3.3). 349.200 linhas de 2 min × 38 colunas, mesmo índice nas duas:
+    mediana ........ 16,4% das células iguais a 1e-9; |Δ| máx 3,05e-5; NaN idênticos (0 só de um lado).
+    asfreq (início)  13,1%; |Δ| máx 1.071; 13.010 NaN só na grade do Thallys.
+    média .......... 14,1%; |Δ| máx 759; 13.010 NaN só na grade do Thallys.
+PLACAR: pelo critério pré-registrado (|Δ| <= 1e-9 em >= 99,9%), NÃO. A POSTERIORI: 3,05e-5 = 2^-15 = 1 passo de
+  float32 na faixa 256-512 (o `preparar_grade` devolve float32; o CSV do Thallys foi gravado em texto com menos
+  dígitos), e o padrão de NaN coincide; as construções alternativas erram em centenas. A grade da pipeline é a
+  mediana do 30 s até o arredondamento do texto. A jusante isto já estava medido: o controle refeito do 30 s (25/10)
+  deu os mesmos 7/8 e 9 FP publicados a partir deste CSV.
+LEITURA: a [PERGUNTA] fecha como "linha de 2 min montada pela mediana"; os números do documento valem. A frase "não
+  usar grade de 2 min pronta de outra fonte" continua certa e não atinge o bb85d853. Ressalva: é a pipeline do Cica,
+  tomada como a do worker por decisão do usuário (18/11).
+  _(registrado em 18/11/2026 23:55)_
+
 Uso:
   python frente_thallys/j16_grade_2min_fonte.py --enqueue
 """

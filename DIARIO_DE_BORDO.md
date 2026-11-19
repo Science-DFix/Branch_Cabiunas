@@ -161,6 +161,18 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 18/11/2026 — J16: a grade de 2 min da pipeline é a mediana do 30 s (frente Thallys) — fecha a [PERGUNTA]
+- **Contexto:** o Thallys corrigiu o `carregar_dados` (commit 8364998, `fix/carregar-dados-texto`, não enviado; no
+  pandas 3 o texto do PI quebrava inferência e retreino). A v2.1 fica sem avaliar por decisão do usuário.
+- **Achado no Cica:** a pipeline do Thallys (worker_verifica_harness, worker_exp63/64) lê o "CSV de produção 2 min"
+  (Dataset `bb85d853`) + o complemento de 30 s de 2024 (`c9afd177`).
+- **J16** (task `003a69f8`, pré-registro `20d7714`): grade do bb85d853 × `preparar_grade` do export de 30 s:
+  |Δ| máx 3,05e-5 (1 passo de float32), NaN idênticos; asfreq/média erram em centenas. O critério pré-registrado
+  (1e-9) falha só por arredondamento do texto → a posteriori: é a mediana.
+- **Documento à engenharia** (versão 18/11): a [PERGUNTA] saiu; valem os blocos de 30 d em linhas de 2 min.
+  Pendente só a notificação da v2.1 (adiada com a v2.1).
+  _(registrado em 18/11/2026 23:55)_
+
 ### 13–14/11/2026 — Revisão do Thallys na resposta à engenharia + correções (frente Thallys) — RESUMO DA SESSÃO
 
 - **O que o Thallys conferiu na consolidada (idêntico):** controle 7/8 FP 9 (1.457 h); sem vb 2/8 FP 8; tabela inteira
