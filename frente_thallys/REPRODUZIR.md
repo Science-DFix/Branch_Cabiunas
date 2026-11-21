@@ -65,6 +65,10 @@ diferentes, com e sem `--reinicio`. Na J17, também sem uma sonda TV_ e sem as 1
 | J16 | `j16_grade_2min_fonte.py` | `003a69f8` | A grade de 2 min que alimenta a pipeline é a mediana do export de 30 s? |
 | J17 | `j17_sonda_ausente.py` (usa `motor_estado/` e o pacote `e733279`) | `896d034c` | Sonda de vibração ausente do CSV derruba o motor? A correção iguala o lote? |
 
+**Conferência desta branch (21/11/2026).** J16 e J17 foram rodados de novo no Cica a partir da própria
+`frente-thallys/reproducao` (commit `22bf4c1`), com resultado idêntico ao original: J16 task `3ec83759`
+(|Δ| máx 3,05e-5, NaN idênticos), J17 task `3c0b7822` (A1 quebra; A2, A3 e A4 iguais em 1.708 atualizações).
+
 ## Cuidados
 
 - **O resultado da J14 depende do nosso CSV.** Os ~800 MB de 2026 vêm de 11 a 14 células de texto do PI ("Comm Fail",
