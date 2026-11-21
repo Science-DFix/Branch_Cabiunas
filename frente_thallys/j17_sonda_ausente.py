@@ -22,6 +22,19 @@ CRITÉRIO: A1 quebra e A2, A3 e A4 IGUAIS -> a correção entra no motor e vai a
   A1 não quebra -> a leitura de código estava errada; desfazer a correção. A2/A3/A4 diferente -> a correção não sai
   até achar a diferença. Se o próprio lote falhar sem as sondas, registrar: é do pacote (a020477), não do motor.
 
+RESULTADO (task 896d034c, Cica, 13,6 min; pacote e733279). 1.708 atualizações de 02/03/2025 a 30/04/2026,
+  300.960 linhas comparadas desde 09/03/2025:
+    A1 atual × sem TV_351X_A ...... QUEBRA: KeyError "['TV_351X_A'] not in index" (na carga).
+    A2 corrigido × sem TV_351X_A .. IGUAL: 0 linhas diferentes em t, p, sp, vb, máscara e alarme; estado 2,84 MB.
+    A3 corrigido × sem as 10 TV_ .. IGUAL (vb vazio nos dois); estado 1,28 MB, passo 0,06 s.
+    A4 corrigido × completo ....... IGUAL (= J15: |Δ| máx t 5,3e-15, p 8,9e-15; estado 2,99 MB, passo 0,116 s).
+  O lote do a020477 rodou nos três CSVs sem erro.
+PLACAR: A1 quebra SIM; A2 SIM; A3 SIM; A4 SIM -> as 4 expectativas certas.
+LEITURA: a leitura de código do Thallys estava certa; a correção (1 linha em `_estaveis`) fecha o caso e não muda
+  nada com as colunas completas. Critério cumprido: o motor_estado.py corrigido vai ao Thallys para puxar no pacote
+  (a branch dele não é alterada por nós).
+  _(registrado em 21/11/2026)_
+
 Uso:
   python frente_thallys/j17_sonda_ausente.py --cria-pacote   # uma vez, local: Dataset com os scripts da e733279
   python frente_thallys/j17_sonda_ausente.py --enqueue

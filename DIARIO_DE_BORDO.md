@@ -161,6 +161,18 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 20–21/11/2026 — J17: sonda de vibração ausente derrubava o motor; corrigido (frente Thallys)
+- **Contexto:** o Thallys montou a `feat/pacote-respostas-engenharia` (e733279; motor no pacote sem alteração,
+  `estado_saida`, tag ausente degrada o canal no `preprocessar`, a020477) e revisou o texto das 8 respostas (anexo
+  ainda não recebido). A branch dele NÃO é alterada por nós: ele puxa da nossa.
+- **J17** (task `896d034c`, pré-registro `32ba023`): motor atual × CSV sem TV_351X_A → KeyError na carga; motor
+  corrigido (`_estaveis` com `.reindex(columns=self.tags)`) = lote com 0 linhas diferentes sem 1 sonda, sem as 10 e
+  com o CSV completo (1.708 atualizações). 4/4 expectativas certas.
+- **Para o Thallys:** puxar `frente_thallys/motor_estado/motor_estado.py` para `scripts/`.
+- **Pendentes:** medir de novo a RAM do lote e a coluna "PLENA em" do J34 na e733279; REPRODUZIR → e733279;
+  conferir o texto revisado dos 8 itens quando chegar. Item 8 (bundle vence em 30/05/2026) conferido: ele tem razão.
+  _(registrado em 21/11/2026)_
+
 ### 18/11/2026 — J16: a grade de 2 min da pipeline é a mediana do 30 s (frente Thallys) — fecha a [PERGUNTA]
 - **Contexto:** o Thallys corrigiu o `carregar_dados` (commit 8364998, `fix/carregar-dados-texto`, não enviado; no
   pandas 3 o texto do PI quebrava inferência e retreino). A v2.1 fica sem avaliar por decisão do usuário.
