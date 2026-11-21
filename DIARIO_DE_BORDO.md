@@ -161,6 +161,19 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 21/11/2026 — J18: RAM do lote e "PLENA em" medidos de novo na e733279 (frente Thallys)
+- **J18** (task `4e026612`, pré-registro `d98bc7c`, `frente_thallys/j18_e733279_ram_plena.py`). Controles passam:
+  ref60 7/8 FP 9; regra antiga = J34; e17bf27 = J11.
+- **RAM/tempo (seção 6 do documento):** e733279 lote 60 d 1,31 s, CPU 1,3 s, 366 MB; lote 90 d 1,81 s, CPU 1,8 s,
+  495 MB (antes 563 e 799 MB); 2025 = 2026; motor 0,50 s, 139 MB.
+- **PLENA pela regra do pacote (seção 3):** carga 0 d → 19 d (18–52); 7 d → 12 d; 30, 45, 60 d → desde T0.
+  INDISPONÍVEL sem carga 126 h (até 648). PLENA ≠ referência em 9 de 30: 8 com ~12 h de sinais diferentes no início
+  da PLENA (alarme igual) e 01/01/26 com carga de 30 d (alarme 3 semanas, já visto no J34). Carga ≥ 45 d: 0 de 12.
+- **Decisão (critério):** coluna nova no documento; PLENA garante a base do vb, não a igualdade com a referência;
+  recomendação de 60 d em blocos fica. Aberto: causa das ~12 h de sinais diferentes.
+- **Pendentes:** atualizar seções 3 e 6 do documento; REPRODUZIR → e733279; texto revisado dos 8 itens.
+  _(registrado em 21/11/2026 09:47)_
+
 ### 20–21/11/2026 — J17: sonda de vibração ausente derrubava o motor; corrigido (frente Thallys)
 - **Contexto:** o Thallys montou a `feat/pacote-respostas-engenharia` (e733279; motor no pacote sem alteração,
   `estado_saida`, tag ausente degrada o canal no `preprocessar`, a020477) e revisou o texto das 8 respostas (anexo

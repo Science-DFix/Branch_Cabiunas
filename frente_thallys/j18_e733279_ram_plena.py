@@ -32,6 +32,36 @@ CRITÉRIO: B com 0 divergência em PLENA nas 30 -> a coluna nova entra no docume
   A: os números da e733279 substituem os da seção 6 (com o e17bf27 ao lado).
 LIMITES: os do J11 e do J34 (Cica, não o servidor; 8 trips; 6 datas de instalação).
 
+RESULTADO (task 4e026612, Cica, 11,7 min, commit d98bc7c)
+  V1 ref60 limpo 7/8 FP 9 (início 6, banda 4, 1.451 h). V2 regra antiga: 0 em PLENA nas 30; PLENA 64/57/35/20/13 d
+  (= J34). V3 e17bf27: lote_60 563 MB, lote_90 799 MB (= J11). As três passam.
+  A (mediana de 10, processo novo, export de 30 s):
+                   e17bf27                               e733279
+    lote_60   1,61 s | CPU 5,7 s | 563 MB (366–574)   1,31 s | CPU 1,3 s | 366 MB (364–375)
+    lote_90   2,31 s | CPU 6,8 s | 799 MB (497–808)   1,81 s | CPU 1,8 s | 495 MB (488–499)
+    motor     --                                     0,50 s | CPU 4,7 s | 139 MB (139–146)
+    Na e733279, 2025 e 2026 ocupam o mesmo (lote_90 492 × 497 MB): o texto do PI deixou de pesar.
+  B (30 instalações, 100 d; PLENA pela regra do pacote):
+    carga   PLENA em (med; mín–máx)   antiga   INDISPONÍVEL (med; máx)   AQUECENDO (med)   PLENA ≠ referência
+    0 d     19 d (18–52)              64 d     126 h (648 h)             333 h              3 de 6 (sinais, ~12 h, alarme igual)
+    7 d     12 d (11–48)              57 d     0 (540 h)                 294 h              4 de 6 (idem)
+    30 d    0 (0–1,25 d)              35 d     0                         0                  2 de 6 (01/07/25: sinais ~12 h;
+                                                                                             01/01/26: ALARME 02/01–23/01, 16,5%)
+    45 d    0                         20 d     0                         0                  0 de 6
+    60 d    0                         13 d     0                         0                  0 de 6
+    As divergências de sinais começam no 1º bloco de 6 h da PLENA e duram ~12 h (327–419 linhas), sem mudar alarme.
+    A de alarme é o caso já visto no J34 (tabela de 30 d sem a cadeia do refratário; sinais iguais).
+PLACAR: A lote_90 <= 600 MB SIM (495); lote_60 <= 450 MB SIM (366); duração igual ±15% NÃO (19–22% mais rápido);
+  CPU menor SIM (5,7 -> 1,3 s; 6,8 -> 1,8 s); motor 141 ±10% SIM (139). B PLENA mais cedo em todas as cargas SIM;
+  H = 60 PLENA desde T0 6/6 SIM; H = 0 em 15–30 d SIM pela mediana (19 d; 2 de 6 passam: 38 e 52 d);
+  divergência em PLENA > 0 SIM (9 de 30).
+LEITURA: critério B -> divergência > 0: a coluna nova entra no documento e o texto diz que PLENA (pacote) garante a base
+  do vb, não a igualdade com a referência; com carga >= 45 d, PLENA desde T0 e 0 divergência nas 12. A recomendação
+  (60 d em blocos) fica. A: os números da e733279 substituem os da seção 6 (o conserto do carregar_dados tira ~300 MB
+  do lote em 2026, e o 1 thread corta a CPU a 1/4). Não diagnosticado: a causa das ~12 h de sinais diferentes no
+  início da PLENA (hipótese: vb com base recém-completa difere da do ref60, que vê 60 d).
+  _(registrado em 21/11/2026 09:47)_
+
 Uso:
   python frente_thallys/j18_e733279_ram_plena.py --enqueue
 """
