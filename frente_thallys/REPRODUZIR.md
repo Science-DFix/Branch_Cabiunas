@@ -1,6 +1,6 @@
 # Frente Thallys: como reproduzir os testes da resposta à engenharia (TC-33003A)
 
-Os testes J1 a J15 sustentam o documento `tc33003a-resposta-da-equipe-de-modelos.md` (versão de 14/11/2026). Cada
+Os testes J1 a J17 sustentam o documento `tc33003a-resposta-da-equipe-de-modelos.md` (versão de 18/11/2026). Cada
 script tem no docstring o pré-registro (perguntas, desenho, expectativas, critério), commitado antes de rodar, e o
 resultado registrado depois. O registro cronológico está em `DIARIO_DE_BORDO.md`, na raiz do repositório.
 
@@ -12,6 +12,8 @@ resultado registrado depois. O registro cronológico está em `DIARIO_DE_BORDO.m
 | `nv` (régua, `sinais_causais`) | `SIMPred-Petrobras/cabiunas-models`, branch `exp/modos-de-falha`, commit `d77de7d`, `src/nv` | os 22 `.py` idênticos aos do Dataset de insumos |
 | Dado bruto | export de 30 s, `sensores_full_2024_2026_30s.csv` (1,06 GB), Dataset ClearML `a97ba56ba14840fbb1125c2a82f883c9` | sha256 `3ee22102e463bfbc…` |
 | Insumos montados | Dataset ClearML `f5e1b16b56324d6ab242e49bce224d07`: pacote (`Cabiunas/scripts`, `modelos`, `registro_trips.csv`), `nv` e a série do controle publicado (`controle_atual/serie.csv.gz`, do Dataset `86e3990f`) | |
+| Pacote da J17 | `SIMPred-Petrobras/cabiunas-models`, branch `feat/pacote-respostas-engenharia`, commit `e733279` (motor no pacote, `estado_saida`, tag ausente degrada o canal); só `scripts/` no Dataset ClearML `bed2e62f62914fa087af7e0a28c9e296`, com `modelos/` e registro do `f5e1b16b` (modelos idênticos ao `e17bf27`) | |
+| Grade de 2 min da pipeline (J16) | Dataset ClearML `bb85d853f92545beb771d303354302ab` (`data_2025-01-01_2026-04-30_raw.csv`) | |
 | Python | 3.11; `requirements.txt` desta pasta (as versões fixas das tasks) | |
 
 ## Três formas de rodar
@@ -24,7 +26,7 @@ resultado registrado depois. O registro cronológico está em `DIARIO_DE_BORDO.m
 
 Ele compara o motor com o lote de 60 d a cada 6 h (mais o instante de cada trip) e sai com código 0 se forem iguais
 (sinais com |Δ| ≤ 1e-9, máscara e alarme idênticos). No Cica (J15), com o nosso CSV: 1.708 atualizações, 0 linhas
-diferentes, com e sem `--reinicio`.
+diferentes, com e sem `--reinicio`. Na J17, também sem uma sonda TV_ e sem as 10 no CSV (com o `motor_estado.py` corrigido).
 
 **2. Qualquer J, com os Datasets do ClearML** (precisa de credenciais do servidor do Cica):
 
@@ -60,6 +62,8 @@ diferentes, com e sem `--reinicio`.
 | J13 | `j13_base_vb_ganho.py` | `e7574f0d` | Base do vb curta: ganho real ou mais horas de alarme? |
 | J14 | `j14_ram_lote.py` (+ `j14_sonda_ram.py`) | `760f35b1` | RAM do lote 2025 × 2026; execução com 1 thread |
 | J15 | `j15_motor_modulo.py` (usa `motor_estado/`) | `244691f9` | Motor com estado como módulo separado contra o lote de 60 d |
+| J16 | `j16_grade_2min_fonte.py` | `003a69f8` | A grade de 2 min que alimenta a pipeline é a mediana do export de 30 s? |
+| J17 | `j17_sonda_ausente.py` (usa `motor_estado/` e o pacote `e733279`) | `896d034c` | Sonda de vibração ausente do CSV derruba o motor? A correção iguala o lote? |
 
 ## Cuidados
 
@@ -68,6 +72,11 @@ diferentes, com e sem `--reinicio`.
 - Os scripts J1–J13 usam o motor antigo (classe `Motor` em `j34_estado_robustez.py`, com estado global). O
   `motor_estado/` é a mesma lógica sem o estado global; a J15 mostrou que reproduz o lote. Os cenários do J34 e as
   recuperações J6–J9 ainda não foram portados para o teste do módulo.
+- **`motor_estado.py` corrigido na J17:** `_estaveis` usa `.reindex(columns=self.tags)`. Antes, uma sonda TV_ ausente
+  do CSV dava `KeyError` na carga; agora vira coluna vazia, como no `preprocessar` do pacote (`a020477`). Com as
+  colunas completas, nada muda (J17, A4).
+- **A J14 é anterior à correção do `carregar_dados`** (`8364998`, já na `feat/pacote-respostas-engenharia`): com ela,
+  o texto do PI vira NaN na leitura e o pico cai (877 → 513 MB no pandas 2.3, medido pelo Thallys).
 - "Bit a bit" nos resultados = sinais com |Δ| ≤ 1e-9 e máscara e alarme idênticos (t e p diferem na ordem de 1e-14).
 - Tempos e memória são do Cica (Threadripper 7970X, 64 núcleos, 131 GB). Resultados de igualdade e de régua não
   dependem da máquina.

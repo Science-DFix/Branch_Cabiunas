@@ -76,7 +76,8 @@ class MotorEstado:
     def _estaveis(self, w):
         g = self.ci._grade(w)
         _, est, _, _ = self.ci._mascara(g)
-        return g.loc[est.to_numpy(), self.tags]
+        # sonda ausente do CSV vira coluna vazia, como no `preprocessar` do pacote (a020477); antes, KeyError (J17)
+        return g.loc[est.to_numpy()].reindex(columns=self.tags)
 
     def _anexa_buf(self, w):
         e = self._estaveis(w)
