@@ -1,7 +1,6 @@
 # Frente Thallys: como reproduzir os testes da resposta à engenharia (TC-33003A)
 
-Os testes J1 a J18 sustentam o documento `tc33003a-resposta-da-equipe-de-modelos.md` (versão de 21/11/2026, nesta
-pasta). Cada
+Os testes J1 a J19 respondem às perguntas da engenharia (TC-33003A). Cada
 script tem no docstring o pré-registro (perguntas, desenho, expectativas, critério), commitado antes de rodar, e o
 resultado registrado depois. O registro cronológico está em `DIARIO_DE_BORDO.md`, na raiz do repositório.
 
