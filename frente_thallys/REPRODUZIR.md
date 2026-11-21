@@ -70,7 +70,9 @@ diferentes, com e sem `--reinicio`. Na J17, também sem uma sonda TV_ e sem as 1
 **Conferência desta branch (21/11/2026).** J16 e J17 foram rodados de novo no Cica a partir da própria
 `frente-thallys/reproducao` (commit `22bf4c1`), com resultado idêntico ao original: J16 task `3ec83759`
 (|Δ| máx 3,05e-5, NaN idênticos), J17 task `3c0b7822` (A1 quebra; A2, A3 e A4 iguais em 1.708 atualizações).
-A J18 rodou a partir da `exp/ocsvm-validacao` (`d98bc7c`); a cópia aqui só muda a branch do `--enqueue`.
+A J18 rodou primeiro a partir da `exp/ocsvm-validacao` (`d98bc7c`, task `4e026612`) e de novo a partir desta branch
+(`3f415c7`, task `fb9618a6`): parte B idêntica (as 30 instalações e o placar); parte A dentro do ruído de medida
+(RAM ±2 MB, duração ±0,1 s; lote 90 d na `e733279` 495,3 × 495,6 MB).
 
 ## Cuidados
 
