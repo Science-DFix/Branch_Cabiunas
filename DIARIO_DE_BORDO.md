@@ -161,6 +161,17 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 21/11/2026 — J19: causa das ~12 h no início da PLENA, regras de PLENA e motor com 1 thread (frente Thallys)
+- **J19** (task `ade8113e`, pré-registro `2f53f9c`, `frente_thallys/j19_plena_threads.py`). V1: repete o J18.
+- **Causa das ~12 h:** só o vb diverge; o decaimento tem meia-vida de 0,50 h = a do EWMA do vb no bundle. É a
+  suavização levando a base truncada para dentro da PLENA; não é erro do motor; alarme igual.
+- **Regras:** R24 (PLENA 24 h depois da base cheia) zera os sinais nas 30 por +1 d (20 / 13 d sem carga / com 7 d).
+  Nenhuma regra testada zera o alarme de 01/01/2026 com carga de 30 d (R45 reduz a 4.419 linhas, 16–23/01); só carga
+  >= 45 d ou a regra antiga. Recomendação: R24 no `estado_saida` + carga inicial >= 45 d (60 d) como condição.
+- **1 thread no motor do módulo:** saída idêntica 10/10; CPU 4,7 -> 0,4 s; 0,50 -> 0,40 s. Entrou no
+  `teste_equivalencia.py` e no docstring do `motor_estado.py`.
+  _(registrado em 21/11/2026 12:51)_
+
 ### 21/11/2026 — J18: RAM do lote e "PLENA em" medidos de novo na e733279 (frente Thallys)
 - **J18** (task `4e026612`, pré-registro `d98bc7c`, `frente_thallys/j18_e733279_ram_plena.py`). Controles passam:
   ref60 7/8 FP 9; regra antiga = J34; e17bf27 = J11.

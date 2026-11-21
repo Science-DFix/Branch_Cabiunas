@@ -66,6 +66,7 @@ diferentes, com e sem `--reinicio`. Na J17, também sem uma sonda TV_ e sem as 1
 | J16 | `j16_grade_2min_fonte.py` | `003a69f8` | A grade de 2 min que alimenta a pipeline é a mediana do export de 30 s? |
 | J17 | `j17_sonda_ausente.py` (usa `motor_estado/` e o pacote `e733279`) | `896d034c` | Sonda de vibração ausente do CSV derruba o motor? A correção iguala o lote? |
 | J18 | `j18_e733279_ram_plena.py` (usa `j11`, `j34` e o pacote `e733279`) | `4e026612` | RAM do lote no `e733279` × `e17bf27`; "`PLENA` em" pela regra do `estado_saida` nas 30 instalações do J34 |
+| J19 | `j19_plena_threads.py` (+ `j19_motor_cmd.py`; usa `j18` e o pacote `e733279`) | `ade8113e` | Causa das ~12 h de vb diferente no início da PLENA; regras de PLENA alternativas; motor do módulo com 1 thread |
 
 **Conferência desta branch (21/11/2026).** J16 e J17 foram rodados de novo no Cica a partir da própria
 `frente-thallys/reproducao` (commit `22bf4c1`), com resultado idêntico ao original: J16 task `3ec83759`
@@ -82,6 +83,8 @@ A J18 rodou primeiro a partir da `exp/ocsvm-validacao` (`d98bc7c`, task `4e02661
 - Os scripts J1–J13 usam o motor antigo (classe `Motor` em `j34_estado_robustez.py`, com estado global). O
   `motor_estado/` é a mesma lógica sem o estado global; a J15 mostrou que reproduz o lote. Os cenários do J34 e as
   recuperações J6–J9 ainda não foram portados para o teste do módulo.
+- **1 thread no motor (J19):** o `teste_equivalencia.py` agora fixa OMP/OPENBLAS/MKL_NUM_THREADS = 1 antes do numpy
+  (saída idêntica, CPU do passo 4,7 → 0,4 s). O `motor_estado.py` não define isso: fica com o executável que o chama.
 - **`motor_estado.py` corrigido na J17:** `_estaveis` usa `.reindex(columns=self.tags)`. Antes, uma sonda TV_ ausente
   do CSV dava `KeyError` na carga; agora vira coluna vazia, como no `preprocessar` do pacote (`a020477`). Com as
   colunas completas, nada muda (J17, A4).
