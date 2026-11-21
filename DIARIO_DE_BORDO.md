@@ -173,6 +173,10 @@ pré-registro, resultado, decisão.
   recomendação de 60 d em blocos fica. Aberto: causa das ~12 h de sinais diferentes.
 - **Pendentes:** atualizar seções 3 e 6 do documento; REPRODUZIR → e733279; texto revisado dos 8 itens.
   _(registrado em 21/11/2026 09:47)_
+- **Feito (21/11):** documento à engenharia na versão de 21/11 (seção 3: tabela nova de instalação e "PLENA não
+  garante igualdade"; seção 6: custo da e733279 com o e17bf27 ao lado; J17 e J18 na lista de testes). J18 e documento
+  levados à `frente-thallys/reproducao`; mensagem ao Thallys em `~/FRENTE_THALLYS/relato-thallys-21-11.md` (não
+  enviada). _(registrado em 21/11/2026 10:30)_
 
 ### 20–21/11/2026 — J17: sonda de vibração ausente derrubava o motor; corrigido (frente Thallys)
 - **Contexto:** o Thallys montou a `feat/pacote-respostas-engenharia` (e733279; motor no pacote sem alteração,
