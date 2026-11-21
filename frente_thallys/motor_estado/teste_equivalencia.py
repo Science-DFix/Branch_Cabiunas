@@ -13,9 +13,16 @@ alarme idênticos. Sai com código 0 se tudo for igual, 1 se não. Grava o resum
 
 Precisa só do pacote (`scripts/cabiunas_inference.py`, `modelos/`, `registro_trips.csv`), pandas, numpy e pyarrow.
 """
-import argparse
-import json
-import sys
+import os
+
+# Uma thread de BLAS: mesma saída e ~1/10 da CPU no passo do motor (J19). Tem de vir antes de importar o numpy.
+# Quem já definiu a variável no ambiente prevalece.
+for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ.setdefault(_var, "1")
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+import sys  # noqa: E402
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor

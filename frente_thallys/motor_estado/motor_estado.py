@@ -20,6 +20,10 @@ Uso (a entrada é a grade de 2 min, `ci.preparar_grade` sobre o export de 30 s, 
 
 Validado contra o lote de 60 d com igualdade exata (sinais |Δ| <= 1e-9, máscara e alarme idênticos): ver
 `teste_equivalencia.py` nesta pasta. Origem: J2 e J34 (frente_thallys).
+
+Threads: rodar com uma thread de BLAS (OMP_NUM_THREADS, OPENBLAS_NUM_THREADS e MKL_NUM_THREADS = 1, definidos antes de
+importar o numpy, no executável que chama o motor). Saída idêntica em 10/10 passos; CPU 4,7 -> 0,4 s e duração
+0,50 -> 0,40 s por passo, num processo novo (J19). Este módulo não define isso: importado, o numpy já foi carregado.
 """
 import contextlib
 import io

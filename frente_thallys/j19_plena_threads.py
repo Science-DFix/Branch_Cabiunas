@@ -38,6 +38,32 @@ CRITÉRIO: (1) se só o vb diverge e o decaimento bate com a meia-vida, a diverg
   é dele. (3) se idêntica e CPU menor, o 1 thread vai para o comando do motor (nosso), e o Thallys puxa.
 LIMITES: os do J18 (8 trips, 6 datas, Cica).
 
+RESULTADO (task ade8113e, Cica, 10,6 min, commit 2f53f9c). V1: as 30 instalações repetem o J18 (PLENA 19,12/12,25/0/0/0 d;
+  divergências 3/4/2/0/0).
+  (1) Nos 8 casos de sinais, SÓ o vb diverge (t, p, sp: 0 linhas); |Δvb| máx 0,004–0,25; a última divergência sai
+      10,9–13,9 h depois da entrada em PLENA; meia-vida implícita do decaimento 0,50 h nos 8 = meia-vida do vb no
+      bundle (30 min).
+  (2) regra              instalações com divergência   PLENA em, mediana (máx), por carga 0 / 7 / 30 / 45 / 60 d
+      R0 (pacote)        9 (8 sinais, 1 alarme)        19,1 (52,5) / 12,3 (47,5) / 0 (1,3) / 0 / 0
+      R12                7 (6 sinais, 1 alarme)        19,6 / 12,8 / 0 / 0 / 0
+      R24                1 (só o alarme)               20,1 (53,5) / 13,3 (48,5) / 0 (2,3) / 0 / 0
+      R45                1 (só o alarme)               45 (52,5) / 38 / 15 / 0 / 0
+      R45_24             1 (só o alarme)               45 (53,5) / 38 / 15 / 0 / 0
+      O alarme que sobra é sempre 01/01/2026 com carga de 30 d: 11.848 linhas em R0/R12/R24, 4.419 (16–23/01) em R45.
+      A regra antiga do J34 (PLENA em 33 d nesse caso) é a única medida com 0 nas 30 (J18).
+  (3) motor do módulo, 10 passos: saída idêntica 10/10; CPU 4,68 -> 0,40 s; duração 0,504 -> 0,403 s; RAM 141 -> 140 MB.
+PLACAR: (1) só vb SIM; meia-vida ±25% SIM (0,50 = 0,50). (2) R12 ou R24 zera os sinais SIM (R24; R12 não);
+  não zera o alarme de 01/01/26 SIM; R45 zera o alarme NÃO (4.419 linhas); R45_24 zera tudo NÃO; R45_24 sem carga em
+  45–65 d e com 60 d desde T0 SIM. (3) idêntica SIM; CPU >= 50% SIM (-91%); duração ±10% NÃO (-20%).
+LEITURA: (1) explicado: é o EWMA do vb (meia-vida 30 min) levando para dentro da PLENA a diferença dos blocos com base
+  truncada; não é erro do motor, e nenhum alarme muda. (2) nenhuma regra testada zera as 30 (o critério previa uma).
+  R24 (PLENA 24 h depois da base cheia) zera os sinais em todas, ao custo de +1 d. O alarme de 01/01/2026 com carga de
+  30 d não sai por regra de dias até 45 d: é a cadeia da decisão montada sobre a carga curta, que só se alinha à
+  referência em 23/01. Só a carga >= 45 d (ou a regra antiga, 33 d nesse caso) resolve. Recomendação ao Thallys:
+  R24 no `estado_saida` e carga inicial >= 45 d (recomendada 60 d) como condição da instalação. (3) o 1 thread entra no
+  `teste_equivalencia.py` e no docstring do `motor_estado.py` (o módulo não pode definir: o numpy já foi importado).
+  _(registrado em 21/11/2026 12:51)_
+
 Uso:
   python frente_thallys/j19_plena_threads.py --enqueue
 """
