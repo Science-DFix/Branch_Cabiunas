@@ -177,6 +177,9 @@ pré-registro, resultado, decisão.
   garante igualdade"; seção 6: custo da e733279 com o e17bf27 ao lado; J17 e J18 na lista de testes). J18 e documento
   levados à `frente-thallys/reproducao`; mensagem ao Thallys em `~/FRENTE_THALLYS/relato-thallys-21-11.md` (não
   enviada). _(registrado em 21/11/2026 10:30)_
+- **Conferência pela `frente-thallys/reproducao`** (`3f415c7`, task `fb9618a6`): parte B idêntica (30 instalações e
+  placar); parte A dentro do ruído (RAM ±2 MB, duração ±0,1 s). Registrado no REPRODUZIR (`1f01273`).
+  _(registrado em 21/11/2026)_
 
 ### 20–21/11/2026 — J17: sonda de vibração ausente derrubava o motor; corrigido (frente Thallys)
 - **Contexto:** o Thallys montou a `feat/pacote-respostas-engenharia` (e733279; motor no pacote sem alteração,
