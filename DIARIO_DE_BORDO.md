@@ -161,6 +161,15 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 23/11/2026 — J20: regra R60_24 do Thallys nas 30 instalações — 0 de 30 (frente Thallys)
+- **J20** (task `802694ac`, pré-registro `73da7be`, `frente_thallys/j20_plena_r60_24.py`). Regra que o Thallys pôs no
+  `estado_saida` (135039e): base do vb cheia há 24 h e 60 d de dado desde o início (implementada pela descrição dele;
+  o commit não está nos nossos remotos). V1 = J18, V2 = J19.
+- **Resultado:** R60_24 com **0 de 30** instalações divergindo em PLENA (sinais e alarme); PLENA em 60 / 53 / 30 / 15 /
+  0 d para carga de 0 / 7 / 30 / 45 / 60 d. R60 (sem as 24 h) dá o mesmo: nas 30, quem manda são os 60 d.
+- **Decisão:** a regra fica como o Thallys pôs; carga inicial de 60 d = PLENA desde o 1º instante.
+  _(registrado em 23/11/2026 11:30)_
+
 ### 21/11/2026 — J19: causa das ~12 h no início da PLENA, regras de PLENA e motor com 1 thread (frente Thallys)
 - **J19** (task `ade8113e`, pré-registro `2f53f9c`, `frente_thallys/j19_plena_threads.py`). V1: repete o J18.
 - **Causa das ~12 h:** só o vb diverge; o decaimento tem meia-vida de 0,50 h = a do EWMA do vb no bundle. É a

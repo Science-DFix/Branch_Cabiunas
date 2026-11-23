@@ -23,6 +23,19 @@ CRITÉRIO: se R60_24 dá 0 de 30, a dedução do Thallys vira medida e a regra f
   instalações e quanto, e a decisão volta para ele.
 LIMITES: os do J18 (8 trips, 6 datas, Cica); 100 d por instalação (a PLENA de R60 cabe na janela).
 
+RESULTADO (task 802694ac, Cica, 9,9 min, commit 73da7be). V1: igual ao J18 (PLENA 19,12/12,25/0/0/0 d; divergências
+  3/4/2/0/0). V2: igual ao J19 (R24 e R45_24: 1 instalação, só alarme; R45_24 PLENA 45/38/15/0/0 d).
+      regra     instalações com divergência em PLENA   PLENA em, mediana (máx), por carga 0 / 7 / 30 / 45 / 60 d
+      R60_24    0 de 30 (sinais 0, alarme 0)          60 (60) / 53 (53) / 30 (30) / 15 (15) / 0 (0)
+      R60       0 de 30 (sinais 0, alarme 0)          60 (60) / 53 (53) / 30 (30) / 15 (15) / 0 (0)
+  Nenhuma instalação fica sem PLENA nos 100 d. As 24 h não mudam nada nas 30: aos 60 d a base já está cheia há bem
+  mais de 24 h.
+PLACAR: R60_24 0 de 30 SIM; dias SIM (60 / 53 / 30 / 15 / 0, exatos); R60 também 0 de 30 SIM.
+LEITURA: a dedução do Thallys vira medida: com R60_24, nenhuma das 30 instalações fica em PLENA divergindo da
+  referência, e com carga de 60 d a PLENA vale desde o 1º instante. Nas 30, quem manda é o critério dos 60 d; as 24 h
+  ficam como salvaguarda (sem efeito medido aqui). A regra fica como ele pôs.
+  _(registrado em 23/11/2026 11:30)_
+
 Uso:
   python frente_thallys/j20_plena_r60_24.py --enqueue
 """
