@@ -181,7 +181,7 @@ pré-registro, resultado, decisão.
   tags livres); motor "reproduz o lote quando instalado com 60 d de histórico" (J20). Não medidos por nós: antecedência
   3–48 h, 1,5 s do retreino, cadência de 15 min. Achado: o docstring do `cabiunas_inference.py` ainda cita o
   scikit-learn como dependência (avisado ao Thallys).
-  _(registrado em 23/11/2026 12:10)_
+  _(registrado em 23/11/2026 16:43)_
 
 ### 23/11/2026 — J20: regra R60_24 do Thallys nas 30 instalações — 0 de 30 (frente Thallys)
 - **J20** (task `802694ac`, pré-registro `73da7be`, `frente_thallys/j20_plena_r60_24.py`). Regra que o Thallys pôs no
