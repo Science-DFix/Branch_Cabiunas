@@ -161,6 +161,28 @@ em `de18d60`.
 Uma entrada por teste, da mais recente para a mais antiga: data, abordagem, script, commit do
 pré-registro, resultado, decisão.
 
+### 23/11/2026 — Retorno do Thallys ao J19/J20 e resumo ao prof. André (frente Thallys)
+- **Thallys (23/11):** trouxe `motor_estado.py` e `teste_equivalencia.py` do `726704b` para a
+  `feat/pacote-respostas-engenharia` (`040c0e8`); conferiu: sem a TV_353X_A a versão antiga dá KeyError e a nossa
+  iguala o lote; regressão 2025–26 com reinício, 1.708 atualizações, 0 diferenças. Adotou no `estado_saida`
+  (`135039e`) PLENA = base cheia há 24 h + 60 d de dado → medido no J20 (0 de 30).
+- **Perguntas dele, respondidas:** (1) estado do motor 3,3 MB × os 3,97–4,26 MB dele: a nossa medida é só
+  `tab.parquet` + `buf.parquet` (10^6 bytes), uma vez no fim do teste (J34 3,3; J15 2,99; J17 2,84–2,99); a faixa dele
+  cobre 2025–26 e é plausível; sugerido "~3 a 4,3 MB por equipamento". (2) com a regra R60_24, a carga inicial de 60 d
+  deixa de ser necessária para a correção e passa a ser condição para começar em PLENA (sem carga, 60 d até a PLENA).
+- **`frente-thallys/reproducao`:** tirado o nosso documento à engenharia (`726704b`; o documento para a engenharia é do
+  Thallys) e acrescentado o J20 (`7faa671`).
+- **Resumo ao prof. André** (texto do Thallys; `~/FRENTE_THALLYS/resumo-andre-23-11.md`): conferido contra o código e
+  o bundle da `e733279` (Dataset `bed2e62f`). Confere: sinais (PCA 14/12 tags, spread LNA × 3 irmãos, vb 10 sondas ×
+  400 h), degrau 30 min ou CUSUM, voto 3/4 baixo ou 2/4 alto com sp/vb, duração 120/60 min, retreino mensal no dia 1 com
+  20.000 pontos, JSON (pickle só legado), inferência só numpy/pandas, saída normal/atenção/alarme + estado. Corrigidos
+  por nós: "< 1 s" → "~1 s" (lote 60 d 1,3 s; motor 0,4 s); retreino usa sklearn; "nada roda ao vivo" = dados só até
+  30/04/2026 e sem acesso à API do PI; linha da OCSVM (8/8 a ~2,8 FP/mês, dependente de tags vistas nos trips; 5/8 com
+  tags livres); motor "reproduz o lote quando instalado com 60 d de histórico" (J20). Não medidos por nós: antecedência
+  3–48 h, 1,5 s do retreino, cadência de 15 min. Achado: o docstring do `cabiunas_inference.py` ainda cita o
+  scikit-learn como dependência (avisado ao Thallys).
+  _(registrado em 23/11/2026 12:10)_
+
 ### 23/11/2026 — J20: regra R60_24 do Thallys nas 30 instalações — 0 de 30 (frente Thallys)
 - **J20** (task `802694ac`, pré-registro `73da7be`, `frente_thallys/j20_plena_r60_24.py`). Regra que o Thallys pôs no
   `estado_saida` (135039e): base do vb cheia há 24 h e 60 d de dado desde o início (implementada pela descrição dele;
