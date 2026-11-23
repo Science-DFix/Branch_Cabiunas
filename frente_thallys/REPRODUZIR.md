@@ -1,6 +1,6 @@
 # Frente Thallys: como reproduzir os testes da resposta à engenharia (TC-33003A)
 
-Os testes J1 a J19 respondem às perguntas da engenharia (TC-33003A). Cada
+Os testes J1 a J20 respondem às perguntas da engenharia (TC-33003A). Cada
 script tem no docstring o pré-registro (perguntas, desenho, expectativas, critério), commitado antes de rodar, e o
 resultado registrado depois. O registro cronológico está em `DIARIO_DE_BORDO.md`, na raiz do repositório.
 
@@ -66,6 +66,7 @@ diferentes, com e sem `--reinicio`. Na J17, também sem uma sonda TV_ e sem as 1
 | J17 | `j17_sonda_ausente.py` (usa `motor_estado/` e o pacote `e733279`) | `896d034c` | Sonda de vibração ausente do CSV derruba o motor? A correção iguala o lote? |
 | J18 | `j18_e733279_ram_plena.py` (usa `j11`, `j34` e o pacote `e733279`) | `4e026612` | RAM do lote no `e733279` × `e17bf27`; "`PLENA` em" pela regra do `estado_saida` nas 30 instalações do J34 |
 | J19 | `j19_plena_threads.py` (+ `j19_motor_cmd.py`; usa `j18` e o pacote `e733279`) | `ade8113e` | Causa das ~12 h de vb diferente no início da PLENA; regras de PLENA alternativas; motor do módulo com 1 thread |
+| J20 | `j20_plena_r60_24.py` (usa `j19`, `j18` e o pacote `e733279`) | `802694ac` | Regra R60_24 de PLENA (135039e) nas 30 instalações: 0 divergindo? |
 
 **Conferência desta branch (21/11/2026).** J16 e J17 foram rodados de novo no Cica a partir da própria
 `frente-thallys/reproducao` (commit `22bf4c1`), com resultado idêntico ao original: J16 task `3ec83759`
